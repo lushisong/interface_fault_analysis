@@ -1,0 +1,195 @@
+{
+  "id": "00131937-24dc-450b-9192-c8bd0e49e05a",
+  "name": "智能温控系统",
+  "description": "基于传感器的智能温度控制系统",
+  "created_time": "2025-10-03T17:12:58.532619",
+  "modified_time": "2025-10-03T17:12:58.532761",
+  "version": "1.0",
+  "modules": {
+    "907b41bf-bd9f-4ea1-950a-15c7995392a4": {
+      "id": "907b41bf-bd9f-4ea1-950a-15c7995392a4",
+      "name": "温度传感器",
+      "description": "用于测量环境温度的传感器",
+      "created_time": "2025-10-03T17:12:58.532633",
+      "modified_time": "2025-10-03T17:12:58.532642",
+      "version": "1.0",
+      "module_type": "hardware",
+      "template": null,
+      "position": {
+        "x": 0.0,
+        "y": 0.0
+      },
+      "size": {
+        "x": 100,
+        "y": 60
+      },
+      "icon_path": "",
+      "connection_points": [
+        {
+          "id": "13fcb262-c1e6-4e1a-9a99-1d61992a3a88",
+          "name": "温度输出",
+          "position": {
+            "x": 100,
+            "y": 30
+          },
+          "connection_type": "output",
+          "data_type": "signal",
+          "variables": [
+            "temperature"
+          ],
+          "connected_to": []
+        }
+      ],
+      "parameters": {},
+      "state_variables": {},
+      "python_code": "\n# 温度传感器模拟\nimport random\ntemperature = 20 + random.uniform(-5, 5)  # 模拟温度变化\noutputs['temperature'] = temperature\n",
+      "is_template": false,
+      "manufacturer": "Bosch",
+      "model": "BME280",
+      "specifications": {},
+      "power_consumption": 0.003,
+      "operating_temperature": [
+        -40,
+        85
+      ],
+      "reliability_data": {}
+    },
+    "88bda913-2ace-4e74-b4d3-12bc19fddf60": {
+      "id": "88bda913-2ace-4e74-b4d3-12bc19fddf60",
+      "name": "温度控制器",
+      "description": "温度控制算法软件",
+      "created_time": "2025-10-03T17:12:58.532671",
+      "modified_time": "2025-10-03T17:12:58.532671",
+      "version": "1.0",
+      "module_type": "software",
+      "template": null,
+      "position": {
+        "x": 0.0,
+        "y": 0.0
+      },
+      "size": {
+        "x": 100,
+        "y": 60
+      },
+      "icon_path": "",
+      "connection_points": [],
+      "parameters": {},
+      "state_variables": {},
+      "python_code": "",
+      "is_template": false,
+      "software_version": "1.0",
+      "programming_language": "Python",
+      "dependencies": [],
+      "memory_usage": 50,
+      "cpu_usage": 0.0,
+      "execution_time": 0.0
+    },
+    "246e0d30-3245-4dce-bc62-3711e7545071": {
+      "id": "246e0d30-3245-4dce-bc62-3711e7545071",
+      "name": "PID控制算法",
+      "description": "比例-积分-微分控制算法",
+      "created_time": "2025-10-03T17:12:58.532689",
+      "modified_time": "2025-10-03T17:12:58.532690",
+      "version": "1.0",
+      "module_type": "algorithm",
+      "template": null,
+      "position": {
+        "x": 0.0,
+        "y": 0.0
+      },
+      "size": {
+        "x": 100,
+        "y": 60
+      },
+      "icon_path": "",
+      "connection_points": [],
+      "parameters": {},
+      "state_variables": {},
+      "python_code": "",
+      "is_template": false,
+      "algorithm_type": "PID控制",
+      "complexity": "O(1)",
+      "accuracy": 0.95,
+      "performance_metrics": {},
+      "training_data": "",
+      "model_parameters": {}
+    }
+  },
+  "interfaces": {
+    "360952fc-9e26-4a10-b43b-dbdf076e3a31": {
+      "id": "360952fc-9e26-4a10-b43b-dbdf076e3a31",
+      "name": "传感器-控制器接口",
+      "description": "传感器与控制器之间的数据接口",
+      "created_time": "2025-10-03T17:12:58.532727",
+      "modified_time": "2025-10-03T17:12:58.532730",
+      "version": "1.0",
+      "interface_type": "algorithm_hardware",
+      "subtype": null,
+      "source_module_id": "907b41bf-bd9f-4ea1-950a-15c7995392a4",
+      "target_module_id": "88bda913-2ace-4e74-b4d3-12bc19fddf60",
+      "protocol": "I2C",
+      "data_format": "JSON",
+      "bandwidth": 100,
+      "latency": 10,
+      "reliability": 0.999,
+      "failure_modes": [
+        {
+          "failure_mode": "communication_failure",
+          "name": "通信失效",
+          "description": "I2C总线通信中断",
+          "severity": 8,
+          "occurrence_rate": 0.001,
+          "detection_rate": 0.9,
+          "trigger_conditions": [],
+          "effects": [],
+          "mitigation_measures": [],
+          "python_code": ""
+        }
+      ],
+      "python_code": "",
+      "parameters": {}
+    }
+  },
+  "connections": {},
+  "environment_models": {},
+  "task_profiles": {
+    "44588e8d-fc4e-4fe7-91e0-7b8dcd001f18": {
+      "id": "44588e8d-fc4e-4fe7-91e0-7b8dcd001f18",
+      "name": "温度控制任务",
+      "description": "维持室内温度在设定范围内",
+      "created_time": "2025-10-03T17:12:58.532757",
+      "modified_time": "2025-10-03T17:12:58.532760",
+      "version": "1.0",
+      "duration": 3600,
+      "priority": 1,
+      "success_criteria": [
+        {
+          "name": "温度稳定性",
+          "criteria_type": "threshold",
+          "target_module_id": "907b41bf-bd9f-4ea1-950a-15c7995392a4",
+          "target_parameter": "temperature",
+          "threshold_value": 22.0,
+          "comparison_operator": "<=",
+          "python_code": "",
+          "weight": 1.0,
+          "enabled": true
+        }
+      ],
+      "initial_conditions": {},
+      "environment_conditions": {},
+      "expected_outputs": {},
+      "fault_tree_analysis_results": {},
+      "analysis_completed": false
+    }
+  },
+  "current_task_profile_id": "44588e8d-fc4e-4fe7-91e0-7b8dcd001f18",
+  "canvas_size": {
+    "x": 1200,
+    "y": 800
+  },
+  "zoom_level": 1.0,
+  "view_offset": {
+    "x": 0,
+    "y": 0
+  }
+}

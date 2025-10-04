@@ -1,0 +1,774 @@
+{
+  "id": "65e89f08-c27b-4325-b79d-a1e1c2c5cf93",
+  "name": "无人机智能系统",
+  "description": "基于多传感器融合的无人机智能监控系统",
+  "created_time": "2025-10-03T17:40:04.074277",
+  "modified_time": "2025-10-03T17:40:04.074478",
+  "version": "1.0",
+  "modules": {
+    "764c9232-658f-4599-b7ea-b6b56a13d7c4": {
+      "id": "764c9232-658f-4599-b7ea-b6b56a13d7c4",
+      "name": "GPS传感器",
+      "description": "全球定位系统传感器",
+      "created_time": "2025-10-03T17:40:04.074299",
+      "modified_time": "2025-10-03T17:40:04.074300",
+      "version": "1.0",
+      "module_type": "hardware",
+      "template": "sensor",
+      "position": {
+        "x": 100,
+        "y": 100
+      },
+      "size": {
+        "x": 100,
+        "y": 60
+      },
+      "icon_path": "",
+      "connection_points": [],
+      "parameters": {
+        "accuracy": "±3m",
+        "update_rate": "10Hz",
+        "power_consumption": "0.5W"
+      },
+      "state_variables": {},
+      "python_code": "",
+      "is_template": false
+    },
+    "91b0a8ca-4951-4d3b-9d2c-3ca9e0a71925": {
+      "id": "91b0a8ca-4951-4d3b-9d2c-3ca9e0a71925",
+      "name": "IMU传感器",
+      "description": "惯性测量单元",
+      "created_time": "2025-10-03T17:40:04.074313",
+      "modified_time": "2025-10-03T17:40:04.074313",
+      "version": "1.0",
+      "module_type": "hardware",
+      "template": "sensor",
+      "position": {
+        "x": 250,
+        "y": 100
+      },
+      "size": {
+        "x": 100,
+        "y": 60
+      },
+      "icon_path": "",
+      "connection_points": [],
+      "parameters": {
+        "gyro_range": "±2000°/s",
+        "accel_range": "±16g",
+        "update_rate": "100Hz"
+      },
+      "state_variables": {},
+      "python_code": "",
+      "is_template": false
+    },
+    "388ea14d-1a38-464f-be85-379de60fe4df": {
+      "id": "388ea14d-1a38-464f-be85-379de60fe4df",
+      "name": "视觉传感器",
+      "description": "高清摄像头",
+      "created_time": "2025-10-03T17:40:04.074323",
+      "modified_time": "2025-10-03T17:40:04.074323",
+      "version": "1.0",
+      "module_type": "hardware",
+      "template": "sensor",
+      "position": {
+        "x": 400,
+        "y": 100
+      },
+      "size": {
+        "x": 100,
+        "y": 60
+      },
+      "icon_path": "",
+      "connection_points": [],
+      "parameters": {
+        "resolution": "1920x1080",
+        "frame_rate": "30fps",
+        "field_of_view": "90°"
+      },
+      "state_variables": {},
+      "python_code": "",
+      "is_template": false
+    },
+    "9c51b3ba-2199-4a05-853b-c6edb52841b0": {
+      "id": "9c51b3ba-2199-4a05-853b-c6edb52841b0",
+      "name": "激光雷达",
+      "description": "3D激光雷达传感器",
+      "created_time": "2025-10-03T17:40:04.074332",
+      "modified_time": "2025-10-03T17:40:04.074333",
+      "version": "1.0",
+      "module_type": "hardware",
+      "template": "sensor",
+      "position": {
+        "x": 550,
+        "y": 100
+      },
+      "size": {
+        "x": 100,
+        "y": 60
+      },
+      "icon_path": "",
+      "connection_points": [],
+      "parameters": {
+        "range": "100m",
+        "accuracy": "±2cm",
+        "scan_rate": "10Hz"
+      },
+      "state_variables": {},
+      "python_code": "",
+      "is_template": false
+    },
+    "f164a4e3-136a-4132-bff1-a6d7d085a439": {
+      "id": "f164a4e3-136a-4132-bff1-a6d7d085a439",
+      "name": "飞控系统",
+      "description": "飞行控制器",
+      "created_time": "2025-10-03T17:40:04.074344",
+      "modified_time": "2025-10-03T17:40:04.074344",
+      "version": "1.0",
+      "module_type": "hardware",
+      "template": "processor",
+      "position": {
+        "x": 200,
+        "y": 250
+      },
+      "size": {
+        "x": 100,
+        "y": 60
+      },
+      "icon_path": "",
+      "connection_points": [],
+      "parameters": {
+        "cpu": "ARM Cortex-A72",
+        "memory": "4GB RAM",
+        "storage": "32GB eMMC"
+      },
+      "state_variables": {},
+      "python_code": "",
+      "is_template": false
+    },
+    "1bf84235-0197-4392-a753-07e3f8a22840": {
+      "id": "1bf84235-0197-4392-a753-07e3f8a22840",
+      "name": "AI处理器",
+      "description": "人工智能计算单元",
+      "created_time": "2025-10-03T17:40:04.074352",
+      "modified_time": "2025-10-03T17:40:04.074352",
+      "version": "1.0",
+      "module_type": "hardware",
+      "template": "processor",
+      "position": {
+        "x": 400,
+        "y": 250
+      },
+      "size": {
+        "x": 100,
+        "y": 60
+      },
+      "icon_path": "",
+      "connection_points": [],
+      "parameters": {
+        "gpu": "NVIDIA Jetson Xavier",
+        "ai_performance": "32 TOPS",
+        "power": "30W"
+      },
+      "state_variables": {},
+      "python_code": "",
+      "is_template": false
+    },
+    "ef164f12-d563-44ba-806a-ed87f1e3273c": {
+      "id": "ef164f12-d563-44ba-806a-ed87f1e3273c",
+      "name": "电机1",
+      "description": "前左螺旋桨电机",
+      "created_time": "2025-10-03T17:40:04.074362",
+      "modified_time": "2025-10-03T17:40:04.074363",
+      "version": "1.0",
+      "module_type": "hardware",
+      "template": "actuator",
+      "position": {
+        "x": 100,
+        "y": 400
+      },
+      "size": {
+        "x": 100,
+        "y": 60
+      },
+      "icon_path": "",
+      "connection_points": [],
+      "parameters": {
+        "max_power": "500W",
+        "max_rpm": "8000"
+      },
+      "state_variables": {},
+      "python_code": "",
+      "is_template": false
+    },
+    "292730fc-c839-494c-ba70-7b7d7624ddb2": {
+      "id": "292730fc-c839-494c-ba70-7b7d7624ddb2",
+      "name": "电机2",
+      "description": "前右螺旋桨电机",
+      "created_time": "2025-10-03T17:40:04.074370",
+      "modified_time": "2025-10-03T17:40:04.074370",
+      "version": "1.0",
+      "module_type": "hardware",
+      "template": "actuator",
+      "position": {
+        "x": 250,
+        "y": 400
+      },
+      "size": {
+        "x": 100,
+        "y": 60
+      },
+      "icon_path": "",
+      "connection_points": [],
+      "parameters": {
+        "max_power": "500W",
+        "max_rpm": "8000"
+      },
+      "state_variables": {},
+      "python_code": "",
+      "is_template": false
+    },
+    "04b3c2ec-215d-4e16-8627-300e4ad5f7b3": {
+      "id": "04b3c2ec-215d-4e16-8627-300e4ad5f7b3",
+      "name": "电机3",
+      "description": "后左螺旋桨电机",
+      "created_time": "2025-10-03T17:40:04.074377",
+      "modified_time": "2025-10-03T17:40:04.074378",
+      "version": "1.0",
+      "module_type": "hardware",
+      "template": "actuator",
+      "position": {
+        "x": 400,
+        "y": 400
+      },
+      "size": {
+        "x": 100,
+        "y": 60
+      },
+      "icon_path": "",
+      "connection_points": [],
+      "parameters": {
+        "max_power": "500W",
+        "max_rpm": "8000"
+      },
+      "state_variables": {},
+      "python_code": "",
+      "is_template": false
+    },
+    "8c7d80a5-e517-4b5a-98ed-8874dc7f4990": {
+      "id": "8c7d80a5-e517-4b5a-98ed-8874dc7f4990",
+      "name": "电机4",
+      "description": "后右螺旋桨电机",
+      "created_time": "2025-10-03T17:40:04.074385",
+      "modified_time": "2025-10-03T17:40:04.074385",
+      "version": "1.0",
+      "module_type": "hardware",
+      "template": "actuator",
+      "position": {
+        "x": 550,
+        "y": 400
+      },
+      "size": {
+        "x": 100,
+        "y": 60
+      },
+      "icon_path": "",
+      "connection_points": [],
+      "parameters": {
+        "max_power": "500W",
+        "max_rpm": "8000"
+      },
+      "state_variables": {},
+      "python_code": "",
+      "is_template": false
+    },
+    "e0313d88-334e-4cc9-b5b2-a0a05a9ebc2f": {
+      "id": "e0313d88-334e-4cc9-b5b2-a0a05a9ebc2f",
+      "name": "通信模块",
+      "description": "无线通信系统",
+      "created_time": "2025-10-03T17:40:04.074398",
+      "modified_time": "2025-10-03T17:40:04.074398",
+      "version": "1.0",
+      "module_type": "hardware",
+      "template": "communication",
+      "position": {
+        "x": 300,
+        "y": 550
+      },
+      "size": {
+        "x": 100,
+        "y": 60
+      },
+      "icon_path": "",
+      "connection_points": [],
+      "parameters": {
+        "frequency": "2.4GHz/5.8GHz",
+        "range": "10km",
+        "data_rate": "100Mbps"
+      },
+      "state_variables": {},
+      "python_code": "",
+      "is_template": false
+    }
+  },
+  "interfaces": {
+    "fc928a31-aba4-4834-9214-30e239129b51": {
+      "id": "fc928a31-aba4-4834-9214-30e239129b51",
+      "name": "GPS数据接口",
+      "description": "GPS传感器到飞控的数据接口",
+      "created_time": "2025-10-03T17:40:04.074423",
+      "modified_time": "2025-10-03T17:40:04.074433",
+      "version": "1.0",
+      "interface_type": "sensor_to_controller",
+      "subtype": null,
+      "source_module_id": "",
+      "target_module_id": "",
+      "protocol": "UART",
+      "data_format": "",
+      "bandwidth": 0.0,
+      "latency": 0.0,
+      "reliability": 0.99,
+      "failure_modes": [
+        {
+          "failure_mode": "communication_failure",
+          "name": "GPS通信失效",
+          "description": "GPS传感器与飞控通信中断",
+          "severity": 1,
+          "occurrence_rate": 1e-06,
+          "detection_rate": 0.0,
+          "trigger_conditions": [],
+          "effects": [],
+          "mitigation_measures": [],
+          "python_code": ""
+        },
+        {
+          "failure_mode": "data_corruption",
+          "name": "GPS数据损坏",
+          "description": "GPS数据在传输过程中损坏",
+          "severity": 1,
+          "occurrence_rate": 5e-07,
+          "detection_rate": 0.0,
+          "trigger_conditions": [],
+          "effects": [],
+          "mitigation_measures": [],
+          "python_code": ""
+        }
+      ],
+      "python_code": "",
+      "parameters": {}
+    },
+    "371a98b4-575d-48f5-9ddf-e0c83c42f291": {
+      "id": "371a98b4-575d-48f5-9ddf-e0c83c42f291",
+      "name": "IMU数据接口",
+      "description": "IMU传感器到飞控的数据接口",
+      "created_time": "2025-10-03T17:40:04.074441",
+      "modified_time": "2025-10-03T17:40:04.074444",
+      "version": "1.0",
+      "interface_type": "sensor_to_controller",
+      "subtype": null,
+      "source_module_id": "",
+      "target_module_id": "",
+      "protocol": "SPI",
+      "data_format": "",
+      "bandwidth": 0.0,
+      "latency": 0.0,
+      "reliability": 0.99,
+      "failure_modes": [
+        {
+          "failure_mode": "communication_failure",
+          "name": "IMU通信失效",
+          "description": "",
+          "severity": 1,
+          "occurrence_rate": 2e-06,
+          "detection_rate": 0.0,
+          "trigger_conditions": [],
+          "effects": [],
+          "mitigation_measures": [],
+          "python_code": ""
+        }
+      ],
+      "python_code": "",
+      "parameters": {}
+    },
+    "e2884ada-d5f8-45a0-897f-4f82f05a39bd": {
+      "id": "e2884ada-d5f8-45a0-897f-4f82f05a39bd",
+      "name": "视觉数据接口",
+      "description": "摄像头到AI处理器的数据接口",
+      "created_time": "2025-10-03T17:40:04.074453",
+      "modified_time": "2025-10-03T17:40:04.074456",
+      "version": "1.0",
+      "interface_type": "sensor_to_ai",
+      "subtype": null,
+      "source_module_id": "",
+      "target_module_id": "",
+      "protocol": "CSI-2",
+      "data_format": "",
+      "bandwidth": 0.0,
+      "latency": 0.0,
+      "reliability": 0.99,
+      "failure_modes": [
+        {
+          "failure_mode": "communication_failure",
+          "name": "视觉数据传输失效",
+          "description": "",
+          "severity": 1,
+          "occurrence_rate": 3e-06,
+          "detection_rate": 0.0,
+          "trigger_conditions": [],
+          "effects": [],
+          "mitigation_measures": [],
+          "python_code": ""
+        }
+      ],
+      "python_code": "",
+      "parameters": {}
+    },
+    "8b67c3fd-b22d-489e-8e49-a8a78e450535": {
+      "id": "8b67c3fd-b22d-489e-8e49-a8a78e450535",
+      "name": "电机控制接口",
+      "description": "飞控到电机的控制接口",
+      "created_time": "2025-10-03T17:40:04.074462",
+      "modified_time": "2025-10-03T17:40:04.074464",
+      "version": "1.0",
+      "interface_type": "controller_to_actuator",
+      "subtype": null,
+      "source_module_id": "",
+      "target_module_id": "",
+      "protocol": "PWM",
+      "data_format": "",
+      "bandwidth": 0.0,
+      "latency": 0.0,
+      "reliability": 0.99,
+      "failure_modes": [
+        {
+          "failure_mode": "communication_failure",
+          "name": "电机控制失效",
+          "description": "",
+          "severity": 1,
+          "occurrence_rate": 1e-05,
+          "detection_rate": 0.0,
+          "trigger_conditions": [],
+          "effects": [],
+          "mitigation_measures": [],
+          "python_code": ""
+        }
+      ],
+      "python_code": "",
+      "parameters": {}
+    },
+    "148de42b-4286-4f48-9082-ac75b0829b43": {
+      "id": "148de42b-4286-4f48-9082-ac75b0829b43",
+      "name": "无线通信接口",
+      "description": "无人机与地面站通信接口",
+      "created_time": "2025-10-03T17:40:04.074475",
+      "modified_time": "2025-10-03T17:40:04.074477",
+      "version": "1.0",
+      "interface_type": "wireless_communication",
+      "subtype": null,
+      "source_module_id": "",
+      "target_module_id": "",
+      "protocol": "WiFi/LTE",
+      "data_format": "",
+      "bandwidth": 0.0,
+      "latency": 0.0,
+      "reliability": 0.99,
+      "failure_modes": [
+        {
+          "failure_mode": "communication_failure",
+          "name": "无线通信中断",
+          "description": "",
+          "severity": 1,
+          "occurrence_rate": 0.0001,
+          "detection_rate": 0.0,
+          "trigger_conditions": [],
+          "effects": [],
+          "mitigation_measures": [],
+          "python_code": ""
+        }
+      ],
+      "python_code": "",
+      "parameters": {}
+    }
+  },
+  "connections": {},
+  "environment_models": {
+    "38a79983-4f38-4f5e-9477-43e8cdab054b": {
+      "id": "38a79983-4f38-4f5e-9477-43e8cdab054b",
+      "name": "恶劣天气环境",
+      "description": "包含强风、降雨等恶劣天气条件",
+      "created_time": "2025-10-03T17:40:04.074561",
+      "modified_time": "2025-10-03T17:40:04.074571",
+      "version": "1.0",
+      "environment_type": "weather",
+      "stress_factors": [
+        {
+          "name": "风速",
+          "stress_type": "custom",
+          "description": "环境风速变化",
+          "base_value": 10.0,
+          "variation_range": 15.0,
+          "distribution": "normal",
+          "time_profile": "random",
+          "duration": 3600.0,
+          "start_time": 0.0,
+          "enabled": true,
+          "parameters": {},
+          "python_code": ""
+        },
+        {
+          "name": "降雨强度",
+          "stress_type": "custom",
+          "description": "降雨强度变化",
+          "base_value": 5.0,
+          "variation_range": 10.0,
+          "distribution": "exponential",
+          "time_profile": "linear",
+          "duration": 1800.0,
+          "start_time": 0.0,
+          "enabled": true,
+          "parameters": {},
+          "python_code": ""
+        }
+      ],
+      "parameters": {},
+      "python_code": "",
+      "position": {
+        "x": 50,
+        "y": 50
+      },
+      "size": {
+        "width": 120,
+        "height": 80
+      },
+      "icon_path": "",
+      "color": "#87CEEB",
+      "affected_modules": [
+        "764c9232-658f-4599-b7ea-b6b56a13d7c4",
+        "388ea14d-1a38-464f-be85-379de60fe4df",
+        "e0313d88-334e-4cc9-b5b2-a0a05a9ebc2f"
+      ],
+      "enabled": true
+    },
+    "54e1b31c-c820-4a77-a12b-27451069d051": {
+      "id": "54e1b31c-c820-4a77-a12b-27451069d051",
+      "name": "电磁干扰环境",
+      "description": "电磁干扰对通信和导航的影响",
+      "created_time": "2025-10-03T17:40:04.074580",
+      "modified_time": "2025-10-03T17:40:04.074585",
+      "version": "1.0",
+      "environment_type": "electromagnetic",
+      "stress_factors": [
+        {
+          "name": "电磁场强度",
+          "stress_type": "electromagnetic",
+          "description": "电磁场强度变化",
+          "base_value": 5.0,
+          "variation_range": 3.0,
+          "distribution": "uniform",
+          "time_profile": "sinusoidal",
+          "duration": 3600.0,
+          "start_time": 0.0,
+          "enabled": true,
+          "parameters": {
+            "frequency": 0.1
+          },
+          "python_code": ""
+        }
+      ],
+      "parameters": {},
+      "python_code": "",
+      "position": {
+        "x": 200,
+        "y": 50
+      },
+      "size": {
+        "width": 120,
+        "height": 80
+      },
+      "icon_path": "",
+      "color": "#FFD700",
+      "affected_modules": [
+        "764c9232-658f-4599-b7ea-b6b56a13d7c4",
+        "e0313d88-334e-4cc9-b5b2-a0a05a9ebc2f"
+      ],
+      "enabled": true
+    },
+    "8f85b1da-4652-4060-8a08-38f7eaba5a57": {
+      "id": "8f85b1da-4652-4060-8a08-38f7eaba5a57",
+      "name": "高温环境",
+      "description": "高温对电子设备的影响",
+      "created_time": "2025-10-03T17:40:04.074592",
+      "modified_time": "2025-10-03T17:40:04.074599",
+      "version": "1.0",
+      "environment_type": "thermal",
+      "stress_factors": [
+        {
+          "name": "环境温度",
+          "stress_type": "temperature",
+          "description": "环境温度变化",
+          "base_value": 45.0,
+          "variation_range": 15.0,
+          "distribution": "normal",
+          "time_profile": "sinusoidal",
+          "duration": 3600.0,
+          "start_time": 0.0,
+          "enabled": true,
+          "parameters": {
+            "frequency": 0.05
+          },
+          "python_code": ""
+        }
+      ],
+      "parameters": {},
+      "python_code": "",
+      "position": {
+        "x": 350,
+        "y": 50
+      },
+      "size": {
+        "width": 120,
+        "height": 80
+      },
+      "icon_path": "",
+      "color": "#FF6B6B",
+      "affected_modules": [
+        "f164a4e3-136a-4132-bff1-a6d7d085a439",
+        "1bf84235-0197-4392-a753-07e3f8a22840",
+        "e0313d88-334e-4cc9-b5b2-a0a05a9ebc2f"
+      ],
+      "enabled": true
+    }
+  },
+  "task_profiles": {
+    "e2fdca12-2e6b-4426-835c-6896241c24d5": {
+      "id": "e2fdca12-2e6b-4426-835c-6896241c24d5",
+      "name": "巡航监控任务",
+      "description": "无人机执行区域巡航监控任务",
+      "created_time": "2025-10-03T17:40:04.074502",
+      "modified_time": "2025-10-03T17:40:04.074530",
+      "version": "1.0",
+      "mission_type": "surveillance",
+      "total_duration": 3600.0,
+      "success_criteria": [
+        {
+          "name": "GPS定位精度",
+          "description": "GPS定位精度满足要求",
+          "criteria_type": "module_output",
+          "module_id": "764c9232-658f-4599-b7ea-b6b56a13d7c4",
+          "parameter_name": "position_accuracy",
+          "operator": "<",
+          "target_value": 5.0,
+          "range_min": 0.0,
+          "range_max": 100.0,
+          "weight": 2.0,
+          "enabled": true,
+          "python_code": ""
+        },
+        {
+          "name": "飞行高度维持",
+          "description": "维持指定飞行高度",
+          "criteria_type": "module_output",
+          "module_id": "f164a4e3-136a-4132-bff1-a6d7d085a439",
+          "parameter_name": "altitude",
+          "operator": "in_range",
+          "target_value": 0.0,
+          "range_min": 95.0,
+          "range_max": 105.0,
+          "weight": 3.0,
+          "enabled": true,
+          "python_code": ""
+        },
+        {
+          "name": "通信链路正常",
+          "description": "与地面站通信正常",
+          "criteria_type": "module_output",
+          "module_id": "e0313d88-334e-4cc9-b5b2-a0a05a9ebc2f",
+          "parameter_name": "signal_strength",
+          "operator": ">",
+          "target_value": -80.0,
+          "range_min": 0.0,
+          "range_max": 100.0,
+          "weight": 2.0,
+          "enabled": true,
+          "python_code": ""
+        }
+      ],
+      "task_phases": [
+        {
+          "name": "起飞阶段",
+          "description": "无人机起飞到指定高度",
+          "start_time": 0.0,
+          "duration": 120.0,
+          "conditions": [],
+          "parameters": {},
+          "enabled": true
+        },
+        {
+          "name": "巡航阶段",
+          "description": "按预定路线巡航监控",
+          "start_time": 120.0,
+          "duration": 3300.0,
+          "conditions": [],
+          "parameters": {},
+          "enabled": true
+        },
+        {
+          "name": "降落阶段",
+          "description": "返回起飞点并降落",
+          "start_time": 3420.0,
+          "duration": 180.0,
+          "conditions": [],
+          "parameters": {},
+          "enabled": true
+        }
+      ],
+      "environment_conditions": {},
+      "initial_conditions": {},
+      "fault_tree_generated": false,
+      "fault_tree_data": {},
+      "analysis_results": {}
+    },
+    "9c70e580-f1b3-4756-8cd1-b997a2f2f1d3": {
+      "id": "9c70e580-f1b3-4756-8cd1-b997a2f2f1d3",
+      "name": "目标跟踪任务",
+      "description": "无人机执行特定目标跟踪任务",
+      "created_time": "2025-10-03T17:40:04.074536",
+      "modified_time": "2025-10-03T17:40:04.074541",
+      "version": "1.0",
+      "mission_type": "tracking",
+      "total_duration": 1800.0,
+      "success_criteria": [
+        {
+          "name": "目标跟踪精度",
+          "description": "目标跟踪精度满足要求",
+          "criteria_type": "module_output",
+          "module_id": "1bf84235-0197-4392-a753-07e3f8a22840",
+          "parameter_name": "tracking_accuracy",
+          "operator": ">",
+          "target_value": 0.9,
+          "range_min": 0.0,
+          "range_max": 100.0,
+          "weight": 3.0,
+          "enabled": true,
+          "python_code": ""
+        }
+      ],
+      "task_phases": [],
+      "environment_conditions": {},
+      "initial_conditions": {},
+      "fault_tree_generated": false,
+      "fault_tree_data": {},
+      "analysis_results": {}
+    }
+  },
+  "current_task_profile_id": "",
+  "canvas_size": {
+    "x": 1200,
+    "y": 800
+  },
+  "zoom_level": 1.0,
+  "view_offset": {
+    "x": 0,
+    "y": 0
+  }
+}
