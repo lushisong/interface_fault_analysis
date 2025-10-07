@@ -338,6 +338,47 @@ class ModuleGraphicsItem(QGraphicsRectItem):
         super().hoverLeaveEvent(event)
 
 
+class ControlPointItem(QGraphicsEllipseItem):
+    """控制点项"""
+    
+    def __init__(self, parent_connection, index, pos):
+        super().__init__(-5, -5, 10, 10)
+        self.parent_connection = parent_connection
+        self.index = index
+        self.setPos(pos)
+        
+        # 设置外观
+        self.setBrush(QBrush(QColor(255, 255, 0)))
+        self.setPen(QPen(QColor(0, 0, 0), 1))
+        self.setFlag(QGraphicsItem.ItemIsMovable, True)
+        self.setFlag(QGraphicsItem.ItemIsSelectable, True)
+        self.setFlag(QGraphicsItem.ItemSendsGeometryChanges, True)
+        self.setAcceptHoverEvents(True)
+    
+    def mouseMoveEvent(self, event):
+        """鼠标移动事件"""
+        super().mouseMoveEvent(event)
+        # 更新父连接的路径
+        self.parent_connection.update_path_from_control_points()
+    
+    def itemChange(self, change, value):
+        """项变化事件"""
+        if change == QGraphicsItem.ItemPositionChange:
+            # 限制控制点在场景范围内
+            scene_rect = self.scene().sceneRect()
+            new_pos = value
+            if new_pos.x() < scene_rect.left():
+                new_pos.setX(scene_rect.left())
+            elif new_pos.x() > scene_rect.right():
+                new_pos.setX(scene_rect.right())
+            if new_pos.y() < scene_rect.top():
+                new_pos.setY(scene_rect.top())
+            elif new_pos.y() > scene_rect.bottom():
+                new_pos.setY(scene_rect.bottom())
+            return new_pos
+        return super().itemChange(change, value)
+
+
 class ConnectionGraphicsItem(QGraphicsPathItem):
     """连接图形项"""
     
@@ -345,15 +386,52 @@ class ConnectionGraphicsItem(QGraphicsPathItem):
         super().__init__()
         self.connection = connection
         self.system_canvas = system_canvas
-        self.control_points = []  # 贝塞尔曲线控制点
+        self.control_point_items = []  # 控制点图形项列表
         
         # 设置外观
         self.setPen(QPen(QColor(0, 100, 200), 2))
         self.setFlag(QGraphicsItem.ItemIsSelectable, True)
         self.setAcceptHoverEvents(True)
         
+        # 创建控制点
+        self.create_control_points()
+        
         # 更新路径
         self.update_path()
+    
+    def create_control_points(self):
+        """创建控制点"""
+        # 清除现有控制点
+        for item in self.control_point_items:
+            if item.scene():
+                item.scene().removeItem(item)
+        self.control_point_items.clear()
+        
+        # 如果连接没有控制点数据，创建默认控制点
+        if not self.connection.connection_points:
+            source_item = self.system_canvas.graphics_items.get(self.connection.source_module_id)
+            target_item = self.system_canvas.graphics_items.get(self.connection.target_module_id)
+            
+            if source_item and target_item:
+                source_pos = source_item.get_interface_position(self.connection.source_point_id)
+                target_pos = target_item.get_interface_position(self.connection.target_point_id)
+                
+                if source_pos and target_pos:
+                    # 创建两个默认控制点
+                    dx = target_pos.x() - source_pos.x()
+                    dy = target_pos.y() - source_pos.y()
+                    
+                    cp1 = Point(source_pos.x() + dx * 0.3, source_pos.y())
+                    cp2 = Point(target_pos.x() - dx * 0.3, target_pos.y())
+                    
+                    self.connection.connection_points = [cp1, cp2]
+        
+        # 创建控制点图形项
+        for i, cp in enumerate(self.connection.connection_points):
+            control_point_item = ControlPointItem(self, i, QPointF(cp.x, cp.y))
+            self.control_point_items.append(control_point_item)
+            if self.scene():
+                self.scene().addItem(control_point_item)
     
     def update_path(self):
         """更新连线路径"""
@@ -374,27 +452,93 @@ class ConnectionGraphicsItem(QGraphicsPathItem):
         path = QPainterPath()
         path.moveTo(source_pos)
         
-        # 计算控制点，使连线更平滑
-        dx = target_pos.x() - source_pos.x()
-        dy = target_pos.y() - source_pos.y()
-        
-        # 使用两个控制点创建三次贝塞尔曲线
-        control1 = QPointF(source_pos.x() + dx * 0.3, source_pos.y())
-        control2 = QPointF(target_pos.x() - dx * 0.3, target_pos.y())
-        
-        path.cubicTo(control1, control2, target_pos)
+        # 如果有控制点，使用控制点创建曲线
+        if len(self.connection.connection_points) >= 2:
+            cp1 = QPointF(self.connection.connection_points[0].x, self.connection.connection_points[0].y)
+            cp2 = QPointF(self.connection.connection_points[1].x, self.connection.connection_points[1].y)
+            path.cubicTo(cp1, cp2, target_pos)
+        else:
+            # 计算默认控制点，使连线更平滑
+            dx = target_pos.x() - source_pos.x()
+            dy = target_pos.y() - source_pos.y()
+            
+            # 使用两个控制点创建三次贝塞尔曲线
+            control1 = QPointF(source_pos.x() + dx * 0.3, source_pos.y())
+            control2 = QPointF(target_pos.x() - dx * 0.3, target_pos.y())
+            
+            path.cubicTo(control1, control2, target_pos)
         
         self.setPath(path)
+    
+    def update_path_from_control_points(self):
+        """从控制点更新连线路径"""
+        # 更新连接的控制点数据
+        for i, cp_item in enumerate(self.control_point_items):
+            if i < len(self.connection.connection_points):
+                pos = cp_item.scenePos()
+                self.connection.connection_points[i].x = pos.x()
+                self.connection.connection_points[i].y = pos.y()
+        
+        # 更新路径
+        self.update_path()
+        
+        # 标记项目已修改
+        if self.system_canvas.project_manager:
+            self.system_canvas.project_manager.mark_modified()
+    
+    def contextMenuEvent(self, event):
+        """右键菜单事件"""
+        menu = QMenu()
+        delete_action = menu.addAction("删除连线")
+        
+        # 显示菜单并获取选择
+        action = menu.exec_(event.screenPos())
+        
+        if action == delete_action:
+            self.delete_connection()
+    
+    def delete_connection(self):
+        """删除连线"""
+        # 从系统中移除连接
+        if self.connection.id in self.system_canvas.current_system.connections:
+            del self.system_canvas.current_system.connections[self.connection.id]
+            
+            # 从场景中移除连接项和控制点
+            if self.scene():
+                self.scene().removeItem(self)
+                for cp_item in self.control_point_items:
+                    self.scene().removeItem(cp_item)
+            
+            # 标记项目已修改
+            if self.system_canvas.project_manager:
+                self.system_canvas.project_manager.mark_modified()
+            
+            QMessageBox.information(None, "删除成功", "连线已删除")
     
     def hoverEnterEvent(self, event):
         """鼠标悬停进入事件"""
         self.setPen(QPen(QColor(255, 0, 0), 3))  # 高亮显示
+        # 显示控制点
+        for cp_item in self.control_point_items:
+            cp_item.setVisible(True)
         super().hoverEnterEvent(event)
     
     def hoverLeaveEvent(self, event):
         """鼠标悬停离开事件"""
         self.setPen(QPen(QColor(0, 100, 200), 2))  # 恢复正常
+        # 隐藏控制点（除非被选中）
+        if not self.isSelected():
+            for cp_item in self.control_point_items:
+                cp_item.setVisible(False)
         super().hoverLeaveEvent(event)
+    
+    def itemChange(self, change, value):
+        """项变化事件"""
+        if change == QGraphicsItem.ItemSelectedChange:
+            # 选中状态变化时显示/隐藏控制点
+            for cp_item in self.control_point_items:
+                cp_item.setVisible(bool(value))
+        return super().itemChange(change, value)
 
 
 class SystemCanvas(QWidget):
@@ -684,7 +828,10 @@ class SystemCanvas(QWidget):
             if self.project_manager:
                 self.project_manager.mark_modified()
             
-            # 清除临时状态
+            # 清除临时状态和临时连线
+            if self.temp_line:
+                self.graphics_scene.removeItem(self.temp_line)
+                self.temp_line = None
             self.cleanup_connection()
             
             QMessageBox.information(self.graphics_view, "连线成功", "模块连接已创建")
@@ -822,6 +969,10 @@ class SystemCanvas(QWidget):
         connection_item = ConnectionGraphicsItem(connection, self)
         self.graphics_scene.addItem(connection_item)
         self.connection_items[connection.id] = connection_item
+        
+        # 初始隐藏控制点
+        for cp_item in connection_item.control_point_items:
+            cp_item.setVisible(False)
     
     def zoom_in(self):
         """放大"""
