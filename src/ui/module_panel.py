@@ -147,22 +147,6 @@ class ModulePanel(QWidget):
         # 添加保存按钮
         self.save_btn = QPushButton("保存模块")
         self.save_btn.setMinimumHeight(40)
-        self.save_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #4CAF50;
-                color: white;
-                font-weight: bold;
-                border: none;
-                border-radius: 4px;
-            }
-            QPushButton:hover {
-                background-color: #45a049;
-            }
-            QPushButton:disabled {
-                background-color: #cccccc;
-                color: #666666;
-            }
-        """)
         layout.addWidget(self.save_btn)
         
         right_widget.setLayout(layout)
