@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGraphicsView,
                              QGraphicsScene, QGraphicsItem, QGraphicsRectItem,
                              QGraphicsTextItem, QGraphicsLineItem, QGraphicsEllipseItem,
                              QGraphicsPathItem,
-                             QPushButton, QToolBar, QAction, QButtonGroup, QLabel, 
+                             QPushButton, QToolBar, QAction, QActionGroup, QLabel, 
                              QDialog, QFormLayout, QLineEdit, QTextEdit, QComboBox,
                              QDialogButtonBox, QListWidget, QListWidgetItem, QSplitter,
                              QGroupBox, QScrollArea, QMessageBox)
@@ -462,10 +462,11 @@ class SystemCanvas(QWidget):
         self.connect_action.triggered.connect(self.activate_connection_mode)
         toolbar.addAction(self.connect_action)
         
-        # 工具按钮组
-        self.tool_group = QButtonGroup(self)
-        self.tool_group.addButton(self.select_action)
-        self.tool_group.addButton(self.connect_action)
+        # 工具按钮组（使用QActionGroup管理互斥的QAction）
+        self.tool_group = QActionGroup(self)
+        self.tool_group.addAction(self.select_action)
+        self.tool_group.addAction(self.connect_action)
+        self.tool_group.setExclusive(True)
         
         toolbar.addSeparator()
         
