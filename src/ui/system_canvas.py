@@ -138,12 +138,8 @@ class InterfaceGraphicsItem(QGraphicsEllipseItem):
     def mousePressEvent(self, event):
         """鼠标按下事件"""
         print(f"InterfaceGraphicsItem 鼠标按下: {event.button()}")
-        if event.button() == Qt.LeftButton:
-            # 发出开始连线信号
-            self.connection_started.emit(self, self.connection_point.id)
-            event.accept()
-        else:
-            super().mousePressEvent(event)
+        # 阻止事件传播，防止触发模块的鼠标事件
+        event.accept()
     
     def mouseDoubleClickEvent(self, event):
         """鼠标双击事件 - 防止崩溃"""
@@ -276,20 +272,45 @@ class ModuleGraphicsItem(QGraphicsRectItem):
             # 右键打开配置对话框
             try:
                 print(f"模块右键点击: {self.module.name}")
-                dialog = ModuleConfigDialog(self.module, self.scene().views()[0])
+                # 创建简单的配置对话框，避免访问不存在的属性
+                dialog = QDialog(self.scene().views()[0])
+                dialog.setWindowTitle(f"配置模块: {self.module.name}")
+                dialog.resize(400, 300)
+                
+                layout = QVBoxLayout()
+                
+                # 基本信息
+                form_layout = QFormLayout()
+                name_edit = QLineEdit(self.module.name)
+                description_edit = QTextEdit()
+                description_edit.setPlainText(self.module.description)
+                description_edit.setMaximumHeight(100)
+                
+                form_layout.addRow("名称:", name_edit)
+                form_layout.addRow("描述:", description_edit)
+                
+                # 按钮
+                button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+                button_box.accepted.connect(dialog.accept)
+                button_box.rejected.connect(dialog.reject)
+                
+                layout.addLayout(form_layout)
+                layout.addWidget(button_box)
+                dialog.setLayout(layout)
+                
                 if dialog.exec_() == QDialog.Accepted:
-                    data = dialog.get_module_data()
-                    self.module.name = data['name']
-                    self.module.description = data['description']
-                    if hasattr(self.module, 'code'):
-                        self.module.code = data['code']
-                    else:
-                        self.module.code = data['code']
+                    self.module.name = name_edit.text()
+                    self.module.description = description_edit.toPlainText()
                     
                     # 更新显示
                     self.text_item.setPlainText(self.module.name)
                     tooltip_text = f"模块: {self.module.name}\n类型: {self.module.module_type.value}\n描述: {self.module.description}"
                     self.setToolTip(tooltip_text)
+                    
+                    # 标记项目已修改
+                    if hasattr(self.scene().views()[0], 'project_manager'):
+                        self.scene().views()[0].project_manager.mark_modified()
+                        
             except Exception as e:
                 print(f"处理模块右键事件时出错: {e}")
                 QMessageBox.warning(None, "错误", f"处理模块右键事件时出错: {str(e)}")
@@ -525,18 +546,23 @@ class SystemCanvas(QWidget):
     
     def scene_mouse_press_event(self, event):
         """场景鼠标按下事件"""
-        if self.connecting_mode:
-            # 在连线模式下，检查是否点击了接口
-            item = self.graphics_scene.itemAt(event.scenePos(), self.graphics_view.transform())
-            print(f"鼠标按下，点击的项: {item}, 类型: {type(item)}")
-            if isinstance(item, InterfaceGraphicsItem):
-                # 开始连线
-                print(f"开始连线，接口ID: {item.connection_point.id}")
-                self.start_connection(item, event.scenePos())
-                event.accept()
-                return
-        # 默认处理
-        QGraphicsScene.mousePressEvent(self.graphics_scene, event)
+        try:
+            if self.connecting_mode:
+                # 在连线模式下，检查是否点击了接口
+                item = self.graphics_scene.itemAt(event.scenePos(), self.graphics_view.transform())
+                print(f"鼠标按下，点击的项: {item}, 类型: {type(item)}")
+                if isinstance(item, InterfaceGraphicsItem):
+                    # 开始连线
+                    print(f"开始连线，接口ID: {item.connection_point.id}")
+                    self.start_connection(item, event.scenePos())
+                    event.accept()
+                    return
+            # 默认处理
+            QGraphicsScene.mousePressEvent(self.graphics_scene, event)
+        except Exception as e:
+            print(f"场景鼠标按下事件出错: {e}")
+            # 防止崩溃，继续默认处理
+            QGraphicsScene.mousePressEvent(self.graphics_scene, event)
     
     def scene_mouse_move_event(self, event):
         """场景鼠标移动事件"""
@@ -569,15 +595,19 @@ class SystemCanvas(QWidget):
     
     def start_connection(self, interface_item, scene_pos):
         """开始连线"""
-        self.start_interface = interface_item
-        self.start_interface_id = interface_item.connection_point.id
-        
-        # 创建临时连线
-        self.temp_line = QGraphicsLineItem()
-        self.temp_line.setPen(QPen(QColor(0, 100, 200), 2, Qt.DashLine))
-        start_pos = interface_item.scenePos() + QPointF(6, 6)  # 接口中心点
-        self.temp_line.setLine(start_pos.x(), start_pos.y(), scene_pos.x(), scene_pos.y())
-        self.graphics_scene.addItem(self.temp_line)
+        try:
+            self.start_interface = interface_item
+            self.start_interface_id = interface_item.connection_point.id
+            
+            # 创建临时连线
+            self.temp_line = QGraphicsLineItem()
+            self.temp_line.setPen(QPen(QColor(0, 100, 200), 2, Qt.DashLine))
+            start_pos = interface_item.scenePos() + QPointF(6, 6)  # 接口中心点
+            self.temp_line.setLine(start_pos.x(), start_pos.y(), scene_pos.x(), scene_pos.y())
+            self.graphics_scene.addItem(self.temp_line)
+        except Exception as e:
+            print(f"开始连线时出错: {e}")
+            self.cancel_connection()
     
     def update_temp_line(self, end_pos):
         """更新临时连线"""
@@ -587,58 +617,63 @@ class SystemCanvas(QWidget):
     
     def finish_connection(self, end_interface, end_pos):
         """完成连线"""
-        if not self.current_system or not self.project_manager:
-            print("错误：没有当前系统或项目管理器")
-            self.cancel_connection()
-            return
-        
-        # 暂时跳过接口兼容性检查
-        print("跳过接口兼容性检查，直接建立连接")
-        
-        # 创建连接
         try:
-            from ..models.system_model import Connection
-        except ImportError:
-            from src.models.system_model import Connection
-        
-        # 生成连接ID
-        connection_id = f"connection_{len(self.current_system.connections) + 1}"
-        
-        # 获取模块ID
-        start_module_item = self.start_interface.parentItem()
-        end_module_item = end_interface.parentItem()
-        
-        if not start_module_item or not end_module_item:
-            QMessageBox.warning(self.graphics_view, "连线失败", "无法找到模块")
-            self.cancel_connection()
-            return
+            if not self.current_system or not self.project_manager:
+                print("错误：没有当前系统或项目管理器")
+                self.cancel_connection()
+                return
             
-        start_module_id = start_module_item.module.id
-        end_module_id = end_module_item.module.id
-        
-        # 创建连接对象
-        connection = Connection(
-            id=connection_id,
-            source_module_id=start_module_id,
-            target_module_id=end_module_id,
-            source_point_id=self.start_interface_id,
-            target_point_id=end_interface.connection_point.id
-        )
-        
-        # 添加到系统
-        self.current_system.connections[connection_id] = connection
-        
-        # 绘制连接线
-        self.draw_connection(connection)
-        
-        # 标记项目已修改
-        if self.project_manager:
-            self.project_manager.mark_modified()
-        
-        # 清除临时状态
-        self.cleanup_connection()
-        
-        QMessageBox.information(self.graphics_view, "连线成功", "模块连接已创建")
+            # 暂时跳过接口兼容性检查
+            print("跳过接口兼容性检查，直接建立连接")
+            
+            # 创建连接
+            try:
+                from ..models.system_model import Connection
+            except ImportError:
+                from src.models.system_model import Connection
+            
+            # 生成连接ID
+            connection_id = f"connection_{len(self.current_system.connections) + 1}"
+            
+            # 获取模块ID
+            start_module_item = self.start_interface.parentItem()
+            end_module_item = end_interface.parentItem()
+            
+            if not start_module_item or not end_module_item:
+                QMessageBox.warning(self.graphics_view, "连线失败", "无法找到模块")
+                self.cancel_connection()
+                return
+                
+            start_module_id = start_module_item.module.id
+            end_module_id = end_module_item.module.id
+            
+            # 创建连接对象
+            connection = Connection(
+                id=connection_id,
+                source_module_id=start_module_id,
+                target_module_id=end_module_id,
+                source_point_id=self.start_interface_id,
+                target_point_id=end_interface.connection_point.id
+            )
+            
+            # 添加到系统
+            self.current_system.connections[connection_id] = connection
+            
+            # 绘制连接线
+            self.draw_connection(connection)
+            
+            # 标记项目已修改
+            if self.project_manager:
+                self.project_manager.mark_modified()
+            
+            # 清除临时状态
+            self.cleanup_connection()
+            
+            QMessageBox.information(self.graphics_view, "连线成功", "模块连接已创建")
+        except Exception as e:
+            print(f"完成连线时出错: {e}")
+            QMessageBox.warning(self.graphics_view, "连线失败", f"连线过程中出错: {str(e)}")
+            self.cancel_connection()
     
     def cancel_connection(self):
         """取消连线"""
