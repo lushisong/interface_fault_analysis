@@ -105,22 +105,43 @@ class ModuleConfigDialog(QDialog):
 class InterfaceGraphicsItem(QGraphicsEllipseItem):
     """接口图形项"""
     
+    # 信号定义
+    connection_started = pyqtSignal(object, str)  # 开始连线 (接口项, 接口ID)
+    
     def __init__(self, connection_point, parent=None):
-        super().__init__(0, 0, 8, 8, parent)
+        super().__init__(0, 0, 12, 12, parent)
         self.connection_point = connection_point
         
         # 设置外观
+        if connection_point.connection_type == "input":
+            self.setBrush(QBrush(QColor(0, 255, 0)))  # 输入接口为绿色
+        elif connection_point.connection_type == "output":
+            self.setBrush(QBrush(QColor(255, 165, 0)))  # 输出接口为橙色
+        else:
+            self.setBrush(QBrush(QColor(135, 206, 250)))  # 双向接口为天蓝色
+            
         self.setPen(QPen(QColor(0, 0, 0), 1))
         
         # 设置工具提示
         tooltip_text = f"接口: {connection_point.name}\n类型: {connection_point.connection_type}\n数据类型: {connection_point.data_type}"
         if hasattr(connection_point, 'variables') and connection_point.variables:
             tooltip_text += f"\n变量: {', '.join(connection_point.variables)}"
+        tooltip_text += "\n\n点击开始连线"
         self.setToolTip(tooltip_text)
         
-        # 设置可选择
+        # 设置可选择和可点击
         self.setFlag(QGraphicsItem.ItemIsSelectable, True)
+        self.setFlag(QGraphicsItem.ItemIsFocusable, True)
         self.setAcceptHoverEvents(True)
+    
+    def mousePressEvent(self, event):
+        """鼠标按下事件"""
+        if event.button() == Qt.LeftButton:
+            # 发出开始连线信号
+            self.connection_started.emit(self, self.connection_point.id)
+            event.accept()
+        else:
+            super().mousePressEvent(event)
     
     def hoverEnterEvent(self, event):
         """鼠标悬停进入事件"""
@@ -146,7 +167,12 @@ class ModuleGraphicsItem(QGraphicsRectItem):
         
         # 设置外观
         self.setPen(QPen(QColor(0, 0, 0), 2))
-        self.setBrush(QBrush(QColor(200, 220, 255)))
+        if module.module_type.value == "hardware":
+            self.setBrush(QBrush(QColor(200, 220, 255)))  # 硬件模块为浅蓝色
+        elif module.module_type.value == "software":
+            self.setBrush(QBrush(QColor(255, 220, 200)))  # 软件模块为浅橙色
+        else:  # algorithm
+            self.setBrush(QBrush(QColor(220, 255, 220)))  # 算法模块为浅绿色
         
         # 设置可移动和可选择
         self.setFlag(QGraphicsItem.ItemIsMovable, True)
@@ -158,6 +184,7 @@ class ModuleGraphicsItem(QGraphicsRectItem):
         self.text_item.setPos(5, 5)
         font = QFont()
         font.setPointSize(10)
+        font.setBold(True)
         self.text_item.setFont(font)
         
         # 创建接口图形项
@@ -168,6 +195,20 @@ class ModuleGraphicsItem(QGraphicsRectItem):
         if hasattr(module, 'connection_points') and module.connection_points:
             tooltip_text += f"\n接口数量: {len(module.connection_points)}"
         self.setToolTip(tooltip_text)
+    
+    def update_position(self):
+        """更新模块位置后刷新接口位置"""
+        # 更新模块位置
+        self.module.position.x = self.pos().x()
+        self.module.position.y = self.pos().y()
+        
+        # 刷新所有连接的连线
+        if hasattr(self, 'scene') and self.scene():
+            for item in self.scene().items():
+                if isinstance(item, ConnectionGraphicsItem):
+                    if (item.connection.source_module_id == self.module.id or 
+                        item.connection.target_module_id == self.module.id):
+                        item.update_path()
     
     def create_interface_items(self):
         """创建接口图形项"""
@@ -246,13 +287,12 @@ class ModuleGraphicsItem(QGraphicsRectItem):
     def mouseMoveEvent(self, event):
         """鼠标移动事件"""
         super().mouseMoveEvent(event)
-        # 更新模块位置
-        self.module.position.x = self.pos().x()
-        self.module.position.y = self.pos().y()
+        self.update_position()
     
     def mouseReleaseEvent(self, event):
         """鼠标释放事件"""
         super().mouseReleaseEvent(event)
+        self.update_position()
     
     def hoverEnterEvent(self, event):
         """鼠标悬停进入"""
@@ -265,18 +305,83 @@ class ModuleGraphicsItem(QGraphicsRectItem):
         super().hoverLeaveEvent(event)
 
 
+class ConnectionGraphicsItem(QGraphicsPathItem):
+    """连接图形项"""
+    
+    def __init__(self, connection, system_canvas):
+        super().__init__()
+        self.connection = connection
+        self.system_canvas = system_canvas
+        self.control_points = []  # 贝塞尔曲线控制点
+        
+        # 设置外观
+        self.setPen(QPen(QColor(0, 100, 200), 2))
+        self.setFlag(QGraphicsItem.ItemIsSelectable, True)
+        self.setAcceptHoverEvents(True)
+        
+        # 更新路径
+        self.update_path()
+    
+    def update_path(self):
+        """更新连线路径"""
+        source_item = self.system_canvas.graphics_items.get(self.connection.source_module_id)
+        target_item = self.system_canvas.graphics_items.get(self.connection.target_module_id)
+        
+        if not source_item or not target_item:
+            return
+        
+        # 获取接口位置
+        source_pos = source_item.get_interface_position(self.connection.source_point_id)
+        target_pos = target_item.get_interface_position(self.connection.target_point_id)
+        
+        if not source_pos or not target_pos:
+            return
+        
+        # 创建贝塞尔曲线路径
+        path = QPainterPath()
+        path.moveTo(source_pos)
+        
+        # 计算控制点，使连线更平滑
+        dx = target_pos.x() - source_pos.x()
+        dy = target_pos.y() - source_pos.y()
+        
+        # 使用两个控制点创建三次贝塞尔曲线
+        control1 = QPointF(source_pos.x() + dx * 0.3, source_pos.y())
+        control2 = QPointF(target_pos.x() - dx * 0.3, target_pos.y())
+        
+        path.cubicTo(control1, control2, target_pos)
+        
+        self.setPath(path)
+    
+    def hoverEnterEvent(self, event):
+        """鼠标悬停进入事件"""
+        self.setPen(QPen(QColor(255, 0, 0), 3))  # 高亮显示
+        super().hoverEnterEvent(event)
+    
+    def hoverLeaveEvent(self, event):
+        """鼠标悬停离开事件"""
+        self.setPen(QPen(QColor(0, 100, 200), 2))  # 恢复正常
+        super().hoverLeaveEvent(event)
+
+
 class SystemCanvas(QWidget):
     """系统画布组件"""
     
     # 信号定义
     module_selected = pyqtSignal(str)  # 模块被选中
     module_moved = pyqtSignal(str, float, float)  # 模块被移动
+    connection_created = pyqtSignal(object)  # 连接被创建
     
     def __init__(self):
         super().__init__()
         self.current_system = None
-        self.graphics_items = {}  # 图形项字典
+        self.graphics_items = {}  # 模块图形项字典
+        self.connection_items = {}  # 连接图形项字典
         self.project_manager = None  # 项目管理器引用
+        self.connecting_mode = False  # 是否处于连线模式
+        self.temp_line = None  # 临时连线
+        self.start_interface = None  # 开始连线的接口
+        self.start_interface_id = None  # 开始连线的接口ID
         
         self.init_ui()
         self.init_scene()
@@ -344,15 +449,22 @@ class SystemCanvas(QWidget):
         toolbar = QToolBar()
         
         # 选择工具
-        select_action = QAction("选择", self)
-        select_action.setCheckable(True)
-        select_action.setChecked(True)
-        toolbar.addAction(select_action)
+        self.select_action = QAction("选择", self)
+        self.select_action.setCheckable(True)
+        self.select_action.setChecked(True)
+        self.select_action.triggered.connect(self.activate_selection_mode)
+        toolbar.addAction(self.select_action)
         
         # 连线工具
-        connect_action = QAction("连线", self)
-        connect_action.setCheckable(True)
-        toolbar.addAction(connect_action)
+        self.connect_action = QAction("连线", self)
+        self.connect_action.setCheckable(True)
+        self.connect_action.triggered.connect(self.activate_connection_mode)
+        toolbar.addAction(self.connect_action)
+        
+        # 工具按钮组
+        self.tool_group = QButtonGroup(self)
+        self.tool_group.addButton(self.select_action)
+        self.tool_group.addButton(self.connect_action)
         
         toolbar.addSeparator()
         
@@ -390,6 +502,11 @@ class SystemCanvas(QWidget):
         
         # 绘制网格
         self.draw_grid()
+        
+        # 连接场景的鼠标事件
+        self.graphics_scene.mousePressEvent = self.scene_mouse_press_event
+        self.graphics_scene.mouseMoveEvent = self.scene_mouse_move_event
+        self.graphics_scene.mouseReleaseEvent = self.scene_mouse_release_event
     
     def draw_grid(self):
         """绘制网格"""
@@ -429,10 +546,14 @@ class SystemCanvas(QWidget):
         if not self.current_system:
             return
         
-        # 清除现有的模块图形项
+        # 清除现有的模块图形项和连接图形项
         for item in list(self.graphics_items.values()):
             self.graphics_scene.removeItem(item)
         self.graphics_items.clear()
+        
+        for item in list(self.connection_items.values()):
+            self.graphics_scene.removeItem(item)
+        self.connection_items.clear()
         
         # 添加模块
         for module in self.current_system.modules.values():
@@ -453,9 +574,9 @@ class SystemCanvas(QWidget):
             return
         
         # 移除现有连接线
-        for item in self.graphics_scene.items():
-            if hasattr(item, 'is_connection_line'):
-                self.graphics_scene.removeItem(item)
+        for item in list(self.connection_items.values()):
+            self.graphics_scene.removeItem(item)
+        self.connection_items.clear()
         
         # 绘制新的连接线
         for connection in self.current_system.connections.values():
@@ -463,22 +584,10 @@ class SystemCanvas(QWidget):
     
     def draw_connection(self, connection):
         """绘制连接线"""
-        source_item = self.graphics_items.get(connection.source_module_id)
-        target_item = self.graphics_items.get(connection.target_module_id)
-        
-        if source_item and target_item:
-            # 计算接口
-            source_rect = source_item.rect()
-            target_rect = target_item.rect()
-            
-            source_pos = source_item.pos() + QPointF(source_rect.width(), source_rect.height() / 2)
-            target_pos = target_item.pos() + QPointF(0, target_rect.height() / 2)
-            
-            # 绘制连接线
-            line = self.graphics_scene.addLine(source_pos.x(), source_pos.y(),
-                                             target_pos.x(), target_pos.y(),
-                                             QPen(QColor(0, 100, 200), 2))
-            line.is_connection_line = True
+        # 创建连接图形项
+        connection_item = ConnectionGraphicsItem(connection, self)
+        self.graphics_scene.addItem(connection_item)
+        self.connection_items[connection.id] = connection_item
     
     def zoom_in(self):
         """放大"""
