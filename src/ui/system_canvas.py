@@ -505,21 +505,34 @@ class ConnectionGraphicsItem(QGraphicsPathItem):
     
     def delete_connection(self):
         """删除连线"""
-        # 从系统中移除连接
-        if self.connection.id in self.system_canvas.current_system.connections:
-            del self.system_canvas.current_system.connections[self.connection.id]
-            
-            # 从场景中移除连接项和控制点
-            if self.scene():
-                self.scene().removeItem(self)
-                for cp_item in self.control_point_items:
-                    self.scene().removeItem(cp_item)
-            
-            # 标记项目已修改
-            if self.system_canvas.project_manager:
-                self.system_canvas.project_manager.mark_modified()
-            
-            QMessageBox.information(None, "删除成功", "连线已删除")
+        try:
+            # 从系统中移除连接
+            if (self.system_canvas.current_system and 
+                self.connection.id in self.system_canvas.current_system.connections):
+                del self.system_canvas.current_system.connections[self.connection.id]
+                
+                # 从连接项字典中移除
+                if self.connection.id in self.system_canvas.connection_items:
+                    del self.system_canvas.connection_items[self.connection.id]
+                
+                # 从场景中移除连接项和控制点
+                if self.scene():
+                    # 先移除控制点
+                    for cp_item in self.control_point_items:
+                        if cp_item.scene():
+                            self.scene().removeItem(cp_item)
+                    # 再移除自身
+                    if self in self.scene().items():
+                        self.scene().removeItem(self)
+                
+                # 标记项目已修改
+                if self.system_canvas.project_manager:
+                    self.system_canvas.project_manager.mark_modified()
+                
+                print("连线删除成功")
+        except Exception as e:
+            print(f"删除连线时出错: {e}")
+            QMessageBox.warning(None, "删除失败", f"删除连线时出错: {str(e)}")
     
     def hoverEnterEvent(self, event):
         """鼠标悬停进入事件"""
@@ -840,7 +853,8 @@ class SystemCanvas(QWidget):
                 self.temp_line = None
             self.cleanup_connection()
             
-            QMessageBox.information(self.graphics_view, "连线成功", "模块连接已创建")
+            # 不再显示成功对话框
+            print("连线成功")
         except Exception as e:
             print(f"完成连线时出错: {e}")
             QMessageBox.warning(self.graphics_view, "连线失败", f"连线过程中出错: {str(e)}")
