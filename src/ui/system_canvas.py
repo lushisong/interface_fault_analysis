@@ -320,34 +320,11 @@ class SystemCanvas(QWidget):
         panel.setMaximumWidth(250)
         layout = QVBoxLayout()
         
-        # 模块分类
-        categories = ["硬件模块", "软件模块", "算法模块", "环境模块"]
-        
-        for category in categories:
-            category_group = QGroupBox(category)
-            category_layout = QVBoxLayout()
-            
-            # 创建模块列表
-            module_list = QListWidget()
-            module_list.setMaximumHeight(120)
-            module_list.setDragDropMode(QListWidget.DragOnly)
-            
-            # 根据分类添加模块
-            if category == "硬件模块":
-                modules = ["传感器", "执行器", "计算单元", "通信设备"]
-            elif category == "软件模块":
-                modules = ["操作系统", "中间件", "数据库", "通信协议"]
-            elif category == "算法模块":
-                modules = ["感知算法", "决策算法", "控制算法", "学习算法"]
-            else:  # 环境模块
-                modules = ["物理环境", "电磁环境", "网络环境", "负载环境"]
-            
-            for module_name in modules:
-                module_list.addItem(module_name)
-            
-            category_layout.addWidget(module_list)
-            category_group.setLayout(category_layout)
-            layout.addWidget(category_group)
+        # 模块列表
+        self.module_library_list = QListWidget()
+        self.module_library_list.setDragDropMode(QListWidget.DragOnly)
+        layout.addWidget(QLabel("已创建的模块:"))
+        layout.addWidget(self.module_library_list)
         
         # 添加模块按钮
         add_button = QPushButton("添加到画布")
@@ -356,7 +333,7 @@ class SystemCanvas(QWidget):
         
         # 刷新按钮
         refresh_button = QPushButton("刷新模块")
-        refresh_button.clicked.connect(self.refresh_modules)
+        refresh_button.clicked.connect(self.refresh_module_library)
         layout.addWidget(refresh_button)
         
         panel.setLayout(layout)
@@ -445,6 +422,7 @@ class SystemCanvas(QWidget):
         """设置当前系统"""
         self.current_system = system
         self.update_canvas()
+        self.refresh_module_library()
     
     def update_canvas(self):
         """更新画布内容"""
@@ -544,24 +522,22 @@ class SystemCanvas(QWidget):
     
     def add_selected_module(self):
         """添加选中的模块到画布"""
-        # 获取当前选中的模块
-        for i in range(self.layout().count()):
-            widget = self.layout().itemAt(i).widget()
-            if isinstance(widget, QGroupBox) and widget.title() == "模块库":
-                # 查找选中的模块
-                for j in range(widget.layout().count()):
-                    group = widget.layout().itemAt(j).widget()
-                    if isinstance(group, QGroupBox):
-                        list_widget = group.findChild(QListWidget)
-                        if list_widget and list_widget.currentItem():
-                            module_name = list_widget.currentItem().text()
-                            # 在画布中心创建模块
-                            center_pos = QPointF(400, 300)
-                            self.create_module_at_position(module_name, center_pos)
-                            return
+        current_item = self.module_library_list.currentItem()
+        if current_item:
+            module_id = current_item.data(Qt.UserRole)
+            if module_id and self.current_system and module_id in self.current_system.modules:
+                # 获取模块定义
+                module_def = self.current_system.modules[module_id]
+                # 在画布中心创建模块的副本
+                center_pos = QPointF(400, 300)
+                self.create_module_from_definition(module_def, center_pos)
+            else:
+                QMessageBox.warning(self, "警告", "请先选择有效的模块")
+        else:
+            QMessageBox.warning(self, "警告", "请先选择要添加的模块")
     
-    def create_module_at_position(self, module_type, position):
-        """在指定位置创建模块"""
+    def create_module_from_definition(self, module_def, position):
+        """根据模块定义在指定位置创建模块实例"""
         if not self.current_system or not self.project_manager:
             return
         
@@ -571,32 +547,37 @@ class SystemCanvas(QWidget):
         except ImportError:
             from src.models.module_model import Module, ModuleType, Position, Size
         
-        # 确定模块类型
-        if module_type in ["传感器", "执行器", "计算单元", "通信设备"]:
-            mod_type = ModuleType.HARDWARE
-        elif module_type in ["操作系统", "中间件", "数据库", "通信协议"]:
-            mod_type = ModuleType.SOFTWARE
-        elif module_type in ["感知算法", "决策算法", "控制算法", "学习算法"]:
-            mod_type = ModuleType.ALGORITHM
-        else:
-            mod_type = ModuleType.HARDWARE  # 默认
+        # 创建模块的副本
+        import copy
+        module = copy.deepcopy(module_def)
         
-        # 创建新模块
+        # 生成新的ID
         module_id = f"module_{len(self.current_system.modules) + 1}"
-        module = Module(
-            id=module_id,
-            name=module_type,
-            module_type=mod_type,
-            description=f"新建的{module_type}模块",
-            position=Position(position.x(), position.y()),
-            size=Size(120, 80)
-        )
+        module.id = module_id
+        
+        # 更新位置
+        module.position.x = position.x()
+        module.position.y = position.y()
         
         # 添加到系统
         self.current_system.modules[module_id] = module
         
         # 添加到画布
         self.add_module_to_canvas(module)
+        
+        # 标记项目已修改
+        if self.project_manager:
+            self.project_manager.mark_modified()
+    
+    def refresh_module_library(self):
+        """刷新模块库显示"""
+        self.module_library_list.clear()
+        
+        if self.current_system and self.current_system.modules:
+            for module_id, module in self.current_system.modules.items():
+                item = QListWidgetItem(f"{module.name} ({module.module_type.value})")
+                item.setData(Qt.UserRole, module_id)
+                self.module_library_list.addItem(item)
     
     def refresh_modules(self):
         """刷新模块显示"""
@@ -612,6 +593,9 @@ class SystemCanvas(QWidget):
             
             if current_module_ids != system_module_ids:
                 self.update_canvas()
+        
+        # 刷新模块库
+        self.refresh_module_library()
     
     def set_project_manager(self, project_manager):
         """设置项目管理器"""
