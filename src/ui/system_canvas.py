@@ -11,8 +11,8 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGraphicsView,
                              QGraphicsTextItem, QGraphicsLineItem, QGraphicsEllipseItem,
                              QPushButton, QToolBar, QAction, QButtonGroup, QLabel, 
                              QDialog, QFormLayout, QLineEdit, QTextEdit, QComboBox,
-                             QDialogButtonBox, QListWidget, QSplitter,
-                             QGroupBox, QScrollArea)
+                             QDialogButtonBox, QListWidget, QListWidgetItem, QSplitter,
+                             QGroupBox, QScrollArea, QMessageBox)
 from PyQt5.QtCore import Qt, QRectF, QPointF, pyqtSignal, QTimer
 from PyQt5.QtGui import QPen, QBrush, QColor, QPainter, QFont
 
