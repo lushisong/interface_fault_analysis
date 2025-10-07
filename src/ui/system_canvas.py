@@ -144,6 +144,10 @@ class InterfaceGraphicsItem(QGraphicsEllipseItem):
         else:
             super().mousePressEvent(event)
     
+    def mouseDoubleClickEvent(self, event):
+        """鼠标双击事件 - 防止崩溃"""
+        event.accept()  # 阻止事件传播
+    
     def hoverEnterEvent(self, event):
         """鼠标悬停进入事件"""
         self.setPen(QPen(QColor(255, 0, 0), 2))  # 高亮显示
@@ -591,8 +595,16 @@ class SystemCanvas(QWidget):
         connection_id = f"connection_{len(self.current_system.connections) + 1}"
         
         # 获取模块ID
-        start_module_id = self.start_interface.parentItem().module.id
-        end_module_id = end_interface.parentItem().module.id
+        start_module_item = self.start_interface.parentItem()
+        end_module_item = end_interface.parentItem()
+        
+        if not start_module_item or not end_module_item:
+            QMessageBox.warning(self.graphics_view, "连线失败", "无法找到模块")
+            self.cancel_connection()
+            return
+            
+        start_module_id = start_module_item.module.id
+        end_module_id = end_module_item.module.id
         
         # 创建连接对象
         connection = Connection(
@@ -636,10 +648,17 @@ class SystemCanvas(QWidget):
         start_type = start_interface.connection_point.connection_type
         end_type = end_interface.connection_point.connection_type
         
-        if start_type == "output" and end_type == "input":
-            return True
-        elif start_type == "input" and end_type == "output":
-            # 允许输入连接到输出（双向通信）
+        # 允许的连接类型：
+        # 1. 输出 -> 输入
+        # 2. 输入 -> 输出（双向通信）
+        # 3. 双向 -> 双向
+        # 4. 输出 -> 双向
+        # 5. 双向 -> 输入
+        if (start_type == "output" and end_type == "input") or \
+           (start_type == "input" and end_type == "output") or \
+           (start_type == "bidirectional" and end_type == "bidirectional") or \
+           (start_type == "output" and end_type == "bidirectional") or \
+           (start_type == "bidirectional" and end_type == "input"):
             return True
         else:
             return False

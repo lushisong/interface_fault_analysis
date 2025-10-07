@@ -424,10 +424,21 @@ class SystemStructure(BaseModel):
         # 加载模块（这里需要根据实际的模块类型创建对应的对象）
         self.modules = {}
         for module_id, module_data in data.get('modules', {}).items():
-            # 简化处理，实际应根据module_type创建对应的模块类型
-            from .module_model import Module
-            module = Module()
+            # 根据module_type创建对应的模块类型
+            module_type_str = module_data.get('module_type', 'hardware')
+            if module_type_str == 'hardware':
+                from .module_model import HardwareModule as ModuleClass
+            elif module_type_str == 'software':
+                from .module_model import SoftwareModule as ModuleClass
+            elif module_type_str == 'algorithm':
+                from .module_model import AlgorithmModule as ModuleClass
+            else:
+                from .module_model import Module as ModuleClass
+                
+            module = ModuleClass()
             module.from_dict(module_data)
+            # 确保模块ID正确设置
+            module.id = module_id
             self.modules[module_id] = module
         
         # 加载接口

@@ -65,6 +65,7 @@ class Module(BaseModel):
         self.state_variables = {}  # 状态变量
         self.python_code = ""  # Python建模代码
         self.is_template = False  # 是否为模板
+        self.id = f"module_{id(self)}"  # 确保每个模块都有唯一ID
         
     def add_connection_point(self, point: ConnectionPoint):
         """添加接口"""
