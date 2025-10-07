@@ -38,6 +38,7 @@ class ModuleTemplate(Enum):
     DATABASE = "database"
     
     # 算法模块模板
+    ALGORITHM = "algorithm"
     CONTROL_ALGORITHM = "control_algorithm"
     PERCEPTION_ALGORITHM = "perception_algorithm"
     DECISION_ALGORITHM = "decision_algorithm"
