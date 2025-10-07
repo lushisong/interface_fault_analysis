@@ -348,15 +348,32 @@ def create_drone_interfaces(system):
             iface_data["description"]
         )
         
-        # 设置接口类型
-        if "硬件" in iface_data["description"] or "自驾仪" in iface_data["description"]:
+        # 设置接口类型 - 使用有效的InterfaceType枚举值
+        description = iface_data["description"]
+        name = iface_data["name"]
+        
+        # 硬件到硬件接口
+        if ("→" in description and 
+            ("硬件" in description or "自驾仪" in description or 
+             "执行器" in description or "摄像机" in description or
+             "地面站" in description)):
             interface.interface_type = InterfaceType.HARDWARE_HARDWARE
-        elif "OS" in iface_data["name"]:
+        # 软件到软件接口
+        elif ("↔" in description and 
+              ("OS" in name or "ML" in name or "算法" in description)):
             interface.interface_type = InterfaceType.SOFTWARE_SOFTWARE
-        elif "ML" in iface_data["name"]:
-            interface.interface_type = InterfaceType.SOFTWARE_SOFTWARE
-        else:
+        # 软件到硬件接口
+        elif ("→" in description and 
+              ("算法" in description or "应用软件" in description)):
             interface.interface_type = InterfaceType.SOFTWARE_HARDWARE
+        # 硬件到软件接口  
+        elif ("→" in description and 
+              ("传感器" in description or "摄像机" in description or
+               "雷达" in description)):
+            interface.interface_type = InterfaceType.HARDWARE_SOFTWARE
+        # 默认使用硬件到硬件
+        else:
+            interface.interface_type = InterfaceType.HARDWARE_HARDWARE
         
         # 添加故障模式
         failure_mode = InterfaceFailureMode(
