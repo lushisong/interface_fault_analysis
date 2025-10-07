@@ -115,6 +115,10 @@ class ModulePanel(QWidget):
     
     def create_right_panel(self):
         """创建右侧面板"""
+        # 主部件
+        right_widget = QWidget()
+        layout = QVBoxLayout()
+        
         # 标签页控件
         self.tab_widget = QTabWidget()
         
@@ -138,7 +142,31 @@ class ModulePanel(QWidget):
         self.specific_tab = self.create_specific_tab()
         self.tab_widget.addTab(self.specific_tab, "专用属性")
         
-        return self.tab_widget
+        layout.addWidget(self.tab_widget)
+        
+        # 添加保存按钮
+        self.save_btn = QPushButton("保存模块")
+        self.save_btn.setMinimumHeight(40)
+        self.save_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                font-weight: bold;
+                border: none;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+            }
+            QPushButton:disabled {
+                background-color: #cccccc;
+                color: #666666;
+            }
+        """)
+        layout.addWidget(self.save_btn)
+        
+        right_widget.setLayout(layout)
+        return right_widget
     
     def create_basic_tab(self):
         """创建基本信息标签页"""
@@ -420,6 +448,9 @@ class ModulePanel(QWidget):
         
         # 模块类型变化
         self.module_type_combo.currentTextChanged.connect(self.on_module_type_changed)
+        
+        # 保存按钮
+        self.save_btn.clicked.connect(self.save_current_module)
     
     def get_monospace_font(self):
         """获取等宽字体"""
@@ -784,9 +815,54 @@ class ModulePanel(QWidget):
             except Exception as e:
                 QMessageBox.warning(self, "保存失败", f"无法保存文件: {str(e)}")
     
+    def save_current_module(self):
+        """保存当前模块的所有修改"""
+        if not self.current_module:
+            QMessageBox.warning(self, "警告", "请先选择要保存的模块")
+            return
+        
+        try:
+            # 更新基本信息
+            self.current_module.name = self.name_edit.text()
+            self.current_module.description = self.description_edit.toPlainText()
+            
+            # 更新模块类型
+            module_type = self.module_type_combo.currentData()
+            if module_type:
+                self.current_module.module_type = module_type
+            
+            # 更新位置和大小
+            self.current_module.position.x = self.pos_x_spin.value()
+            self.current_module.position.y = self.pos_y_spin.value()
+            self.current_module.size.x = self.size_width_spin.value()
+            self.current_module.size.y = self.size_height_spin.value()
+            
+            # 更新图标路径
+            self.current_module.icon_path = self.icon_path_edit.text()
+            
+            # 更新Python代码
+            self.current_module.python_code = self.code_edit.toPlainText()
+            
+            # 保存到系统
+            self.save_modules_to_system()
+            
+            # 更新模块树显示
+            self.update_module_tree()
+            
+            # 发射模块修改信号
+            self.module_modified.emit(self.current_module)
+            
+            QMessageBox.information(self, "保存成功", f"模块 '{self.current_module.name}' 已保存")
+            
+        except Exception as e:
+            QMessageBox.critical(self, "保存失败", f"保存模块时出错: {str(e)}")
+    
     def on_module_type_changed(self):
         """模块类型变化处理"""
         if self.current_module:
             module_type = self.module_type_combo.currentData()
             self.current_module.module_type = module_type
             self.update_specific_properties()
+            
+            # 标记为需要保存
+            self.save_btn.setEnabled(True)
