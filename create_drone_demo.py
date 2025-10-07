@@ -510,8 +510,8 @@ def create_drone_environments(system):
     
     # 影响的模块
     weather_env.affected_modules = [
-        [m.id for m in system.modules.values() if m.name == "GPS传感器"][0],
-        [m.id for m in system.modules.values() if m.name == "视觉传感器"][0],
+        [m.id for m in system.modules.values() if m.name == "全球定位模块"][0],
+        [m.id for m in system.modules.values() if m.name == "光电红外摄像机"][0],
         [m.id for m in system.modules.values() if m.name == "通信模块"][0]
     ]
     
@@ -537,7 +537,7 @@ def create_drone_environments(system):
     
     # 影响的模块
     emi_env.affected_modules = [
-        [m.id for m in system.modules.values() if m.name == "GPS传感器"][0],
+        [m.id for m in system.modules.values() if m.name == "全球定位模块"][0],
         [m.id for m in system.modules.values() if m.name == "通信模块"][0]
     ]
     
@@ -563,8 +563,8 @@ def create_drone_environments(system):
     
     # 影响所有电子模块
     thermal_env.affected_modules = [
-        [m.id for m in system.modules.values() if m.name == "飞控系统"][0],
-        [m.id for m in system.modules.values() if m.name == "AI处理器"][0],
+        [m.id for m in system.modules.values() if m.name == "自驾仪"][0],
+        [m.id for m in system.modules.values() if m.name == "专用算力设备"][0],
         [m.id for m in system.modules.values() if m.name == "通信模块"][0]
     ]
     
