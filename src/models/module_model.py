@@ -125,13 +125,26 @@ class Module(BaseModel):
     
     def to_dict(self) -> Dict[str, Any]:
         base_dict = super().to_dict()
+        # 确保所有连接点都有必要的属性
+        connection_points_data = []
+        for cp in self.connection_points:
+            cp_dict = cp.to_dict()
+            # 确保连接点有必要的字段
+            if 'id' not in cp_dict or not cp_dict['id']:
+                cp_dict['id'] = f"cp_{id(cp)}"
+            if 'connection_type' not in cp_dict:
+                cp_dict['connection_type'] = getattr(cp, 'connection_type', 'input')
+            if 'name' not in cp_dict:
+                cp_dict['name'] = getattr(cp, 'name', '未命名接口')
+            connection_points_data.append(cp_dict)
+            
         base_dict.update({
             'module_type': self.module_type.value if hasattr(self.module_type, 'value') else self.module_type,
             'template': self.template.value if self.template and hasattr(self.template, 'value') else self.template,
             'position': self.position.to_dict() if hasattr(self.position, 'to_dict') else self.position,
             'size': self.size.to_dict() if hasattr(self.size, 'to_dict') else self.size,
             'icon_path': self.icon_path,
-            'connection_points': [cp.to_dict() for cp in self.connection_points],
+            'connection_points': connection_points_data,
             'parameters': self.parameters,
             'state_variables': self.state_variables,
             'python_code': self.python_code,
@@ -158,6 +171,13 @@ class Module(BaseModel):
         for cp_data in data.get('connection_points', []):
             cp = ConnectionPoint()
             cp.from_dict(cp_data)
+            # 确保连接点有必要的属性
+            if not hasattr(cp, 'id') or not cp.id:
+                cp.id = f"cp_{id(cp)}"
+            if not hasattr(cp, 'connection_type') or not cp.connection_type:
+                cp.connection_type = cp_data.get('connection_type', 'input')
+            if not hasattr(cp, 'name') or not cp.name:
+                cp.name = cp_data.get('name', '未命名接口')
             self.connection_points.append(cp)
         
         self.parameters = data.get('parameters', {})

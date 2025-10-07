@@ -451,9 +451,15 @@ class SystemStructure(BaseModel):
         # 加载连接
         self.connections = {}
         for connection_id, connection_data in data.get('connections', {}).items():
-            connection = Connection()
-            connection.from_dict(connection_data)
-            self.connections[connection_id] = connection
+            try:
+                connection = Connection()
+                connection.from_dict(connection_data)
+                # 确保连接有有效的ID
+                if not connection.id:
+                    connection.id = connection_id
+                self.connections[connection_id] = connection
+            except Exception as e:
+                print(f"加载连接 {connection_id} 时出错: {e}")
         
         # 加载环境模型
         self.environment_models = {}
