@@ -577,17 +577,33 @@ class SystemCanvas(QWidget):
     def scene_mouse_release_event(self, event):
         """场景鼠标释放事件"""
         if self.connecting_mode and self.temp_line and self.start_interface:
-            # 检查是否释放到另一个接口上
-            item = self.graphics_scene.itemAt(event.scenePos(), self.graphics_view.transform())
-            print(f"鼠标释放，点击的项: {item}, 类型: {type(item)}")
-            if isinstance(item, InterfaceGraphicsItem) and item != self.start_interface:
+            # 使用 items() 方法获取所有在鼠标位置下的项，排除临时连线
+            items = self.graphics_scene.items(event.scenePos())
+            target_interface = None
+            
+            # 查找目标接口
+            for item in items:
+                # 跳过临时连线项
+                if item == self.temp_line:
+                    continue
+                # 跳过开始连线的接口
+                if item == self.start_interface:
+                    continue
+                # 检查是否是接口项
+                if isinstance(item, InterfaceGraphicsItem):
+                    target_interface = item
+                    break
+            
+            print(f"鼠标释放，找到的目标接口: {target_interface}")
+            
+            if target_interface:
                 # 完成连线
-                print(f"完成连线，从 {self.start_interface_id} 到 {item.connection_point.id}")
-                self.finish_connection(item, event.scenePos())
+                print(f"完成连线，从 {self.start_interface_id} 到 {target_interface.connection_point.id}")
+                self.finish_connection(target_interface, event.scenePos())
                 event.accept()
             else:
                 # 取消连线
-                print("取消连线")
+                print("取消连线，未找到目标接口")
                 self.cancel_connection()
                 event.accept()
         else:
@@ -602,6 +618,8 @@ class SystemCanvas(QWidget):
             # 创建临时连线
             self.temp_line = QGraphicsLineItem()
             self.temp_line.setPen(QPen(QColor(0, 100, 200), 2, Qt.DashLine))
+            # 设置临时连线为不可选择，减少干扰
+            self.temp_line.setFlag(QGraphicsItem.ItemIsSelectable, False)
             start_pos = interface_item.scenePos() + QPointF(6, 6)  # 接口中心点
             self.temp_line.setLine(start_pos.x(), start_pos.y(), scene_pos.x(), scene_pos.y())
             self.graphics_scene.addItem(self.temp_line)
