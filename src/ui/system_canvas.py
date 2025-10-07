@@ -9,13 +9,19 @@ System Canvas
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGraphicsView, 
                              QGraphicsScene, QGraphicsItem, QGraphicsRectItem,
                              QGraphicsTextItem, QGraphicsLineItem, QGraphicsEllipseItem,
-                             QGraphicsPathItem,
+                             QGraphicsPathItem, QMenu,
                              QPushButton, QToolBar, QAction, QActionGroup, QLabel, 
                              QDialog, QFormLayout, QLineEdit, QTextEdit, QComboBox,
                              QDialogButtonBox, QListWidget, QListWidgetItem, QSplitter,
                              QGroupBox, QScrollArea, QMessageBox)
 from PyQt5.QtCore import Qt, QRectF, QPointF, pyqtSignal, QTimer
 from PyQt5.QtGui import QPen, QBrush, QColor, QPainter, QFont, QPainterPath
+
+# 导入Point类
+try:
+    from ..models.base_model import Point
+except ImportError:
+    from src.models.base_model import Point
 
 
 class ModuleConfigDialog(QDialog):
