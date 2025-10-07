@@ -123,10 +123,12 @@ class MainWindow(QMainWindow):
         
         # 模块建模标签页
         self.module_panel = ModulePanel()
+        self.module_panel.set_project_manager(self.project_manager)
         self.tab_widget.addTab(self.module_panel, "模块建模")
         
         # 接口建模标签页
         self.interface_panel = InterfacePanel()
+        self.interface_panel.set_project_manager(self.project_manager)
         self.tab_widget.addTab(self.interface_panel, "接口建模")
         
         # 任务剖面标签页
@@ -325,6 +327,10 @@ class MainWindow(QMainWindow):
         
         # 标签页变化
         self.tab_widget.currentChanged.connect(self.on_tab_changed)
+        
+        # 模块面板信号连接
+        self.module_panel.module_created.connect(self.on_module_updated)
+        self.module_panel.module_modified.connect(self.on_module_updated)
     
     def init_status(self):
         """初始化状态"""
@@ -338,6 +344,10 @@ class MainWindow(QMainWindow):
             
             # 设置系统画布
             self.system_canvas.set_system(self.current_system)
+            
+            # 设置模块面板和接口面板
+            self.module_panel.set_current_system(self.current_system)
+            self.interface_panel.set_current_system(self.current_system)
             
             self.update_project_tree()
             self.update_status("已创建新项目")
@@ -357,6 +367,10 @@ class MainWindow(QMainWindow):
                 
                 # 设置系统画布
                 self.system_canvas.set_system(self.current_system)
+                
+                # 设置模块面板和接口面板
+                self.module_panel.set_current_system(self.current_system)
+                self.interface_panel.set_current_system(self.current_system)
                 
                 self.update_project_tree()
                 self.update_status(f"已打开项目：{file_path}")
@@ -520,6 +534,11 @@ class MainWindow(QMainWindow):
         current_widget = self.tab_widget.widget(index)
         tab_name = self.tab_widget.tabText(index)
         self.update_status(f"切换到：{tab_name}")
+    
+    def on_module_updated(self):
+        """模块更新事件"""
+        # 刷新系统画布中的模块显示
+        self.system_canvas.refresh_modules()
     
     def close_tab(self, index):
         """关闭标签页"""

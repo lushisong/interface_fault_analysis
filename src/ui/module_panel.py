@@ -11,7 +11,7 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QSplitter,
                              QFormLayout, QLineEdit, QTextEdit, QComboBox,
                              QPushButton, QLabel, QSpinBox, QDoubleSpinBox,
                              QGroupBox, QListWidget, QListWidgetItem,
-                             QMessageBox, QFileDialog)
+                             QMessageBox, QFileDialog, QDialog)
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QIcon
 
@@ -30,9 +30,34 @@ class ModulePanel(QWidget):
         super().__init__()
         self.current_module = None
         self.modules = {}  # 模块字典
+        self.project_manager = None  # 项目管理器
+        self.current_system = None  # 当前系统
         
         self.init_ui()
         self.init_connections()
+    
+    def set_project_manager(self, project_manager):
+        """设置项目管理器"""
+        self.project_manager = project_manager
+        self.load_modules_from_system()
+    
+    def set_current_system(self, system):
+        """设置当前系统"""
+        self.current_system = system
+        self.load_modules_from_system()
+    
+    def load_modules_from_system(self):
+        """从系统中加载模块"""
+        if self.current_system:
+            self.modules = self.current_system.modules.copy()
+            self.update_module_tree()
+    
+    def save_modules_to_system(self):
+        """保存模块到系统"""
+        if self.current_system:
+            self.current_system.modules = self.modules.copy()
+            if self.project_manager:
+                self.project_manager.mark_modified()
     
     def init_ui(self):
         """初始化用户界面"""
@@ -97,9 +122,9 @@ class ModulePanel(QWidget):
         self.basic_tab = self.create_basic_tab()
         self.tab_widget.addTab(self.basic_tab, "基本信息")
         
-        # 连接点标签页
+        # 接口标签页
         self.connections_tab = self.create_connections_tab()
-        self.tab_widget.addTab(self.connections_tab, "连接点")
+        self.tab_widget.addTab(self.connections_tab, "接口")
         
         # 参数标签页
         self.parameters_tab = self.create_parameters_tab()
@@ -180,28 +205,28 @@ class ModulePanel(QWidget):
         return widget
     
     def create_connections_tab(self):
-        """创建连接点标签页"""
+        """创建接口标签页"""
         widget = QWidget()
         layout = QVBoxLayout()
         
-        # 连接点列表
+        # 接口列表
         self.connection_list = QListWidget()
-        layout.addWidget(QLabel("连接点列表"))
+        layout.addWidget(QLabel("接口列表"))
         layout.addWidget(self.connection_list)
         
         # 按钮组
         button_layout = QHBoxLayout()
-        self.add_connection_btn = QPushButton("添加连接点")
-        self.edit_connection_btn = QPushButton("编辑连接点")
-        self.remove_connection_btn = QPushButton("删除连接点")
+        self.add_connection_btn = QPushButton("添加接口")
+        self.edit_connection_btn = QPushButton("编辑接口")
+        self.remove_connection_btn = QPushButton("删除接口")
         
         button_layout.addWidget(self.add_connection_btn)
         button_layout.addWidget(self.edit_connection_btn)
         button_layout.addWidget(self.remove_connection_btn)
         layout.addLayout(button_layout)
         
-        # 连接点详情
-        details_group = QGroupBox("连接点详情")
+        # 接口详情
+        details_group = QGroupBox("接口详情")
         details_layout = QFormLayout()
         
         self.conn_name_edit = QLineEdit()
@@ -375,7 +400,7 @@ class ModulePanel(QWidget):
         # 图标浏览
         self.icon_browse_btn.clicked.connect(self.browse_icon)
         
-        # 连接点操作
+        # 接口操作
         self.add_connection_btn.clicked.connect(self.add_connection_point)
         self.edit_connection_btn.clicked.connect(self.edit_connection_point)
         self.remove_connection_btn.clicked.connect(self.remove_connection_point)
@@ -411,6 +436,7 @@ class ModulePanel(QWidget):
         """创建新模块"""
         module = Module("新模块", "新创建的模块")
         self.modules[module.id] = module
+        self.save_modules_to_system()
         self.update_module_tree()
         self.select_module(module)
         self.module_created.emit(module)
@@ -423,6 +449,7 @@ class ModulePanel(QWidget):
             if reply == QMessageBox.Yes:
                 del self.modules[self.current_module.id]
                 self.current_module = None
+                self.save_modules_to_system()
                 self.update_module_tree()
                 self.clear_editor()
     
@@ -432,6 +459,7 @@ class ModulePanel(QWidget):
             cloned = self.current_module.clone()
             cloned.name += "_副本"
             self.modules[cloned.id] = cloned
+            self.save_modules_to_system()
             self.update_module_tree()
             self.select_module(cloned)
     
@@ -442,6 +470,7 @@ class ModulePanel(QWidget):
             # 根据模板创建模块
             module = self.create_module_from_template(template)
             self.modules[module.id] = module
+            self.save_modules_to_system()
             self.update_module_tree()
             self.select_module(module)
             self.module_created.emit(module)
@@ -511,7 +540,7 @@ class ModulePanel(QWidget):
         # Python代码
         self.code_edit.setPlainText(module.python_code)
         
-        # 更新连接点列表
+        # 更新接口列表
         self.update_connection_list()
         
         # 更新参数列表
@@ -521,7 +550,7 @@ class ModulePanel(QWidget):
         self.update_specific_properties()
     
     def update_connection_list(self):
-        """更新连接点列表"""
+        """更新接口列表"""
         self.connection_list.clear()
         if self.current_module:
             for cp in self.current_module.connection_points:
@@ -626,19 +655,68 @@ class ModulePanel(QWidget):
             self.icon_path_edit.setText(file_path)
     
     def add_connection_point(self):
-        """添加连接点"""
+        """添加接口"""
         if self.current_module:
-            cp = ConnectionPoint("新连接点", Point(50, 30))
+            # 导入接口选择对话框
+            from .interface_selector_dialog import InterfaceTemplateDialog, InterfaceInstanceDialog
+            
+            # 获取可用的接口模板
+            available_interfaces = {}
+            if self.current_system and hasattr(self.current_system, 'interfaces'):
+                available_interfaces = self.current_system.interfaces
+            
+            if available_interfaces:
+                # 显示接口模板选择对话框
+                dialog = InterfaceTemplateDialog(available_interfaces, self)
+                if dialog.exec_() == QDialog.Accepted:
+                    template_interface = dialog.get_selected_interface()
+                    if template_interface:
+                        # 显示接口实例化编辑对话框
+                        instance_dialog = InterfaceInstanceDialog(template_interface, self)
+                        if instance_dialog.exec_() == QDialog.Accepted:
+                            instance_cp = instance_dialog.get_instance_interface()
+                            if instance_cp:
+                                # 设置位置
+                                instance_cp.position = Point(50, 30)
+                                self.current_module.add_connection_point(instance_cp)
+                                self.save_modules_to_system()
+                                self.update_connection_list()
+                                # 发射模块修改信号
+                                self.module_modified.emit(self.current_module)
+                        return
+            
+            # 如果没有可用模板或用户选择创建新接口，创建默认接口
+            cp = ConnectionPoint("新接口", Point(50, 30))
             self.current_module.add_connection_point(cp)
+            self.save_modules_to_system()
             self.update_connection_list()
+            # 发射模块修改信号
+            self.module_modified.emit(self.current_module)
     
     def edit_connection_point(self):
-        """编辑连接点"""
-        # 实现连接点编辑逻辑
-        pass
+        """编辑接口"""
+        current_item = self.connection_list.currentItem()
+        if current_item and self.current_module:
+            cp_id = current_item.data(Qt.UserRole)
+            cp = self.current_module.get_connection_point(cp_id)
+            if cp:
+                # 导入接口编辑对话框
+                from .interface_edit_dialog import InterfaceEditDialog
+                
+                dialog = InterfaceEditDialog(cp, self)
+                dialog.interface_saved.connect(self.on_interface_edited)
+                dialog.exec_()
+    
+    def on_interface_edited(self, connection_point):
+        """接口编辑完成"""
+        self.save_modules_to_system()
+        self.update_connection_list()
+        # 发射模块修改信号
+        if self.current_module:
+            self.module_modified.emit(self.current_module)
     
     def remove_connection_point(self):
-        """删除连接点"""
+        """删除接口"""
         current_item = self.connection_list.currentItem()
         if current_item and self.current_module:
             cp_id = current_item.data(Qt.UserRole)

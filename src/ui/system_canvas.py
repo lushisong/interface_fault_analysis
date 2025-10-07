@@ -8,9 +8,9 @@ System Canvas
 
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGraphicsView, 
                              QGraphicsScene, QGraphicsItem, QGraphicsRectItem,
-                             QGraphicsTextItem, QGraphicsLineItem, QPushButton,
-                             QToolBar, QAction, QButtonGroup, QLabel, QDialog,
-                             QFormLayout, QLineEdit, QTextEdit, QComboBox,
+                             QGraphicsTextItem, QGraphicsLineItem, QGraphicsEllipseItem,
+                             QPushButton, QToolBar, QAction, QButtonGroup, QLabel, 
+                             QDialog, QFormLayout, QLineEdit, QTextEdit, QComboBox,
                              QDialogButtonBox, QListWidget, QSplitter,
                              QGroupBox, QScrollArea)
 from PyQt5.QtCore import Qt, QRectF, QPointF, pyqtSignal, QTimer
@@ -102,12 +102,45 @@ class ModuleConfigDialog(QDialog):
         }
 
 
+class InterfaceGraphicsItem(QGraphicsEllipseItem):
+    """接口图形项"""
+    
+    def __init__(self, connection_point, parent=None):
+        super().__init__(0, 0, 8, 8, parent)
+        self.connection_point = connection_point
+        
+        # 设置外观
+        self.setPen(QPen(QColor(0, 0, 0), 1))
+        
+        # 设置工具提示
+        tooltip_text = f"接口: {connection_point.name}\n类型: {connection_point.connection_type}\n数据类型: {connection_point.data_type}"
+        if hasattr(connection_point, 'variables') and connection_point.variables:
+            tooltip_text += f"\n变量: {', '.join(connection_point.variables)}"
+        self.setToolTip(tooltip_text)
+        
+        # 设置可选择
+        self.setFlag(QGraphicsItem.ItemIsSelectable, True)
+        self.setAcceptHoverEvents(True)
+    
+    def hoverEnterEvent(self, event):
+        """鼠标悬停进入事件"""
+        self.setPen(QPen(QColor(255, 0, 0), 2))  # 高亮显示
+        super().hoverEnterEvent(event)
+    
+    def hoverLeaveEvent(self, event):
+        """鼠标悬停离开事件"""
+        self.setPen(QPen(QColor(0, 0, 0), 1))  # 恢复正常
+        super().hoverLeaveEvent(event)
+
+
 class ModuleGraphicsItem(QGraphicsRectItem):
     """模块图形项"""
     
     def __init__(self, module, parent=None):
         super().__init__(parent)
         self.module = module
+        self.interface_items = []  # 接口图形项列表
+        
         self.setRect(0, 0, module.size.x, module.size.y)
         self.setPos(module.position.x, module.position.y)
         
@@ -127,9 +160,67 @@ class ModuleGraphicsItem(QGraphicsRectItem):
         font.setPointSize(10)
         self.text_item.setFont(font)
         
+        # 创建接口图形项
+        self.create_interface_items()
+        
         # Tooltip内容
         tooltip_text = f"模块: {module.name}\n类型: {module.module_type.value}\n描述: {module.description}"
+        if hasattr(module, 'connection_points') and module.connection_points:
+            tooltip_text += f"\n接口数量: {len(module.connection_points)}"
         self.setToolTip(tooltip_text)
+    
+    def create_interface_items(self):
+        """创建接口图形项"""
+        if not hasattr(self.module, 'connection_points'):
+            return
+        
+        rect = self.rect()
+        interface_count = len(self.module.connection_points)
+        
+        if interface_count == 0:
+            return
+        
+        # 清除现有接口项
+        for item in self.interface_items:
+            if item.scene():
+                item.scene().removeItem(item)
+        self.interface_items.clear()
+        
+        # 计算接口位置
+        for i, cp in enumerate(self.module.connection_points):
+            interface_item = InterfaceGraphicsItem(cp, self)
+            
+            # 根据接口类型确定位置和颜色
+            if cp.connection_type == "input":
+                # 输入接口在左侧
+                x = -8
+                y = rect.height() * (i + 1) / (interface_count + 1) - 4
+                color = QColor(0, 255, 0)  # 绿色
+            elif cp.connection_type == "output":
+                # 输出接口在右侧
+                x = rect.width()
+                y = rect.height() * (i + 1) / (interface_count + 1) - 4
+                color = QColor(255, 255, 0)  # 黄色
+            else:  # bidirectional
+                # 双向接口在顶部或底部
+                x = rect.width() * (i + 1) / (interface_count + 1) - 4
+                y = -8 if i % 2 == 0 else rect.height()
+                color = QColor(255, 192, 203)  # 粉色
+            
+            interface_item.setPos(x, y)
+            interface_item.setBrush(QBrush(color))
+            self.interface_items.append(interface_item)
+    
+    def update_interfaces(self):
+        """更新接口显示"""
+        self.create_interface_items()
+    
+    def get_interface_position(self, interface_id):
+        """获取指定接口的全局位置"""
+        for item in self.interface_items:
+            if item.connection_point.id == interface_id:
+                return self.mapToScene(item.pos() + QPointF(4, 4))  # 接口中心点
+        return None
     
     def mousePressEvent(self, event):
         """鼠标按下事件"""
@@ -398,7 +489,7 @@ class SystemCanvas(QWidget):
         target_item = self.graphics_items.get(connection.target_module_id)
         
         if source_item and target_item:
-            # 计算连接点
+            # 计算接口
             source_rect = source_item.rect()
             target_rect = target_item.rect()
             
@@ -509,7 +600,18 @@ class SystemCanvas(QWidget):
     
     def refresh_modules(self):
         """刷新模块显示"""
-        self.update_canvas()
+        # 更新现有模块的接口显示
+        for module_id, module_item in self.graphics_items.items():
+            if hasattr(module_item, 'update_interfaces'):
+                module_item.update_interfaces()
+        
+        # 如果有新模块，重新构建整个画布
+        if self.current_system:
+            current_module_ids = set(self.graphics_items.keys())
+            system_module_ids = set(self.current_system.modules.keys())
+            
+            if current_module_ids != system_module_ids:
+                self.update_canvas()
     
     def set_project_manager(self, project_manager):
         """设置项目管理器"""

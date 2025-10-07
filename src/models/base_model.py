@@ -97,7 +97,7 @@ class Point:
 
 
 class ConnectionPoint:
-    """连接点/接口点"""
+    """接口点"""
     
     def __init__(self, name: str = "", position: Point = None, 
                  connection_type: str = "input", data_type: str = "signal"):
@@ -107,7 +107,7 @@ class ConnectionPoint:
         self.connection_type = connection_type  # input, output, bidirectional
         self.data_type = data_type  # signal, data, power, control
         self.variables = []  # 关联的变量列表
-        self.connected_to = []  # 连接到的其他连接点ID列表
+        self.connected_to = []  # 连接到的其他接口ID列表
     
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -141,11 +141,11 @@ class ConnectionPoint:
             self.variables.remove(variable_name)
     
     def connect_to(self, other_point_id: str):
-        """连接到另一个连接点"""
+        """连接到另一个接口"""
         if other_point_id not in self.connected_to:
             self.connected_to.append(other_point_id)
     
     def disconnect_from(self, other_point_id: str):
-        """断开与另一个连接点的连接"""
+        """断开与另一个接口的连接"""
         if other_point_id in self.connected_to:
             self.connected_to.remove(other_point_id)

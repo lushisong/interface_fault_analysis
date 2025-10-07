@@ -29,9 +29,39 @@ class InterfacePanel(QWidget):
         super().__init__()
         self.current_interface = None
         self.interfaces = {}
+        self.project_manager = None  # 项目管理器
+        self.current_system = None  # 当前系统
         
         self.init_ui()
         self.init_connections()
+    
+    def set_project_manager(self, project_manager):
+        """设置项目管理器"""
+        self.project_manager = project_manager
+        self.load_interfaces_from_system()
+    
+    def set_current_system(self, system):
+        """设置当前系统"""
+        self.current_system = system
+        self.load_interfaces_from_system()
+    
+    def load_interfaces_from_system(self):
+        """从系统中加载接口"""
+        if self.current_system:
+            self.interfaces = self.current_system.interfaces.copy()
+            self.update_interface_tree()
+    
+    def save_interfaces_to_system(self):
+        """保存接口到系统"""
+        if self.current_system:
+            self.current_system.interfaces = self.interfaces.copy()
+            if self.project_manager:
+                self.project_manager.mark_modified()
+    
+    def update_interface_tree(self):
+        """更新接口树"""
+        # 这里需要实现接口树的更新逻辑
+        pass
     
     def init_ui(self):
         """初始化用户界面"""

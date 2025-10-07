@@ -60,24 +60,24 @@ class Module(BaseModel):
         self.position = Point()  # 在图形界面中的位置
         self.size = Point(100, 60)  # 模块大小
         self.icon_path = ""  # 图标路径
-        self.connection_points = []  # 连接点列表
+        self.connection_points = []  # 接口列表
         self.parameters = {}  # 模块参数
         self.state_variables = {}  # 状态变量
         self.python_code = ""  # Python建模代码
         self.is_template = False  # 是否为模板
         
     def add_connection_point(self, point: ConnectionPoint):
-        """添加连接点"""
+        """添加接口"""
         self.connection_points.append(point)
         self.update_modified_time()
     
     def remove_connection_point(self, point_id: str):
-        """移除连接点"""
+        """移除接口"""
         self.connection_points = [p for p in self.connection_points if p.id != point_id]
         self.update_modified_time()
     
     def get_connection_point(self, point_id: str) -> Optional[ConnectionPoint]:
-        """获取连接点"""
+        """获取接口"""
         for point in self.connection_points:
             if point.id == point_id:
                 return point
@@ -152,7 +152,7 @@ class Module(BaseModel):
         
         self.icon_path = data.get('icon_path', '')
         
-        # 加载连接点
+        # 加载接口
         self.connection_points = []
         for cp_data in data.get('connection_points', []):
             cp = ConnectionPoint()
