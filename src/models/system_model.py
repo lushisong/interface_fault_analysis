@@ -187,9 +187,12 @@ class TaskProfile(BaseModel):
 class Connection:
     """模块间连接"""
     
-    def __init__(self, source_module_id: str = "", target_module_id: str = "",
+    def __init__(self, id: str = "", source_module_id: str = "", target_module_id: str = "",
                  source_point_id: str = "", target_point_id: str = ""):
-        self.id = f"{source_module_id}_{source_point_id}_{target_module_id}_{target_point_id}"
+        if id:
+            self.id = id
+        else:
+            self.id = f"{source_module_id}_{source_point_id}_{target_module_id}_{target_point_id}"
         self.source_module_id = source_module_id
         self.target_module_id = target_module_id
         self.source_point_id = source_point_id
