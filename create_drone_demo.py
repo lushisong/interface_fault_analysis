@@ -177,7 +177,7 @@ def create_drone_system():
     # 机器学习框架
     ml_framework = Module("机器学习框架", "TensorRT推理引擎")
     ml_framework.module_type = ModuleType.SOFTWARE
-    ml_framework.template = ModuleTemplate.FRAMEWORK
+    ml_framework.template = ModuleTemplate.APPLICATION  # 使用APPLICATION代替FRAMEWORK
     ml_framework.parameters = {"version": "8.0", "precision": "FP16"}
     ml_framework.failure_rate = 3e-5
     ml_framework.position = {'x': 450, 'y': 400}
@@ -186,7 +186,7 @@ def create_drone_system():
     # 嵌入式OS
     embedded_os = Module("嵌入式OS", "实时操作系统")
     embedded_os.module_type = ModuleType.SOFTWARE
-    embedded_os.template = ModuleTemplate.OPERATING_SYSTEM
+    embedded_os.template = ModuleTemplate.APPLICATION  # 使用APPLICATION代替OPERATING_SYSTEM
     embedded_os.parameters = {"name": "VxWorks", "version": "7.0"}
     embedded_os.failure_rate = 1e-6
     embedded_os.position = {'x': 350, 'y': 500}
