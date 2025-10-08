@@ -101,6 +101,39 @@ class InterfacePanel(QWidget):
         # 恢复选择
         if current_selection:
             self.select_interface_in_tree(current_selection)
+
+    def select_interface_in_tree(self, interface_id):
+        """在树中选择指定接口"""
+        root = self.interface_tree.invisibleRootItem()
+        for i in range(root.childCount()):
+            category_item = root.child(i)
+            for j in range(category_item.childCount()):
+                child = category_item.child(j)
+                data = child.data(0, Qt.UserRole)
+                if data and data.get('interface_id') == interface_id:
+                    self.interface_tree.setCurrentItem(child)
+                    return
+
+    def get_category_name(self, interface_type):
+        """根据接口类型获取分类名称"""
+        type_mapping = {
+            InterfaceType.ALGORITHM_OS: "算法-操作系统接口",
+            InterfaceType.ALGORITHM_FRAMEWORK: "算法-智能框架接口",
+            InterfaceType.ALGORITHM_APPLICATION: "算法-应用接口",
+            InterfaceType.ALGORITHM_DATA_PLATFORM: "算法-数据平台接口",
+            InterfaceType.ALGORITHM_HARDWARE: "算法-硬件设备接口",
+            InterfaceType.SOFTWARE_HARDWARE: "一般接口"
+        }
+        return type_mapping.get(interface_type, "一般接口")
+    
+    def find_category_item(self, category_name):
+        """查找分类项"""
+        root = self.interface_tree.invisibleRootItem()
+        for i in range(root.childCount()):
+            item = root.child(i)
+            if item.text(0) == category_name:
+                return item
+        return None
     
     def init_ui(self):
         """初始化用户界面"""
