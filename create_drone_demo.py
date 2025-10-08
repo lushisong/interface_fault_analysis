@@ -483,10 +483,11 @@ def create_module_connections(system):
                 target_x = target_module.position['x']
                 target_y = target_module.position['y'] + 30
                 
-                # 直接使用字典格式，避免 Point 对象序列化问题
+                # 使用 Point 对象而不是字典
+                from src.models.base_model import Point
                 connection.connection_points = [
-                    {"x": source_x, "y": source_y},
-                    {"x": target_x, "y": target_y}
+                    Point(source_x, source_y),
+                    Point(target_x, target_y)
                 ]
                 
                 connection.enabled = True
