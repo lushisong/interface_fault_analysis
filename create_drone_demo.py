@@ -309,6 +309,8 @@ def create_drone_system():
                 
                 # 将接口添加到模块
                 module.add_interface(interface)
+                # 同时将接口添加到系统
+                system.add_interface(interface)
     
     print("✓ 为所有模块添加了接口")
     return system
@@ -363,8 +365,22 @@ def create_module_connections(system):
         
         if source_module and target_module:
             # 查找源接口和目标接口
-            source_interface = next((iface for iface in source_module.interfaces if iface.name == conn_data["source_interface"]), None)
-            target_interface = next((iface for iface in target_module.interfaces if iface.name == conn_data["target_interface"]), None)
+            source_interface = None
+            target_interface = None
+            
+            # 查找源接口
+            for iface_id in source_module.interfaces:
+                iface = system.interfaces.get(iface_id)
+                if iface and iface.name == conn_data["source_interface"]:
+                    source_interface = iface
+                    break
+                    
+            # 查找目标接口
+            for iface_id in target_module.interfaces:
+                iface = system.interfaces.get(iface_id)
+                if iface and iface.name == conn_data["target_interface"]:
+                    target_interface = iface
+                    break
             
             if source_interface and target_interface:
                 # 创建连接
