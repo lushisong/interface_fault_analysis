@@ -511,7 +511,216 @@ class ModulePanel(QWidget):
             module = AlgorithmModule(template.value, f"基于{template.value}模板创建的算法模块")
         
         module.template = template
+        
+        # 为模块模板添加相应的接口
+        self.add_template_interfaces(module, template)
+        
         return module
+    
+    def add_template_interfaces(self, module, template):
+        """为模块模板添加接口"""
+        from ..models.base_model import ConnectionPoint, Point
+        
+        # 根据模板类型添加不同的接口
+        if template == ModuleTemplate.SENSOR:
+            # 传感器模块接口
+            input_interface = ConnectionPoint("传感器数据输入", Point(20, 20))
+            input_interface.connection_type = "input"
+            input_interface.interface_type = "algorithm_hardware"
+            input_interface.data_type = "signal"
+            module.add_connection_point(input_interface)
+            
+            output_interface = ConnectionPoint("传感器数据输出", Point(80, 20))
+            output_interface.connection_type = "output"
+            output_interface.interface_type = "algorithm_hardware"
+            output_interface.data_type = "data"
+            module.add_connection_point(output_interface)
+            
+        elif template == ModuleTemplate.ACTUATOR:
+            # 执行器模块接口
+            input_interface = ConnectionPoint("控制信号输入", Point(20, 20))
+            input_interface.connection_type = "input"
+            input_interface.interface_type = "algorithm_hardware"
+            input_interface.data_type = "control"
+            module.add_connection_point(input_interface)
+            
+            feedback_interface = ConnectionPoint("状态反馈输出", Point(80, 20))
+            feedback_interface.connection_type = "output"
+            feedback_interface.interface_type = "algorithm_hardware"
+            feedback_interface.data_type = "signal"
+            module.add_connection_point(feedback_interface)
+            
+        elif template == ModuleTemplate.PROCESSOR:
+            # 处理器模块接口
+            data_input = ConnectionPoint("数据输入", Point(10, 20))
+            data_input.connection_type = "input"
+            data_input.interface_type = "algorithm_hardware"
+            data_input.data_type = "data"
+            module.add_connection_point(data_input)
+            
+            data_output = ConnectionPoint("数据输出", Point(90, 20))
+            data_output.connection_type = "output"
+            data_output.interface_type = "algorithm_hardware"
+            data_output.data_type = "data"
+            module.add_connection_point(data_output)
+            
+            control_input = ConnectionPoint("控制输入", Point(10, 40))
+            control_input.connection_type = "input"
+            control_input.interface_type = "algorithm_hardware"
+            control_input.data_type = "control"
+            module.add_connection_point(control_input)
+            
+        elif template == ModuleTemplate.MEMORY:
+            # 存储器模块接口
+            read_interface = ConnectionPoint("读取接口", Point(20, 20))
+            read_interface.connection_type = "bidirectional"
+            read_interface.interface_type = "algorithm_hardware"
+            read_interface.data_type = "data"
+            module.add_connection_point(read_interface)
+            
+            write_interface = ConnectionPoint("写入接口", Point(80, 20))
+            write_interface.connection_type = "bidirectional"
+            write_interface.interface_type = "algorithm_hardware"
+            write_interface.data_type = "data"
+            module.add_connection_point(write_interface)
+            
+        elif template == ModuleTemplate.COMMUNICATION:
+            # 通信模块接口
+            tx_interface = ConnectionPoint("发送接口", Point(20, 20))
+            tx_interface.connection_type = "output"
+            tx_interface.interface_type = "algorithm_hardware"
+            tx_interface.data_type = "data"
+            module.add_connection_point(tx_interface)
+            
+            rx_interface = ConnectionPoint("接收接口", Point(80, 20))
+            rx_interface.connection_type = "input"
+            rx_interface.interface_type = "algorithm_hardware"
+            rx_interface.data_type = "data"
+            module.add_connection_point(rx_interface)
+            
+        elif template == ModuleTemplate.OPERATING_SYSTEM:
+            # 操作系统模块接口
+            syscall_interface = ConnectionPoint("系统调用接口", Point(20, 20))
+            syscall_interface.connection_type = "bidirectional"
+            syscall_interface.interface_type = "algorithm_os"
+            syscall_interface.data_type = "control"
+            module.add_connection_point(syscall_interface)
+            
+            resource_interface = ConnectionPoint("资源管理接口", Point(80, 20))
+            resource_interface.connection_type = "bidirectional"
+            resource_interface.interface_type = "algorithm_os"
+            resource_interface.data_type = "data"
+            module.add_connection_point(resource_interface)
+            
+        elif template == ModuleTemplate.MIDDLEWARE:
+            # 中间件模块接口
+            api_interface = ConnectionPoint("API接口", Point(20, 20))
+            api_interface.connection_type = "bidirectional"
+            api_interface.interface_type = "algorithm_application"
+            api_interface.data_type = "data"
+            module.add_connection_point(api_interface)
+            
+            message_interface = ConnectionPoint("消息接口", Point(80, 20))
+            message_interface.connection_type = "bidirectional"
+            message_interface.interface_type = "algorithm_application"
+            message_interface.data_type = "data"
+            module.add_connection_point(message_interface)
+            
+        elif template == ModuleTemplate.APPLICATION:
+            # 应用程序模块接口
+            ui_interface = ConnectionPoint("用户界面接口", Point(20, 20))
+            ui_interface.connection_type = "bidirectional"
+            ui_interface.interface_type = "algorithm_application"
+            ui_interface.data_type = "data"
+            module.add_connection_point(ui_interface)
+            
+            data_interface = ConnectionPoint("数据接口", Point(80, 20))
+            data_interface.connection_type = "bidirectional"
+            data_interface.interface_type = "algorithm_application"
+            data_interface.data_type = "data"
+            module.add_connection_point(data_interface)
+            
+        elif template == ModuleTemplate.DATABASE:
+            # 数据库模块接口
+            query_interface = ConnectionPoint("查询接口", Point(20, 20))
+            query_interface.connection_type = "bidirectional"
+            query_interface.interface_type = "algorithm_data_platform"
+            query_interface.data_type = "data"
+            module.add_connection_point(query_interface)
+            
+            storage_interface = ConnectionPoint("存储接口", Point(80, 20))
+            storage_interface.connection_type = "bidirectional"
+            storage_interface.interface_type = "algorithm_data_platform"
+            storage_interface.data_type = "data"
+            module.add_connection_point(storage_interface)
+            
+        elif template == ModuleTemplate.CONTROL_ALGORITHM:
+            # 控制算法模块接口
+            setpoint_input = ConnectionPoint("设定值输入", Point(20, 20))
+            setpoint_input.connection_type = "input"
+            setpoint_input.interface_type = "algorithm_framework"
+            setpoint_input.data_type = "data"
+            module.add_connection_point(setpoint_input)
+            
+            feedback_input = ConnectionPoint("反馈输入", Point(20, 40))
+            feedback_input.connection_type = "input"
+            feedback_input.interface_type = "algorithm_framework"
+            feedback_input.data_type = "data"
+            module.add_connection_point(feedback_input)
+            
+            control_output = ConnectionPoint("控制输出", Point(80, 30))
+            control_output.connection_type = "output"
+            control_output.interface_type = "algorithm_framework"
+            control_output.data_type = "control"
+            module.add_connection_point(control_output)
+            
+        elif template == ModuleTemplate.PERCEPTION_ALGORITHM:
+            # 感知算法模块接口
+            sensor_input = ConnectionPoint("传感器输入", Point(20, 20))
+            sensor_input.connection_type = "input"
+            sensor_input.interface_type = "algorithm_framework"
+            sensor_input.data_type = "data"
+            module.add_connection_point(sensor_input)
+            
+            perception_output = ConnectionPoint("感知结果输出", Point(80, 20))
+            perception_output.connection_type = "output"
+            perception_output.interface_type = "algorithm_framework"
+            perception_output.data_type = "data"
+            module.add_connection_point(perception_output)
+            
+        elif template == ModuleTemplate.DECISION_ALGORITHM:
+            # 决策算法模块接口
+            situation_input = ConnectionPoint("态势输入", Point(20, 20))
+            situation_input.connection_type = "input"
+            situation_input.interface_type = "algorithm_framework"
+            situation_input.data_type = "data"
+            module.add_connection_point(situation_input)
+            
+            decision_output = ConnectionPoint("决策输出", Point(80, 20))
+            decision_output.connection_type = "output"
+            decision_output.interface_type = "algorithm_framework"
+            decision_output.data_type = "control"
+            module.add_connection_point(decision_output)
+            
+        elif template == ModuleTemplate.LEARNING_ALGORITHM:
+            # 学习算法模块接口
+            training_input = ConnectionPoint("训练数据输入", Point(20, 20))
+            training_input.connection_type = "input"
+            training_input.interface_type = "algorithm_framework"
+            training_input.data_type = "data"
+            module.add_connection_point(training_input)
+            
+            model_output = ConnectionPoint("模型输出", Point(80, 20))
+            model_output.connection_type = "output"
+            model_output.interface_type = "algorithm_framework"
+            model_output.data_type = "data"
+            module.add_connection_point(model_output)
+            
+            inference_interface = ConnectionPoint("推理接口", Point(50, 40))
+            inference_interface.connection_type = "bidirectional"
+            inference_interface.interface_type = "algorithm_framework"
+            inference_interface.data_type = "data"
+            module.add_connection_point(inference_interface)
     
     def update_module_tree(self):
         """更新模块树"""
