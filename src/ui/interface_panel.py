@@ -60,8 +60,47 @@ class InterfacePanel(QWidget):
     
     def update_interface_tree(self):
         """更新接口树"""
-        # 这里需要实现接口树的更新逻辑
-        pass
+        # 保存当前选择
+        current_selection = None
+        current_item = self.interface_tree.currentItem()
+        if current_item:
+            data = current_item.data(0, Qt.UserRole)
+            if data and data.get('type') == 'interface_instance':
+                current_selection = data.get('interface_id')
+        
+        # 清除现有项目（保留模板分类）
+        root = self.interface_tree.invisibleRootItem()
+        for i in range(root.childCount()):
+            category_item = root.child(i)
+            # 移除所有实例接口，保留模板
+            for j in range(category_item.childCount()-1, -1, -1):
+                child = category_item.child(j)
+                child_data = child.data(0, Qt.UserRole)
+                if child_data and child_data.get('type') == 'interface_instance':
+                    category_item.removeChild(child)
+        
+        # 添加已保存的接口实例
+        for interface_id, interface in self.interfaces.items():
+            # 根据接口类型找到对应的分类
+            category_name = self.get_category_name(interface.interface_type)
+            category_item = self.find_category_item(category_name)
+            
+            if category_item:
+                # 创建接口实例项
+                instance_item = QTreeWidgetItem(category_item)
+                instance_item.setText(0, interface.name)
+                instance_item.setData(0, Qt.UserRole, {
+                    'type': 'interface_instance',
+                    'interface_id': interface_id,
+                    'category': category_name,
+                    'name': interface.name
+                })
+                # 插入到模板项之前
+                category_item.insertChild(0, instance_item)
+        
+        # 恢复选择
+        if current_selection:
+            self.select_interface_in_tree(current_selection)
     
     def init_ui(self):
         """初始化用户界面"""
@@ -415,8 +454,11 @@ def process_data(data):
         current_item = self.interface_tree.currentItem()
         if current_item:
             data = current_item.data(0, Qt.UserRole)
-            if data and data.get('type') == 'interface_template':
-                self.load_interface_template(data)
+            if data:
+                if data.get('type') == 'interface_template':
+                    self.load_interface_template(data)
+                elif data.get('type') == 'interface_instance':
+                    self.load_interface_instance(data.get('interface_id'))
     
     def load_interface_template(self, template_data):
         """加载接口模板"""
@@ -424,8 +466,59 @@ def process_data(data):
         self.type_combo.setCurrentText(template_data['category'])
         self.description_edit.setPlainText(f"这是一个{template_data['name']}的接口模板")
         
+        # 清空参数列表
+        self.param_list.clear()
+        
         # 根据接口类型加载默认失效模式
         self.load_default_failure_modes(template_data['category'])
+    
+    def load_interface_instance(self, interface_id):
+        """加载接口实例"""
+        if interface_id in self.interfaces:
+            interface = self.interfaces[interface_id]
+            self.name_edit.setText(interface.name)
+            self.description_edit.setPlainText(interface.description)
+            
+            # 设置接口类型
+            type_mapping = {
+                InterfaceType.ALGORITHM_OS: "算法-操作系统接口",
+                InterfaceType.ALGORITHM_FRAMEWORK: "算法-智能框架接口",
+                InterfaceType.ALGORITHM_APPLICATION: "算法-应用接口",
+                InterfaceType.ALGORITHM_DATA_PLATFORM: "算法-数据平台接口",
+                InterfaceType.ALGORITHM_HARDWARE: "算法-硬件设备接口",
+                InterfaceType.SOFTWARE_HARDWARE: "一般接口"
+            }
+            interface_type = type_mapping.get(interface.interface_type, "一般接口")
+            self.type_combo.setCurrentText(interface_type)
+            
+            # 设置方向
+            direction_mapping = {
+                InterfaceDirection.INPUT: "输入",
+                InterfaceDirection.OUTPUT: "输出", 
+                InterfaceDirection.BIDIRECTIONAL: "双向"
+            }
+            direction = direction_mapping.get(interface.direction, "双向")
+            self.direction_combo.setCurrentText(direction)
+            
+            # 加载参数
+            self.param_list.clear()
+            for param_name, param_value in interface.parameters.items():
+                param_data = {
+                    'name': param_name,
+                    'value': param_value,
+                    'type': type(param_value).__name__
+                }
+                item = QListWidgetItem(f"{param_name}: {param_value} ({param_data['type']})")
+                item.setData(Qt.UserRole, param_data)
+                self.param_list.addItem(item)
+            
+            # 加载失效模式
+            self.failure_list.clear()
+            for failure_mode in interface.failure_modes:
+                self.failure_list.addItem(failure_mode.name)
+            
+            # 加载代码
+            self.code_edit.setPlainText(interface.python_code)
     
     def load_default_failure_modes(self, interface_type):
         """加载默认失效模式"""
@@ -602,6 +695,67 @@ def process_data(data):
         # 这里可以打开一个参数编辑对话框
         param_name = f"参数{self.param_list.count() + 1}"
         self.param_list.addItem(param_name)
+    
+    def on_parameter_selected(self, current, previous):
+        """参数选择事件"""
+        if current:
+            param_data = current.data(Qt.UserRole)
+            if param_data:
+                self.param_name_edit.setText(param_data.get('name', ''))
+                self.param_value_edit.setText(str(param_data.get('value', '')))
+                self.param_type_combo.setCurrentText(param_data.get('type', 'string'))
+    
+    def add_parameter(self):
+        """添加参数"""
+        param_name = self.param_name_edit.text().strip()
+        param_value = self.param_value_edit.text().strip()
+        param_type = self.param_type_combo.currentText()
+        
+        if not param_name:
+            QMessageBox.warning(self, "警告", "请输入参数名")
+            return
+        
+        # 创建参数数据
+        param_data = {
+            'name': param_name,
+            'value': param_value,
+            'type': param_type
+        }
+        
+        # 添加到列表
+        item = QListWidgetItem(f"{param_name}: {param_value} ({param_type})")
+        item.setData(Qt.UserRole, param_data)
+        self.param_list.addItem(item)
+        
+        # 清空编辑区域
+        self.param_name_edit.clear()
+        self.param_value_edit.clear()
+    
+    def update_parameter(self):
+        """更新参数"""
+        current_item = self.param_list.currentItem()
+        if not current_item:
+            QMessageBox.warning(self, "警告", "请选择要更新的参数")
+            return
+        
+        param_name = self.param_name_edit.text().strip()
+        param_value = self.param_value_edit.text().strip()
+        param_type = self.param_type_combo.currentText()
+        
+        if not param_name:
+            QMessageBox.warning(self, "警告", "请输入参数名")
+            return
+        
+        # 更新参数数据
+        param_data = {
+            'name': param_name,
+            'value': param_value,
+            'type': param_type
+        }
+        
+        # 更新列表项
+        current_item.setText(f"{param_name}: {param_value} ({param_type})")
+        current_item.setData(Qt.UserRole, param_data)
     
     def remove_parameter(self):
         """删除参数"""
