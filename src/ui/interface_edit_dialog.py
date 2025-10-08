@@ -21,14 +21,15 @@ class InterfaceEditDialog(QDialog):
     
     interface_saved = pyqtSignal(object)  # 接口保存信号
     
-    def __init__(self, connection_point=None, parent=None):
+    def __init__(self, connection_point=None, parent=None, is_new=False):
         super().__init__(parent)
         self.connection_point = connection_point
-        self.is_new = connection_point is None
+        self.is_new = is_new or connection_point is None
         
         if self.is_new:
             self.setWindowTitle("新建接口")
-            self.connection_point = ConnectionPoint()
+            if self.connection_point is None:
+                self.connection_point = ConnectionPoint("新接口")
         else:
             self.setWindowTitle(f"编辑接口 - {connection_point.name}")
         
@@ -298,4 +299,8 @@ class InterfaceEditDialog(QDialog):
     
     def get_connection_point(self):
         """获取接口"""
+        return self.connection_point
+    
+    def get_interface(self):
+        """获取接口（别名方法）"""
         return self.connection_point

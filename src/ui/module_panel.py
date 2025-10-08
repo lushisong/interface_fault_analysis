@@ -896,13 +896,14 @@ class ModulePanel(QWidget):
             if self.current_system and hasattr(self.current_system, 'interfaces'):
                 available_interfaces = self.current_system.interfaces
             
-            if available_interfaces:
-                # 显示接口模板选择对话框
-                dialog = InterfaceTemplateDialog(available_interfaces, self)
-                if dialog.exec_() == QDialog.Accepted:
-                    template_interface = dialog.get_selected_interface()
-                    if template_interface:
-                        # 显示接口实例化编辑对话框
+            # 总是显示接口模板选择对话框（即使没有模板也可以创建新接口）
+            dialog = InterfaceTemplateDialog(available_interfaces, self)
+            if dialog.exec_() == QDialog.Accepted:
+                template_interface = dialog.get_selected_interface()
+                if template_interface:
+                    # 如果选择了模板，显示接口实例化编辑对话框
+                    if hasattr(template_interface, 'interface_type'):
+                        # 这是一个Interface对象，需要实例化
                         instance_dialog = InterfaceInstanceDialog(template_interface, self)
                         if instance_dialog.exec_() == QDialog.Accepted:
                             instance_cp = instance_dialog.get_instance_interface()
@@ -914,15 +915,17 @@ class ModulePanel(QWidget):
                                 self.update_connection_list()
                                 # 发射模块修改信号
                                 self.module_modified.emit(self.current_module)
-                        return
-            
-            # 如果没有可用模板或用户选择创建新接口，创建默认接口
-            cp = ConnectionPoint("新接口", Point(50, 30))
-            self.current_module.add_connection_point(cp)
-            self.save_modules_to_system()
-            self.update_connection_list()
-            # 发射模块修改信号
-            self.module_modified.emit(self.current_module)
+                    else:
+                        # 这是一个新创建的ConnectionPoint对象，直接添加
+                        template_interface.position = Point(50, 30)
+                        self.current_module.add_connection_point(template_interface)
+                        self.save_modules_to_system()
+                        self.update_connection_list()
+                        # 发射模块修改信号
+                        self.module_modified.emit(self.current_module)
+            else:
+                # 用户取消了选择，不做任何操作
+                pass
     
     def edit_connection_point(self):
         """编辑接口"""

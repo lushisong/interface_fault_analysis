@@ -54,10 +54,8 @@ class InterfaceTemplateDialog(QDialog):
         button_layout = QHBoxLayout()
         self.select_btn = QPushButton("选择")
         self.cancel_btn = QPushButton("取消")
-        self.create_new_btn = QPushButton("创建新接口")
         
         button_layout.addStretch()
-        button_layout.addWidget(self.create_new_btn)
         button_layout.addWidget(self.select_btn)
         button_layout.addWidget(self.cancel_btn)
         
@@ -134,28 +132,64 @@ class InterfaceTemplateDialog(QDialog):
         
         self.select_btn.clicked.connect(self.accept_selection)
         self.cancel_btn.clicked.connect(self.reject)
-        self.create_new_btn.clicked.connect(self.create_new_interface)
     
     def load_interfaces(self):
         """加载接口列表"""
         self.interface_list.clear()
         
-        for interface_id, interface in self.interfaces.items():
-            item = QListWidgetItem(f"{interface.name} ({interface.interface_type})")
-            item.setData(Qt.UserRole, interface)
-            self.interface_list.addItem(item)
+        # 添加"创建新接口"选项
+        new_item = QListWidgetItem("🆕 创建新接口（空模板）")
+        new_item.setData(Qt.UserRole, "NEW_INTERFACE")
+        self.interface_list.addItem(new_item)
+        
+        # 如果有可用的接口模板，添加分隔符和模板列表
+        if self.interfaces:
+            separator_item = QListWidgetItem("─" * 30)
+            separator_item.setFlags(separator_item.flags() & ~Qt.ItemIsSelectable)
+            self.interface_list.addItem(separator_item)
+            
+            template_header = QListWidgetItem("📋 可用的接口模板:")
+            template_header.setFlags(template_header.flags() & ~Qt.ItemIsSelectable)
+            font = QFont()
+            font.setBold(True)
+            template_header.setFont(font)
+            self.interface_list.addItem(template_header)
+            
+            for interface_id, interface in self.interfaces.items():
+                item = QListWidgetItem(f"  📄 {interface.name} ({interface.interface_type})")
+                item.setData(Qt.UserRole, interface)
+                self.interface_list.addItem(item)
+        
+        # 默认选择"创建新接口"
+        self.interface_list.setCurrentRow(0)
     
     def on_interface_selected(self, current, previous):
         """接口选择事件"""
         if current:
-            interface = current.data(Qt.UserRole)
-            self.display_interface_details(interface)
-            self.selected_interface = interface
-            self.select_btn.setEnabled(True)
+            interface_data = current.data(Qt.UserRole)
+            if interface_data == "NEW_INTERFACE":
+                # 选择了"创建新接口"
+                self.clear_interface_details()
+                self.selected_interface = "NEW_INTERFACE"
+                self.select_btn.setEnabled(True)
+                self.select_btn.setText("创建新接口")
+            elif interface_data and hasattr(interface_data, 'name'):
+                # 选择了接口模板
+                self.display_interface_details(interface_data)
+                self.selected_interface = interface_data
+                self.select_btn.setEnabled(True)
+                self.select_btn.setText("选择模板")
+            else:
+                # 选择了不可选择的项（如分隔符）
+                self.clear_interface_details()
+                self.selected_interface = None
+                self.select_btn.setEnabled(False)
+                self.select_btn.setText("选择")
         else:
             self.clear_interface_details()
             self.selected_interface = None
             self.select_btn.setEnabled(False)
+            self.select_btn.setText("选择")
     
     def on_interface_double_clicked(self, item):
         """接口双击事件"""
@@ -188,18 +222,40 @@ class InterfaceTemplateDialog(QDialog):
     
     def accept_selection(self):
         """确认选择"""
-        if self.selected_interface:
+        if self.selected_interface == "NEW_INTERFACE":
+            # 创建新接口
+            self.create_new_interface()
+        elif self.selected_interface:
             self.interface_selected.emit(self.selected_interface)
             self.accept()
         else:
-            QMessageBox.warning(self, "警告", "请先选择一个接口模板")
+            QMessageBox.warning(self, "警告", "请先选择一个选项")
     
     def create_new_interface(self):
         """创建新接口"""
-        # 这里可以打开接口编辑对话框创建新接口
-        # 暂时先关闭对话框，返回空结果
-        self.selected_interface = None
-        self.reject()
+        # 导入接口编辑对话框
+        try:
+            from .interface_edit_dialog import InterfaceEditDialog
+            from ..models.base_model import ConnectionPoint
+            
+            # 创建一个空的接口作为模板
+            empty_interface = ConnectionPoint("新接口")
+            empty_interface.connection_type = "input"
+            empty_interface.data_type = "data"
+            empty_interface.description = ""
+            
+            # 打开接口编辑对话框
+            dialog = InterfaceEditDialog(empty_interface, self, is_new=True)
+            if dialog.exec_() == QDialog.Accepted:
+                # 获取编辑后的接口
+                self.selected_interface = dialog.get_interface()
+                self.accept()
+            
+        except ImportError as e:
+            QMessageBox.warning(self, "错误", f"无法加载接口编辑对话框: {e}")
+            # 创建一个简单的默认接口
+            self.selected_interface = None
+            self.reject()
     
     def get_selected_interface(self):
         """获取选择的接口"""
@@ -273,7 +329,7 @@ class InterfaceInstanceDialog(QDialog):
     def load_template_data(self):
         """加载模板数据"""
         self.name_edit.setText(f"{self.template_interface.name}_实例")
-        self.type_combo.setCurrentText(self.template_interface.interface_type)
+        self.type_combo.setCurrentText(self.template_interface.interface_type.value if hasattr(self.template_interface.interface_type, 'value') else str(self.template_interface.interface_type))
         self.data_type_edit.setText(self.template_interface.data_type)
         self.description_edit.setPlainText(self.template_interface.description)
     
