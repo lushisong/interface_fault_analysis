@@ -163,13 +163,22 @@ class InterfaceFailureMode:
         self.python_code = data.get('python_code', '')
 
 
+class InterfaceDirection(Enum):
+    """接口方向枚举"""
+    INPUT = "input"
+    OUTPUT = "output"
+    BIDIRECTIONAL = "bidirectional"
+
+
 class Interface(BaseModel):
     """接口基类"""
     
     def __init__(self, name: str = "", description: str = "", 
-                 interface_type: InterfaceType = InterfaceType.SOFTWARE_HARDWARE):
+                 interface_type: InterfaceType = InterfaceType.SOFTWARE_HARDWARE,
+                 direction: InterfaceDirection = InterfaceDirection.BIDIRECTIONAL):
         super().__init__(name, description)
         self.interface_type = interface_type
+        self.direction = direction
         self.subtype = None  # 子类型（如硬件接口的传感器、执行器等）
         self.source_module_id = ""  # 源模块ID
         self.target_module_id = ""  # 目标模块ID
@@ -232,6 +241,7 @@ class Interface(BaseModel):
         base_dict = super().to_dict()
         base_dict.update({
             'interface_type': self.interface_type.value if hasattr(self.interface_type, 'value') else self.interface_type,
+            'direction': self.direction.value if hasattr(self.direction, 'value') else self.direction,
             'subtype': self.subtype.value if self.subtype and hasattr(self.subtype, 'value') else self.subtype,
             'source_module_id': self.source_module_id,
             'target_module_id': self.target_module_id,
@@ -249,6 +259,13 @@ class Interface(BaseModel):
     def from_dict(self, data: Dict[str, Any]):
         super().from_dict(data)
         self.interface_type = InterfaceType(data.get('interface_type', InterfaceType.SOFTWARE_HARDWARE.value))
+        
+        # 加载方向
+        direction_value = data.get('direction', 'bidirectional')
+        try:
+            self.direction = InterfaceDirection(direction_value)
+        except ValueError:
+            self.direction = InterfaceDirection.BIDIRECTIONAL
         
         subtype_value = data.get('subtype')
         if subtype_value and self.interface_type == InterfaceType.ALGORITHM_HARDWARE:

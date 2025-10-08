@@ -206,12 +206,17 @@ class InterfacePanel(QWidget):
             "算法-数据平台接口", "算法-硬件设备接口", "一般接口"
         ])
         
+        # 添加接口方向选择
+        self.direction_combo = QComboBox()
+        self.direction_combo.addItems(["输入", "输出", "双向"])
+        
         self.subtype_combo = QComboBox()
         self.description_edit = QTextEdit()
         self.description_edit.setMaximumHeight(100)
         
         form_layout.addRow("接口名称:", self.name_edit)
         form_layout.addRow("接口类型:", self.type_combo)
+        form_layout.addRow("接口方向:", self.direction_combo)
         form_layout.addRow("接口子类型:", self.subtype_combo)
         form_layout.addRow("接口描述:", self.description_edit)
         
@@ -225,10 +230,28 @@ class InterfacePanel(QWidget):
         self.param_list = QListWidget()
         param_layout.addWidget(self.param_list)
         
+        # 参数编辑区域
+        param_edit_group = QGroupBox("参数编辑")
+        param_edit_layout = QFormLayout()
+        
+        self.param_name_edit = QLineEdit()
+        self.param_value_edit = QLineEdit()
+        self.param_type_combo = QComboBox()
+        self.param_type_combo.addItems(["string", "int", "float", "bool", "list", "dict"])
+        
+        param_edit_layout.addRow("参数名:", self.param_name_edit)
+        param_edit_layout.addRow("参数值:", self.param_value_edit)
+        param_edit_layout.addRow("参数类型:", self.param_type_combo)
+        
+        param_edit_group.setLayout(param_edit_layout)
+        param_layout.addWidget(param_edit_group)
+        
         param_btn_layout = QHBoxLayout()
         self.add_param_btn = QPushButton("添加参数")
+        self.edit_param_btn = QPushButton("更新参数")
         self.remove_param_btn = QPushButton("删除参数")
         param_btn_layout.addWidget(self.add_param_btn)
+        param_btn_layout.addWidget(self.edit_param_btn)
         param_btn_layout.addWidget(self.remove_param_btn)
         param_btn_layout.addStretch()
         
@@ -376,7 +399,9 @@ def process_data(data):
         
         # 参数按钮
         self.add_param_btn.clicked.connect(self.add_parameter)
+        self.edit_param_btn.clicked.connect(self.update_parameter)
         self.remove_param_btn.clicked.connect(self.remove_parameter)
+        self.param_list.currentItemChanged.connect(self.on_parameter_selected)
         
         # 代码验证
         self.validate_code_btn.clicked.connect(self.validate_code)
@@ -458,8 +483,89 @@ def process_data(data):
             QMessageBox.warning(self, "警告", "请输入接口名称")
             return
         
-        # 保存接口逻辑
-        QMessageBox.information(self, "成功", "接口已保存")
+        # 创建或更新接口
+        interface_name = self.name_edit.text().strip()
+        
+        # 如果当前选择的是模板，则创建新接口
+        current_item = self.interface_tree.currentItem()
+        if current_item and current_item.data(0, Qt.UserRole) and \
+           current_item.data(0, Qt.UserRole).get('type') == 'interface_template':
+            # 创建新接口
+            from ..models.interface_model import Interface, InterfaceType, InterfaceDirection
+            
+            # 映射接口类型
+            type_mapping = {
+                "算法-操作系统接口": InterfaceType.ALGORITHM_OS,
+                "算法-智能框架接口": InterfaceType.ALGORITHM_FRAMEWORK,
+                "算法-应用接口": InterfaceType.ALGORITHM_APPLICATION,
+                "算法-数据平台接口": InterfaceType.ALGORITHM_DATA_PLATFORM,
+                "算法-硬件设备接口": InterfaceType.ALGORITHM_HARDWARE,
+                "一般接口": InterfaceType.SOFTWARE_HARDWARE
+            }
+            
+            # 映射方向
+            direction_mapping = {
+                "输入": InterfaceDirection.INPUT,
+                "输出": InterfaceDirection.OUTPUT,
+                "双向": InterfaceDirection.BIDIRECTIONAL
+            }
+            
+            interface_type = type_mapping.get(self.type_combo.currentText(), InterfaceType.SOFTWARE_HARDWARE)
+            direction = direction_mapping.get(self.direction_combo.currentText(), InterfaceDirection.BIDIRECTIONAL)
+            
+            interface = Interface(interface_name, self.description_edit.toPlainText(), 
+                                 interface_type, direction)
+            
+            # 设置参数
+            interface.parameters = {}
+            for i in range(self.param_list.count()):
+                item = self.param_list.item(i)
+                param_data = item.data(Qt.UserRole)
+                if param_data:
+                    interface.parameters[param_data['name']] = param_data['value']
+            
+            # 添加到接口库
+            self.interfaces[interface.id] = interface
+            
+            # 保存到系统
+            self.save_interfaces_to_system()
+            
+            # 更新接口树
+            self.update_interface_tree()
+            
+            # 选择新创建的接口
+            self.select_interface_in_tree(interface.id)
+            
+            QMessageBox.information(self, "成功", "接口已保存")
+            
+            # 发射信号
+            self.interface_created.emit(interface)
+        else:
+            # 更新现有接口
+            interface_id = current_item.data(0, Qt.UserRole).get('interface_id')
+            if interface_id and interface_id in self.interfaces:
+                interface = self.interfaces[interface_id]
+                interface.name = interface_name
+                interface.description = self.description_edit.toPlainText()
+                
+                # 更新参数
+                interface.parameters = {}
+                for i in range(self.param_list.count()):
+                    item = self.param_list.item(i)
+                    param_data = item.data(Qt.UserRole)
+                    if param_data:
+                        interface.parameters[param_data['name']] = param_data['value']
+                
+                # 保存到系统
+                self.save_interfaces_to_system()
+                
+                # 更新接口树
+                self.update_interface_tree()
+                
+                QMessageBox.information(self, "成功", "接口已更新")
+                
+                # 发射信号
+                self.interface_modified.emit(interface)
     
     def reset_form(self):
         """重置表单"""

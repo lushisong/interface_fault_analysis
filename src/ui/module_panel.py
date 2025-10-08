@@ -242,8 +242,14 @@ class ModulePanel(QWidget):
         details_layout = QFormLayout()
         
         self.conn_name_edit = QLineEdit()
+        self.conn_direction_combo = QComboBox()
+        self.conn_direction_combo.addItems(["输入", "输出", "双向"])
+        
         self.conn_type_combo = QComboBox()
-        self.conn_type_combo.addItems(["input", "output", "bidirectional"])
+        self.conn_type_combo.addItems([
+            "算法-操作系统接口", "算法-智能框架接口", "算法-应用接口",
+            "算法-数据平台接口", "算法-硬件设备接口", "一般接口"
+        ])
         
         self.conn_data_type_combo = QComboBox()
         self.conn_data_type_combo.addItems(["signal", "data", "power", "control"])
@@ -256,7 +262,8 @@ class ModulePanel(QWidget):
         self.conn_variables_edit = QLineEdit()
         
         details_layout.addRow("名称:", self.conn_name_edit)
-        details_layout.addRow("类型:", self.conn_type_combo)
+        details_layout.addRow("方向:", self.conn_direction_combo)
+        details_layout.addRow("接口类型:", self.conn_type_combo)
         details_layout.addRow("数据类型:", self.conn_data_type_combo)
         
         conn_pos_layout = QHBoxLayout()

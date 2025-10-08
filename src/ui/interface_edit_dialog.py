@@ -81,10 +81,18 @@ class InterfaceEditDialog(QDialog):
         self.name_edit = QLineEdit()
         form_layout.addRow("名称:", self.name_edit)
         
-        # 类型
-        self.type_combo = QComboBox()
-        self.type_combo.addItems(["input", "output", "bidirectional"])
-        form_layout.addRow("类型:", self.type_combo)
+        # 方向
+        self.direction_combo = QComboBox()
+        self.direction_combo.addItems(["输入", "输出", "双向"])
+        form_layout.addRow("方向:", self.direction_combo)
+        
+        # 接口类型
+        self.interface_type_combo = QComboBox()
+        self.interface_type_combo.addItems([
+            "算法-操作系统接口", "算法-智能框架接口", "算法-应用接口",
+            "算法-数据平台接口", "算法-硬件设备接口", "一般接口"
+        ])
+        form_layout.addRow("接口类型:", self.interface_type_combo)
         
         # 数据类型
         self.data_type_edit = QLineEdit()
@@ -171,7 +179,25 @@ class InterfaceEditDialog(QDialog):
         """加载数据"""
         if self.connection_point:
             self.name_edit.setText(self.connection_point.name)
-            self.type_combo.setCurrentText(self.connection_point.connection_type)
+            # 设置方向
+            direction_mapping = {"input": "输入", "output": "输出", "bidirectional": "双向"}
+            current_direction = direction_mapping.get(self.connection_point.connection_type, "双向")
+            self.direction_combo.setCurrentText(current_direction)
+            
+            # 设置接口类型（如果有的话）
+            if hasattr(self.connection_point, 'interface_type'):
+                interface_type_mapping = {
+                    "algorithm_os": "算法-操作系统接口",
+                    "algorithm_framework": "算法-智能框架接口", 
+                    "algorithm_application": "算法-应用接口",
+                    "algorithm_data_platform": "算法-数据平台接口",
+                    "algorithm_hardware": "算法-硬件设备接口",
+                    "software_hardware": "一般接口"
+                }
+                current_interface_type = interface_type_mapping.get(
+                    self.connection_point.interface_type, "一般接口")
+                self.interface_type_combo.setCurrentText(current_interface_type)
+            
             self.data_type_edit.setText(self.connection_point.data_type)
             
             if self.connection_point.position:
@@ -229,7 +255,25 @@ class InterfaceEditDialog(QDialog):
         
         # 更新接口数据
         self.connection_point.name = self.name_edit.text().strip()
-        self.connection_point.connection_type = self.type_combo.currentText()
+        
+        # 更新方向
+        direction_mapping = {"输入": "input", "输出": "output", "双向": "bidirectional"}
+        self.connection_point.connection_type = direction_mapping.get(
+            self.direction_combo.currentText(), "bidirectional")
+        
+        # 更新接口类型
+        interface_type_mapping = {
+            "算法-操作系统接口": "algorithm_os",
+            "算法-智能框架接口": "algorithm_framework",
+            "算法-应用接口": "algorithm_application", 
+            "算法-数据平台接口": "algorithm_data_platform",
+            "算法-硬件设备接口": "algorithm_hardware",
+            "一般接口": "software_hardware"
+        }
+        if hasattr(self.connection_point, 'interface_type'):
+            self.connection_point.interface_type = interface_type_mapping.get(
+                self.interface_type_combo.currentText(), "software_hardware")
+        
         self.connection_point.data_type = self.data_type_edit.text().strip()
         
         # 更新位置
