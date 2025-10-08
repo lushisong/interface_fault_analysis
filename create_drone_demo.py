@@ -647,7 +647,7 @@ def save_demo_project(system, fault_tree=None):
     pm.set_current_system(system)
     
     # 保存项目
-    project_path = "/workspace/project/demo_projects/drone_system_demo.json"
+    project_path = "./demo_projects/drone_system_demo.json"
     os.makedirs(os.path.dirname(project_path), exist_ok=True)
     
     try:
@@ -665,7 +665,7 @@ def save_demo_project(system, fault_tree=None):
             print("✗ 项目文件为空")
         
         # 生成演示报告
-        report_path = "/workspace/project/demo_projects/drone_system_report.txt"
+        report_path = "./demo_projects/drone_system_report.txt"
         generate_demo_report(system, fault_tree, report_path)
         print(f"✓ 演示报告已生成: {report_path}")
         
