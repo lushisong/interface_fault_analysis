@@ -557,11 +557,26 @@ def process_data(data):
         """删除接口"""
         current_item = self.interface_tree.currentItem()
         if current_item:
-            reply = QMessageBox.question(self, "确认删除", 
-                                       f"确定要删除接口 '{current_item.text(0)}' 吗？")
-            if reply == QMessageBox.Yes:
-                # 删除接口逻辑
-                pass
+            data = current_item.data(0, Qt.UserRole)
+            if data and data.get('type') == 'interface_instance':
+                interface_id = data.get('interface_id')
+                reply = QMessageBox.question(self, "确认删除", 
+                                           f"确定要删除接口 '{current_item.text(0)}' 吗？")
+                if reply == QMessageBox.Yes:
+                    # 从接口字典中删除
+                    if interface_id in self.interfaces:
+                        del self.interfaces[interface_id]
+                        # 保存到系统
+                        self.save_interfaces_to_system()
+                        # 更新接口树
+                        self.update_interface_tree()
+                        # 清空编辑器
+                        self.reset_form()
+                        QMessageBox.information(self, "成功", "接口已删除")
+                    else:
+                        QMessageBox.warning(self, "错误", "未找到要删除的接口")
+            else:
+                QMessageBox.warning(self, "警告", "只能删除已创建的接口实例")
     
     def duplicate_interface(self):
         """复制接口"""
@@ -572,76 +587,47 @@ def process_data(data):
     
     def save_interface(self):
         """保存接口"""
-        if not self.name_edit.text().strip():
-            QMessageBox.warning(self, "警告", "请输入接口名称")
-            return
-        
-        # 创建或更新接口
-        interface_name = self.name_edit.text().strip()
-        
-        # 如果当前选择的是模板，则创建新接口
-        current_item = self.interface_tree.currentItem()
-        if current_item and current_item.data(0, Qt.UserRole) and \
-           current_item.data(0, Qt.UserRole).get('type') == 'interface_template':
-            # 创建新接口
-            from ..models.interface_model import Interface, InterfaceType, InterfaceDirection
+        try:
+            if not self.name_edit.text().strip():
+                QMessageBox.warning(self, "警告", "请输入接口名称")
+                return
             
-            # 映射接口类型
-            type_mapping = {
-                "算法-操作系统接口": InterfaceType.ALGORITHM_OS,
-                "算法-智能框架接口": InterfaceType.ALGORITHM_FRAMEWORK,
-                "算法-应用接口": InterfaceType.ALGORITHM_APPLICATION,
-                "算法-数据平台接口": InterfaceType.ALGORITHM_DATA_PLATFORM,
-                "算法-硬件设备接口": InterfaceType.ALGORITHM_HARDWARE,
-                "一般接口": InterfaceType.SOFTWARE_HARDWARE
-            }
+            # 创建或更新接口
+            interface_name = self.name_edit.text().strip()
             
-            # 映射方向
-            direction_mapping = {
-                "输入": InterfaceDirection.INPUT,
-                "输出": InterfaceDirection.OUTPUT,
-                "双向": InterfaceDirection.BIDIRECTIONAL
-            }
+            # 获取当前选中的树项
+            current_item = self.interface_tree.currentItem()
             
-            interface_type = type_mapping.get(self.type_combo.currentText(), InterfaceType.SOFTWARE_HARDWARE)
-            direction = direction_mapping.get(self.direction_combo.currentText(), InterfaceDirection.BIDIRECTIONAL)
-            
-            interface = Interface(interface_name, self.description_edit.toPlainText(), 
-                                 interface_type, direction)
-            
-            # 设置参数
-            interface.parameters = {}
-            for i in range(self.param_list.count()):
-                item = self.param_list.item(i)
-                param_data = item.data(Qt.UserRole)
-                if param_data:
-                    interface.parameters[param_data['name']] = param_data['value']
-            
-            # 添加到接口库
-            self.interfaces[interface.id] = interface
-            
-            # 保存到系统
-            self.save_interfaces_to_system()
-            
-            # 更新接口树
-            self.update_interface_tree()
-            
-            # 选择新创建的接口
-            self.select_interface_in_tree(interface.id)
-            
-            QMessageBox.information(self, "成功", "接口已保存")
-            
-            # 发射信号
-            self.interface_created.emit(interface)
-        else:
-            # 更新现有接口
-            interface_id = current_item.data(0, Qt.UserRole).get('interface_id')
-            if interface_id and interface_id in self.interfaces:
-                interface = self.interfaces[interface_id]
-                interface.name = interface_name
-                interface.description = self.description_edit.toPlainText()
+            # 如果当前选择的是模板，则创建新接口
+            if current_item and current_item.data(0, Qt.UserRole) and \
+               current_item.data(0, Qt.UserRole).get('type') == 'interface_template':
+                # 创建新接口
+                from ..models.interface_model import Interface, InterfaceType, InterfaceDirection
                 
-                # 更新参数
+                # 映射接口类型
+                type_mapping = {
+                    "算法-操作系统接口": InterfaceType.ALGORITHM_OS,
+                    "算法-智能框架接口": InterfaceType.ALGORITHM_FRAMEWORK,
+                    "算法-应用接口": InterfaceType.ALGORITHM_APPLICATION,
+                    "算法-数据平台接口": InterfaceType.ALGORITHM_DATA_PLATFORM,
+                    "算法-硬件设备接口": InterfaceType.ALGORITHM_HARDWARE,
+                    "一般接口": InterfaceType.SOFTWARE_HARDWARE
+                }
+                
+                # 映射方向
+                direction_mapping = {
+                    "输入": InterfaceDirection.INPUT,
+                    "输出": InterfaceDirection.OUTPUT,
+                    "双向": InterfaceDirection.BIDIRECTIONAL
+                }
+                
+                interface_type = type_mapping.get(self.type_combo.currentText(), InterfaceType.SOFTWARE_HARDWARE)
+                direction = direction_mapping.get(self.direction_combo.currentText(), InterfaceDirection.BIDIRECTIONAL)
+                
+                interface = Interface(interface_name, self.description_edit.toPlainText(), 
+                                     interface_type, direction)
+                
+                # 设置参数
                 interface.parameters = {}
                 for i in range(self.param_list.count()):
                     item = self.param_list.item(i)
@@ -649,16 +635,82 @@ def process_data(data):
                     if param_data:
                         interface.parameters[param_data['name']] = param_data['value']
                 
+                # 设置代码
+                interface.python_code = self.code_edit.toPlainText()
+                
+                # 添加到接口库
+                self.interfaces[interface.id] = interface
+                
                 # 保存到系统
                 self.save_interfaces_to_system()
                 
                 # 更新接口树
                 self.update_interface_tree()
                 
-                QMessageBox.information(self, "成功", "接口已更新")
+                # 选择新创建的接口
+                self.select_interface_in_tree(interface.id)
+                
+                QMessageBox.information(self, "成功", "接口已保存")
                 
                 # 发射信号
-                self.interface_modified.emit(interface)
+                self.interface_created.emit(interface)
+            else:
+                # 更新现有接口
+                if current_item and current_item.data(0, Qt.UserRole):
+                    data = current_item.data(0, Qt.UserRole)
+                    if data.get('type') == 'interface_instance':
+                        interface_id = data.get('interface_id')
+                        if interface_id and interface_id in self.interfaces:
+                            interface = self.interfaces[interface_id]
+                            interface.name = interface_name
+                            interface.description = self.description_edit.toPlainText()
+                            
+                            # 更新类型和方向
+                            type_mapping = {
+                                "算法-操作系统接口": InterfaceType.ALGORITHM_OS,
+                                "算法-智能框架接口": InterfaceType.ALGORITHM_FRAMEWORK,
+                                "算法-应用接口": InterfaceType.ALGORITHM_APPLICATION,
+                                "算法-数据平台接口": InterfaceType.ALGORITHM_DATA_PLATFORM,
+                                "算法-硬件设备接口": InterfaceType.ALGORITHM_HARDWARE,
+                                "一般接口": InterfaceType.SOFTWARE_HARDWARE
+                            }
+                            direction_mapping = {
+                                "输入": InterfaceDirection.INPUT,
+                                "输出": InterfaceDirection.OUTPUT,
+                                "双向": InterfaceDirection.BIDIRECTIONAL
+                            }
+                            interface.interface_type = type_mapping.get(self.type_combo.currentText(), InterfaceType.SOFTWARE_HARDWARE)
+                            interface.direction = direction_mapping.get(self.direction_combo.currentText(), InterfaceDirection.BIDIRECTIONAL)
+                            
+                            # 更新参数
+                            interface.parameters = {}
+                            for i in range(self.param_list.count()):
+                                item = self.param_list.item(i)
+                                param_data = item.data(Qt.UserRole)
+                                if param_data:
+                                    interface.parameters[param_data['name']] = param_data['value']
+                            
+                            # 更新代码
+                            interface.python_code = self.code_edit.toPlainText()
+                            
+                            # 保存到系统
+                            self.save_interfaces_to_system()
+                            
+                            # 更新接口树
+                            self.update_interface_tree()
+                            
+                            QMessageBox.information(self, "成功", "接口已更新")
+                            
+                            # 发射信号
+                            self.interface_modified.emit(interface)
+                        else:
+                            QMessageBox.warning(self, "错误", "未找到要更新的接口")
+                    else:
+                        QMessageBox.warning(self, "警告", "请选择要保存的接口")
+                else:
+                    QMessageBox.warning(self, "警告", "请选择要保存的接口")
+        except Exception as e:
+            QMessageBox.critical(self, "错误", f"保存接口时发生错误：{str(e)}")
     
     def reset_form(self):
         """重置表单"""
