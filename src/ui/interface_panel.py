@@ -15,7 +15,8 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QSplitter,
 from PyQt5.QtCore import Qt, pyqtSignal
 
 from ..models.interface_model import (Interface, InterfaceType, HardwareInterfaceSubtype,
-                                    InterfaceFailureMode, FailureMode, TriggerCondition)
+                                    InterfaceFailureMode, FailureMode, TriggerCondition,
+                                    InterfaceDirection)
 
 
 class InterfacePanel(QWidget):
