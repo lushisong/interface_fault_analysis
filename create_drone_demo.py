@@ -747,25 +747,19 @@ def main():
     print("=" * 60)
     
     try:
-        # 1. 创建系统结构
+        # 1. 创建系统结构（包含模块接口）
         system = create_drone_system()
-        
-        # 2. 为模块添加接口
-        system = create_drone_interfaces(system)
     
-        # 3. 创建模块连接
+        # 2. 创建模块连接
         system = create_module_connections(system)
     
-        # 4. 创建任务剖面
+        # 3. 创建任务剖面
         system = create_drone_task_profiles(system)
     
-        # 5. 创建环境模型
+        # 4. 创建环境模型
         system = create_drone_environments(system)
         
-        # 5. 创建模块连接
-        system = create_module_connections(system)
-        
-        # 6. 生成故障树
+        # 5. 生成故障树
         fault_tree = generate_fault_tree_demo(system)
         
         # 6. 保存演示项目
