@@ -433,6 +433,7 @@ def create_module_connections(system):
     ]
     
     # 创建连接对象
+    connection_count = 1
     for conn_data in connections:
         # 查找源模块和目标模块
         source_module = next((m for m in system.modules.values() if m.name == conn_data["source"]), None)
@@ -458,6 +459,10 @@ def create_module_connections(system):
                     break
             
             if source_interface and target_interface:
+                # 创建连接ID
+                connection_id = f"connection_{connection_count}"
+                connection_count += 1
+                
                 # 创建连接
                 connection = Connection(
                     source_module.id,
@@ -465,7 +470,25 @@ def create_module_connections(system):
                     target_module.id,
                     target_interface.id
                 )
+                connection.id = connection_id
                 connection.name = f"{conn_data['source']}→{conn_data['target']}"
+                
+                # 设置连接点ID（使用接口ID）
+                connection.source_point_id = source_interface.id
+                connection.target_point_id = target_interface.id
+                
+                # 设置连接路径点（基于模块位置计算）
+                source_x = source_module.position['x'] + 100  # 模块宽度
+                source_y = source_module.position['y'] + 30   # 模块高度的一半
+                target_x = target_module.position['x']
+                target_y = target_module.position['y'] + 30
+                
+                connection.connection_points = [
+                    {"x": source_x, "y": source_y},
+                    {"x": target_x, "y": target_y}
+                ]
+                
+                connection.enabled = True
                 system.add_connection(connection)
     
     print(f"✓ 创建了 {len(system.connections)} 个模块连接")
