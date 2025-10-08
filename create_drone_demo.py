@@ -320,41 +320,116 @@ def create_module_connections(system):
     """创建模块之间的连接"""
     print("创建模块连接...")
     
-    # 定义连接关系
+    # 定义连接关系 - 按照无人机系统架构图和信息流方向
     connections = [
-        # 传感器到算法连接
-        {"source": "惯性测量单元", "source_interface": "IMU数据输出", "target": "时间同步算法", "target_interface": "时间同步输入"},
-        {"source": "全球定位模块", "source_interface": "GNSS数据输出", "target": "时间同步算法", "target_interface": "时间同步输入"},
+        # 1. IMU数据采集接口：惯性测量单元 → 自驾仪
+        {"source": "惯性测量单元", "source_interface": "IMU数据输出", "target": "自驾仪", "target_interface": "传感器数据输入"},
+        
+        # 2. GNSS数据采集接口：全球定位模块 → 自驾仪
+        {"source": "全球定位模块", "source_interface": "GNSS数据输出", "target": "自驾仪", "target_interface": "传感器数据输入"},
+        
+        # 3. 光电红外图像采集接口：摄像机 → 时间同步算法
         {"source": "光电红外摄像机", "source_interface": "图像数据输出", "target": "时间同步算法", "target_interface": "时间同步输入"},
+        
+        # 4. 雷达点云采集接口：毫米波雷达 → 时间同步算法
         {"source": "毫米波雷达", "source_interface": "雷达点云输出", "target": "时间同步算法", "target_interface": "时间同步输入"},
         
-        # 算法间连接
+        # 5. 同步-OS接口：时间同步算法 ↔ 嵌入式OS（双向）
+        {"source": "时间同步算法", "source_interface": "时间同步输出", "target": "嵌入式OS", "target_interface": "OS系统接口"},
+        {"source": "嵌入式OS", "source_interface": "OS系统接口", "target": "时间同步算法", "target_interface": "时间同步输入"},
+        
+        # 6. 同步-算力设备接口：专用算力设备 ↔ 时间同步算法（双向）
+        {"source": "时间同步算法", "source_interface": "时间同步输出", "target": "专用算力设备", "target_interface": "算力设备接口"},
+        {"source": "专用算力设备", "source_interface": "算力设备接口", "target": "时间同步算法", "target_interface": "时间同步输入"},
+        
+        # 7. 配准-算力设备接口：专用算力设备 ↔ 空间配准算法（双向）
+        {"source": "空间配准算法", "source_interface": "配准数据输出", "target": "专用算力设备", "target_interface": "算力设备接口"},
+        {"source": "专用算力设备", "source_interface": "算力设备接口", "target": "空间配准算法", "target_interface": "配准数据输入"},
+        
+        # 8. 同步-配准接口：时间同步算法 → 空间配准算法
         {"source": "时间同步算法", "source_interface": "时间同步输出", "target": "空间配准算法", "target_interface": "配准数据输入"},
-        {"source": "空间配准算法", "source_interface": "配准数据输出", "target": "目标检测算法", "target_interface": "检测数据输入"},
+        
+        # 9. 配准-感知接口：空间配准算法 → 环境感知算法
         {"source": "空间配准算法", "source_interface": "配准数据输出", "target": "环境感知算法", "target_interface": "感知数据输入"},
-        {"source": "环境感知算法", "source_interface": "感知结果输出", "target": "路径规划算法", "target_interface": "规划数据输入"},
-        {"source": "环境感知算法", "source_interface": "感知结果输出", "target": "避障算法", "target_interface": "避障数据输入"},
-        {"source": "路径规划算法", "source_interface": "规划结果输出", "target": "避障算法", "target_interface": "避障数据输入"},
-        {"source": "避障算法", "source_interface": "避障指令输出", "target": "飞控控制算法", "target_interface": "控制数据输入"},
+        
+        # 10. 配准-OS接口：空间配准算法 ↔ 嵌入式OS（双向）
+        {"source": "空间配准算法", "source_interface": "配准数据输出", "target": "嵌入式OS", "target_interface": "OS系统接口"},
+        {"source": "嵌入式OS", "source_interface": "OS系统接口", "target": "空间配准算法", "target_interface": "配准数据输入"},
+        
+        # 11. 配准-检测接口：空间配准算法 → 目标检测算法
+        {"source": "空间配准算法", "source_interface": "配准数据输出", "target": "目标检测算法", "target_interface": "检测数据输入"},
+        
+        # 12. 检测-OS接口：目标检测算法 ↔ 嵌入式OS（双向）
+        {"source": "目标检测算法", "source_interface": "检测结果输出", "target": "嵌入式OS", "target_interface": "OS系统接口"},
+        {"source": "嵌入式OS", "source_interface": "OS系统接口", "target": "目标检测算法", "target_interface": "检测数据输入"},
+        
+        # 13. 检测-ML接口：目标检测算法 ↔ 机器学习框架（双向）
+        {"source": "目标检测算法", "source_interface": "检测结果输出", "target": "机器学习框架", "target_interface": "ML框架接口"},
+        {"source": "机器学习框架", "source_interface": "ML框架接口", "target": "目标检测算法", "target_interface": "检测数据输入"},
+        
+        # 14. 检测-规划接口：目标检测算法 → 路径规划算法
+        {"source": "目标检测算法", "source_interface": "检测结果输出", "target": "路径规划算法", "target_interface": "规划数据输入"},
+        
+        # 15. 检测-云台接口：目标检测算法 → 摄像机云台
         {"source": "目标检测算法", "source_interface": "检测结果输出", "target": "摄像机云台", "target_interface": "云台控制输入"},
         
-        # 控制连接
+        # 16. 数据存档接口：飞控任务应用软件 → 嵌入式OS
+        {"source": "飞控任务应用软件", "source_interface": "应用数据接口", "target": "嵌入式OS", "target_interface": "OS系统接口"},
+        
+        # 17. 感知-OS接口：环境感知算法 ↔ 嵌入式OS（双向）
+        {"source": "环境感知算法", "source_interface": "感知结果输出", "target": "嵌入式OS", "target_interface": "OS系统接口"},
+        {"source": "嵌入式OS", "source_interface": "OS系统接口", "target": "环境感知算法", "target_interface": "感知数据输入"},
+        
+        # 18. 感知-避障接口：环境感知算法 → 避障算法
+        {"source": "环境感知算法", "source_interface": "感知结果输出", "target": "避障算法", "target_interface": "避障数据输入"},
+        
+        # 19. 规划-OS接口：路径规划算法 ↔ 嵌入式OS（双向）
+        {"source": "路径规划算法", "source_interface": "规划结果输出", "target": "嵌入式OS", "target_interface": "OS系统接口"},
+        {"source": "嵌入式OS", "source_interface": "OS系统接口", "target": "路径规划算法", "target_interface": "规划数据输入"},
+        
+        # 20. 规划-通信接口：路径规划算法 ↔ 通信模块（双向）
+        {"source": "路径规划算法", "source_interface": "规划结果输出", "target": "通信模块", "target_interface": "通信数据输入"},
+        {"source": "通信模块", "source_interface": "通信数据输出", "target": "路径规划算法", "target_interface": "规划数据输入"},
+        
+        # 21. 规划-避障接口：路径规划算法 ↔ 避障算法（双向）
+        {"source": "路径规划算法", "source_interface": "规划结果输出", "target": "避障算法", "target_interface": "避障数据输入"},
+        {"source": "避障算法", "source_interface": "避障指令输出", "target": "路径规划算法", "target_interface": "规划数据输入"},
+        
+        # 22. 避障-ML接口：避障算法 ↔ 机器学习框架（双向）
+        {"source": "避障算法", "source_interface": "避障指令输出", "target": "机器学习框架", "target_interface": "ML框架接口"},
+        {"source": "机器学习框架", "source_interface": "ML框架接口", "target": "避障算法", "target_interface": "避障数据输入"},
+        
+        # 23. 避障-OS接口：避障算法 ↔ 嵌入式OS（双向）
+        {"source": "避障算法", "source_interface": "避障指令输出", "target": "嵌入式OS", "target_interface": "OS系统接口"},
+        {"source": "嵌入式OS", "source_interface": "OS系统接口", "target": "避障算法", "target_interface": "避障数据输入"},
+        
+        # 24. 航迹指令接口：避障算法 → 飞控控制算法
+        {"source": "避障算法", "source_interface": "避障指令输出", "target": "飞控控制算法", "target_interface": "控制数据输入"},
+        
+        # 25. 飞控-通信接口：飞控控制算法 ↔ 通信模块（双向）
+        {"source": "飞控控制算法", "source_interface": "控制指令输出", "target": "通信模块", "target_interface": "通信数据输入"},
+        {"source": "通信模块", "source_interface": "通信数据输出", "target": "飞控控制算法", "target_interface": "控制数据输入"},
+        
+        # 26. 飞控指令接口：飞控控制算法 → 自驾仪
         {"source": "飞控控制算法", "source_interface": "控制指令输出", "target": "自驾仪", "target_interface": "传感器数据输入"},
-        {"source": "自驾仪", "source_interface": "控制指令输出", "target": "执行器", "target_interface": "控制指令输入"},
+        
+        # 27. 自驾仪状态反馈接口：自驾仪 → 飞控控制算法
         {"source": "自驾仪", "source_interface": "状态反馈输出", "target": "飞控控制算法", "target_interface": "控制数据输入"},
         
-        # 通信连接
-        {"source": "路径规划算法", "source_interface": "规划结果输出", "target": "通信模块", "target_interface": "通信数据输入"},
-        {"source": "飞控控制算法", "source_interface": "控制指令输出", "target": "通信模块", "target_interface": "通信数据输入"},
-        {"source": "通信模块", "source_interface": "通信数据输出", "target": "地面站", "target_interface": "地面站通信"},
+        # 28. 飞控算法-OS接口：飞控控制算法 ↔ 嵌入式OS（双向）
+        {"source": "飞控控制算法", "source_interface": "控制指令输出", "target": "嵌入式OS", "target_interface": "OS系统接口"},
+        {"source": "嵌入式OS", "source_interface": "OS系统接口", "target": "飞控控制算法", "target_interface": "控制数据输入"},
         
-        # 系统服务连接
-        {"source": "时间同步算法", "source_interface": "时间同步输出", "target": "嵌入式OS", "target_interface": "OS系统接口"},
-        {"source": "空间配准算法", "source_interface": "配准数据输出", "target": "嵌入式OS", "target_interface": "OS系统接口"},
-        {"source": "目标检测算法", "source_interface": "检测结果输出", "target": "机器学习框架", "target_interface": "ML框架接口"},
-        {"source": "避障算法", "source_interface": "避障指令输出", "target": "机器学习框架", "target_interface": "ML框架接口"},
-        {"source": "时间同步算法", "source_interface": "时间同步输出", "target": "专用算力设备", "target_interface": "算力设备接口"},
-        {"source": "空间配准算法", "source_interface": "配准数据输出", "target": "专用算力设备", "target_interface": "算力设备接口"},
+        # 29. 位姿反馈接口：自驾仪 → 空间配准算法
+        {"source": "自驾仪", "source_interface": "状态反馈输出", "target": "空间配准算法", "target_interface": "配准数据输入"},
+        
+        # 30. 自驾仪-执行器接口：自驾仪 ↔ 执行器（双向）
+        {"source": "自驾仪", "source_interface": "控制指令输出", "target": "执行器", "target_interface": "控制指令输入"},
+        # 执行器只有输入接口，暂时不添加反向连接
+        
+        # 31. 无人机-地面站链路接口：通信模块 ↔ 地面站（双向）
+        {"source": "通信模块", "source_interface": "通信数据输出", "target": "地面站", "target_interface": "地面站通信"},
+        {"source": "地面站", "source_interface": "地面站通信", "target": "通信模块", "target_interface": "通信数据输入"},
     ]
     
     # 创建连接对象
