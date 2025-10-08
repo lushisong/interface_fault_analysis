@@ -214,27 +214,38 @@ class TaskProfile(BaseModel):
             'overall_success': True,
             'criteria_results': {},
             'success_score': 0.0,
-            'total_weight': 0.0
+            'total_weight': 0.0,
+            'success_rate': 0.0
         }
         
-        for criteria in self.success_criteria:
-            if not criteria.enabled:
-                continue
-            
-            success = criteria.evaluate(system_state)
-            results['criteria_results'][criteria.name] = {
-                'success': success,
-                'weight': criteria.weight
-            }
-            
-            if success:
-                results['success_score'] += criteria.weight
-            else:
-                results['overall_success'] = False
-            
-            results['total_weight'] += criteria.weight
+        enabled_criteria = [sc for sc in self.success_criteria if sc.enabled]
         
-        # 计算成功率
+        for criteria in enabled_criteria:
+            try:
+                success = criteria.evaluate(system_state)
+                results['criteria_results'][criteria.name] = {
+                    'success': success,
+                    'weight': criteria.weight,
+                    'message': '评估成功' if success else '评估失败'
+                }
+                
+                if success:
+                    results['success_score'] += criteria.weight
+                else:
+                    results['overall_success'] = False
+                
+                results['total_weight'] += criteria.weight
+                
+            except Exception as e:
+                # 单个判据评估失败不影响其他判据
+                results['criteria_results'][criteria.name] = {
+                    'success': False,
+                    'weight': criteria.weight,
+                    'message': f'评估出错: {str(e)}'
+                }
+                results['overall_success'] = False
+        
+        # 计算成功率（加权平均）
         if results['total_weight'] > 0:
             results['success_rate'] = results['success_score'] / results['total_weight']
         else:

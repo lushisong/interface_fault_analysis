@@ -361,6 +361,110 @@ class TaskProfilePanel(QWidget):
         
         return widget
     
+    def has_time_conflict(self, new_phase, exclude_phase=None):
+        """检查时间冲突"""
+        if not self.current_profile:
+            return False
+        
+        new_start = new_phase.start_time
+        new_end = new_phase.start_time + new_phase.duration
+        
+        for phase in self.current_profile.task_phases:
+            # 排除自身
+            if exclude_phase and phase.name == exclude_phase.name:
+                continue
+            
+            phase_start = phase.start_time
+            phase_end = phase.start_time + phase.duration
+            
+            # 检查时间重叠
+            if not (new_end <= phase_start or new_start >= phase_end):
+                return True
+        
+        return False
+    
+    def validate_task_phases(self):
+        """验证任务阶段时间逻辑"""
+        if not self.current_profile:
+            return True
+        
+        phases = self.current_profile.task_phases
+        total_duration = self.current_profile.total_duration
+        
+        # 检查阶段时间重叠
+        for i in range(len(phases)):
+            for j in range(i + 1, len(phases)):
+                phase_i = phases[i]
+                phase_j = phases[j]
+                
+                start_i = phase_i.start_time
+                end_i = phase_i.start_time + phase_i.duration
+                start_j = phase_j.start_time
+                end_j = phase_j.start_time + phase_j.duration
+                
+                if not (end_i <= start_j or start_i >= end_j):
+                    QMessageBox.warning(self, "验证失败", 
+                                      f"阶段 '{phase_i.name}' 和 '{phase_j.name}' 存在时间重叠")
+                    return False
+        
+        # 检查阶段是否超出总持续时间
+        for phase in phases:
+            phase_end = phase.start_time + phase.duration
+            if phase_end > total_duration:
+                QMessageBox.warning(self, "验证失败",
+                                  f"阶段 '{phase.name}' 结束时间超出任务总持续时间")
+                return False
+        
+        return True
+    
+    def validate_task_profile(self):
+        """验证任务剖面完整性"""
+        if not self.current_profile:
+            return {"valid": False, "message": "未选择任务剖面"}
+        
+        # 检查基本信息
+        if not self.current_profile.name.strip():
+            return {"valid": False, "message": "任务剖面名称不能为空"}
+        
+        if self.current_profile.total_duration <= 0:
+            return {"valid": False, "message": "总持续时间必须大于0"}
+        
+        # 检查成功判据
+        if not self.current_profile.success_criteria:
+            return {"valid": False, "message": "至少需要定义一个成功判据"}
+        
+        enabled_criteria = [sc for sc in self.current_profile.success_criteria if sc.enabled]
+        if not enabled_criteria:
+            return {"valid": False, "message": "至少需要启用一个成功判据"}
+        
+        # 检查任务阶段
+        if not self.validate_task_phases():
+            return {"valid": False, "message": "任务阶段时间逻辑验证失败"}
+        
+        return {"valid": True, "message": "验证通过"}
+    
+    def calculate_success_probability(self):
+        """计算任务成功率（模拟）"""
+        if not self.current_profile:
+            return 0.0
+        
+        # 这里应该基于系统模型和故障树进行实际计算
+        # 目前返回一个模拟值
+        enabled_criteria = [sc for sc in self.current_profile.success_criteria if sc.enabled]
+        if not enabled_criteria:
+            return 0.0
+        
+        # 模拟计算：基于判据数量和权重
+        total_weight = sum(sc.weight for sc in enabled_criteria)
+        if total_weight == 0:
+            return 0.0
+        
+        # 假设每个判据有90%的成功概率
+        base_success_rate = 0.9
+        success_probability = base_success_rate ** len(enabled_criteria)
+        
+        return round(success_probability, 4)
+    
     def create_profile_editor(self):
         """创建任务剖面编辑器"""
         widget = QWidget()
@@ -772,6 +876,15 @@ class TaskProfilePanel(QWidget):
         if not self.current_profile:
             return
         
+        # 验证基本信息
+        if not self.name_edit.text().strip():
+            QMessageBox.warning(self, "验证失败", "请输入任务剖面名称")
+            return
+        
+        # 验证任务阶段时间逻辑
+        if not self.validate_task_phases():
+            return
+        
         # 保存基本信息
         self.current_profile.name = self.name_edit.text()
         self.current_profile.description = self.description_edit.toPlainText()
@@ -858,7 +971,14 @@ class TaskProfilePanel(QWidget):
         
         dialog = TaskPhaseDialog(parent=self)
         if dialog.exec_() == QDialog.Accepted:
-            self.current_profile.add_task_phase(dialog.phase)
+            # 检查时间冲突
+            new_phase = dialog.phase
+            if self.has_time_conflict(new_phase):
+                QMessageBox.warning(self, "时间冲突", 
+                                  "新阶段与现有阶段存在时间重叠，请调整开始时间或持续时间")
+                return
+            
+            self.current_profile.add_task_phase(new_phase)
             self.refresh_phases_table()
     
     def edit_task_phase(self):
@@ -870,10 +990,20 @@ class TaskProfilePanel(QWidget):
         if row < 0 or row >= len(self.current_profile.task_phases):
             return
         
-        phase = self.current_profile.task_phases[row]
+        original_phase = self.current_profile.task_phases[row]
+        edited_phase = TaskPhase()
+        edited_phase.from_dict(original_phase.to_dict())
         
-        dialog = TaskPhaseDialog(phase, self)
+        dialog = TaskPhaseDialog(edited_phase, self)
         if dialog.exec_() == QDialog.Accepted:
+            # 检查时间冲突（排除自身）
+            if self.has_time_conflict(edited_phase, exclude_phase=original_phase):
+                QMessageBox.warning(self, "时间冲突", 
+                                  "修改后的阶段与现有阶段存在时间重叠，请调整开始时间或持续时间")
+                return
+            
+            # 更新阶段数据
+            original_phase.from_dict(edited_phase.to_dict())
             self.refresh_phases_table()
     
     def remove_task_phase(self):
@@ -908,6 +1038,13 @@ class TaskProfilePanel(QWidget):
         if not self.current_profile:
             return
         
+        # 验证任务剖面
+        validation_result = self.validate_task_profile()
+        if not validation_result["valid"]:
+            QMessageBox.warning(self, "验证失败", 
+                              f"任务剖面验证失败：{validation_result['message']}")
+            return
+        
         # 这里应该调用故障树生成算法
         # 目前只是模拟
         self.current_profile.fault_tree_generated = True
@@ -922,7 +1059,8 @@ class TaskProfilePanel(QWidget):
             "故障树节点数": 15,
             "最小割集数": 8,
             "系统可靠性": 0.95,
-            "关键路径": "传感器失效 -> 导航失效 -> 任务失败"
+            "关键路径": "传感器失效 -> 导航失效 -> 任务失败",
+            "任务成功率": self.calculate_success_probability()
         }
         
         self.refresh_results()
