@@ -202,191 +202,182 @@ def create_drone_system():
     system.add_module(fpga_accelerator)
     
     print(f"✓ 创建了 {len(system.modules)} 个模块")
+    
+    # 为模块添加接口
+    print("为模块添加接口...")
+    
+    # 定义模块接口映射
+    module_interfaces = {
+        "惯性测量单元": [
+            {"name": "IMU数据输出", "description": "IMU传感器数据输出接口", "direction": "output"}
+        ],
+        "全球定位模块": [
+            {"name": "GNSS数据输出", "description": "GNSS定位数据输出接口", "direction": "output"}
+        ],
+        "光电红外摄像机": [
+            {"name": "图像数据输出", "description": "图像数据输出接口", "direction": "output"}
+        ],
+        "毫米波雷达": [
+            {"name": "雷达点云输出", "description": "雷达点云数据输出接口", "direction": "output"}
+        ],
+        "自驾仪": [
+            {"name": "传感器数据输入", "description": "传感器数据输入接口", "direction": "input"},
+            {"name": "控制指令输出", "description": "控制指令输出接口", "direction": "output"},
+            {"name": "状态反馈输出", "description": "系统状态反馈输出接口", "direction": "output"}
+        ],
+        "执行器": [
+            {"name": "控制指令输入", "description": "控制指令输入接口", "direction": "input"}
+        ],
+        "通信模块": [
+            {"name": "通信数据输入", "description": "通信数据输入接口", "direction": "input"},
+            {"name": "通信数据输出", "description": "通信数据输出接口", "direction": "output"}
+        ],
+        "摄像机云台": [
+            {"name": "云台控制输入", "description": "云台控制指令输入接口", "direction": "input"}
+        ],
+        "地面站": [
+            {"name": "地面站通信", "description": "地面站通信接口", "direction": "bidirectional"}
+        ],
+        "飞控任务应用软件": [
+            {"name": "应用数据接口", "description": "应用数据接口", "direction": "bidirectional"}
+        ],
+        "时间同步算法": [
+            {"name": "时间同步输入", "description": "时间同步数据输入接口", "direction": "input"},
+            {"name": "时间同步输出", "description": "时间同步数据输出接口", "direction": "output"}
+        ],
+        "空间配准算法": [
+            {"name": "配准数据输入", "description": "配准数据输入接口", "direction": "input"},
+            {"name": "配准数据输出", "description": "配准数据输出接口", "direction": "output"}
+        ],
+        "目标检测算法": [
+            {"name": "检测数据输入", "description": "检测数据输入接口", "direction": "input"},
+            {"name": "检测结果输出", "description": "检测结果输出接口", "direction": "output"}
+        ],
+        "环境感知算法": [
+            {"name": "感知数据输入", "description": "感知数据输入接口", "direction": "input"},
+            {"name": "感知结果输出", "description": "感知结果输出接口", "direction": "output"}
+        ],
+        "路径规划算法": [
+            {"name": "规划数据输入", "description": "规划数据输入接口", "direction": "input"},
+            {"name": "规划结果输出", "description": "规划结果输出接口", "direction": "output"}
+        ],
+        "避障算法": [
+            {"name": "避障数据输入", "description": "避障数据输入接口", "direction": "input"},
+            {"name": "避障指令输出", "description": "避障指令输出接口", "direction": "output"}
+        ],
+        "飞控控制算法": [
+            {"name": "控制数据输入", "description": "控制数据输入接口", "direction": "input"},
+            {"name": "控制指令输出", "description": "控制指令输出接口", "direction": "output"}
+        ],
+        "机器学习框架": [
+            {"name": "ML框架接口", "description": "机器学习框架接口", "direction": "bidirectional"}
+        ],
+        "嵌入式OS": [
+            {"name": "OS系统接口", "description": "操作系统接口", "direction": "bidirectional"}
+        ],
+        "专用算力设备": [
+            {"name": "算力设备接口", "description": "专用算力设备接口", "direction": "bidirectional"}
+        ]
+    }
+    
+    # 为每个模块添加接口
+    for module_name, interfaces in module_interfaces.items():
+        module = next((m for m in system.modules.values() if m.name == module_name), None)
+        if module:
+            for iface_data in interfaces:
+                # 创建接口
+                interface = Interface(
+                    iface_data["name"],
+                    iface_data["description"]
+                )
+                
+                # 设置接口方向
+                if iface_data["direction"] == "input":
+                    interface.direction = "input"
+                elif iface_data["direction"] == "output":
+                    interface.direction = "output"
+                else:
+                    interface.direction = "bidirectional"
+                
+                # 添加故障模式
+                failure_mode = InterfaceFailureMode(
+                    FailureMode.COMMUNICATION_FAILURE,
+                    f"{iface_data['name']}通信故障"
+                )
+                failure_mode.occurrence_rate = 1e-5  # 默认失效率
+                interface.add_failure_mode(failure_mode)
+                
+                # 将接口添加到模块
+                module.add_interface(interface)
+    
+    print("✓ 为所有模块添加了接口")
     return system
 
 
-def create_drone_interfaces(system):
-    """创建无人机接口"""
-    print("创建系统接口...")
+def create_module_connections(system):
+    """创建模块之间的连接"""
+    print("创建模块连接...")
     
-    # 定义所有31个接口及其故障模式
-    interfaces_data = [
-        # 传感输入接口
-        {
-            "id": 1, "name": "IMU数据采集接口", "description": "惯性测量单元→自驾仪",
-            "failure_mode": "时间戳漂移导致姿态解算渐偏", "rate": 2e-6
-        },
-        {
-            "id": 2, "name": "GNSS数据采集接口", "description": "全球定位模块→自驾仪", 
-            "failure_mode": "PPS抖动引起对时偏差", "rate": 1e-6
-        },
-        {
-            "id": 3, "name": "光电红外图像采集接口", "description": "摄像机→时间同步算法",
-            "failure_mode": "高负载下丢帧", "rate": 3e-6
-        },
-        {
-            "id": 4, "name": "雷达点云采集接口", "description": "毫米波雷达→时间同步算法",
-            "failure_mode": "UDP分片丢包", "rate": 4e-6
-        },
-        # OS服务接口
-        {
-            "id": 5, "name": "同步-OS接口", "description": "时间同步算法↔嵌入式OS",
-            "failure_mode": "优先级反转导致对时超时", "rate": 5e-6
-        },
-        # 专用算力设备接口
-        {
-            "id": 6, "name": "同步-算力设备接口", "description": "专用算力设备↔时间同步算法", 
-            "failure_mode": "DMA传输超时", "rate": 3e-5
-        },
-        {
-            "id": 7, "name": "配准-算力设备接口", "description": "专用算力设备↔空间配准算法",
-            "failure_mode": "缓存不一致导致结果失效", "rate": 3e-5
-        },
-        # 应用内处理链接口
-        {
-            "id": 8, "name": "同步-配准接口", "description": "时间同步算法→空间配准算法",
-            "failure_mode": "帧错配（时空窗错位）", "rate": 2e-5
-        },
-        {
-            "id": 9, "name": "配准-感知接口", "description": "空间配准算法→环境感知算法", 
-            "failure_mode": "坐标系标签错误", "rate": 2e-5
-        },
-        {
-            "id": 10, "name": "配准-OS接口", "description": "空间配准算法↔嵌入式OS",
-            "failure_mode": "环形缓冲溢出", "rate": 1e-5
-        },
-        {
-            "id": 11, "name": "配准-检测接口", "description": "空间配准算法→目标检测算法",
-            "failure_mode": "分辨率/步幅错配", "rate": 2e-5
-        },
-        {
-            "id": 12, "name": "检测-OS接口", "description": "目标检测算法↔嵌入式OS",
-            "failure_mode": "推理进程被OOM杀死", "rate": 8e-5
-        },
-        {
-            "id": 13, "name": "检测-ML接口", "description": "目标检测算法↔机器学习框架",
-            "failure_mode": "模型/算子版本不兼容", "rate": 5e-5
-        },
-        {
-            "id": 14, "name": "检测-规划接口", "description": "目标检测算法→路径规划算法",
-            "failure_mode": "目标ID跳变引起航迹震荡", "rate": 3e-5
-        },
-        {
-            "id": 15, "name": "检测-云台接口", "description": "目标检测算法→摄像机云台",
-            "failure_mode": "指向命令丢失", "rate": 2e-5
-        },
-        {
-            "id": 16, "name": "数据存档接口", "description": "飞控任务应用软件→嵌入式OS",
-            "failure_mode": "阻塞I/O反压上游链路", "rate": 1e-5
-        },
-        {
-            "id": 17, "name": "感知-OS接口", "description": "环境感知算法↔嵌入式OS",
-            "failure_mode": "线程池枯竭", "rate": 2e-5
-        },
-        {
-            "id": 18, "name": "感知-避障接口", "description": "环境感知算法→避障算法",
-            "failure_mode": "时间窗外数据被消费", "rate": 2e-5
-        },
-        {
-            "id": 19, "name": "规划-OS接口", "description": "路径规划算法↔嵌入式OS", 
-            "failure_mode": "定时器漂移", "rate": 1e-5
-        },
-        {
-            "id": 20, "name": "规划-通信接口", "description": "路径规划算法↔通信模块",
-            "failure_mode": "报文分片丢失", "rate": 2e-5
-        },
-        {
-            "id": 21, "name": "规划-避障接口", "description": "路径规划算法↔避障算法",
-            "failure_mode": "交互死锁", "rate": 3e-5
-        },
-        {
-            "id": 22, "name": "避障-ML接口", "description": "避障算法↔机器学习框架",
-            "failure_mode": "GPU内核异常", "rate": 4e-5
-        },
-        {
-            "id": 23, "name": "避障-OS接口", "description": "避障算法↔嵌入式OS",
-            "failure_mode": "周期漂移导致控制空洞", "rate": 2e-5
-        },
-        {
-            "id": 24, "name": "航迹指令接口", "description": "避障算法→飞控控制算法",
-            "failure_mode": "指令NaN/Inf被传播", "rate": 5e-5
-        },
-        {
-            "id": 25, "name": "飞控-通信接口", "description": "飞控控制算法↔通信模块",
-            "failure_mode": "心跳中断触发保护", "rate": 2e-5
-        },
-        {
-            "id": 26, "name": "飞控指令接口", "description": "飞控控制算法→自驾仪",
-            "failure_mode": "串口黏包/超时", "rate": 1e-4
-        },
-        {
-            "id": 27, "name": "自驾仪状态反馈接口", "description": "自驾仪→飞控控制算法",
-            "failure_mode": "状态值未正确更新", "rate": 5e-5
-        },
-        {
-            "id": 28, "name": "飞控算法-OS接口", "description": "飞控控制算法↔嵌入式OS",
-            "failure_mode": "看门狗漏触", "rate": 1e-5
-        },
-        {
-            "id": 29, "name": "位姿反馈接口", "description": "自驾仪→空间配准算法",
-            "failure_mode": "姿态突变（跳变）", "rate": 3e-5
-        },
-        {
-            "id": 30, "name": "自驾仪-执行器接口", "description": "自驾仪↔执行器",
-            "failure_mode": "总线饱和导致回授丢失", "rate": 5e-4
-        },
-        {
-            "id": 31, "name": "无人机-地面站链路接口", "description": "通信模块↔地面站",
-            "failure_mode": "干扰致BER升高与丢包", "rate": 1e-4
-        }
+    # 定义连接关系
+    connections = [
+        # 传感器到算法连接
+        {"source": "惯性测量单元", "source_interface": "IMU数据输出", "target": "时间同步算法", "target_interface": "时间同步输入"},
+        {"source": "全球定位模块", "source_interface": "GNSS数据输出", "target": "时间同步算法", "target_interface": "时间同步输入"},
+        {"source": "光电红外摄像机", "source_interface": "图像数据输出", "target": "时间同步算法", "target_interface": "时间同步输入"},
+        {"source": "毫米波雷达", "source_interface": "雷达点云输出", "target": "时间同步算法", "target_interface": "时间同步输入"},
+        
+        # 算法间连接
+        {"source": "时间同步算法", "source_interface": "时间同步输出", "target": "空间配准算法", "target_interface": "配准数据输入"},
+        {"source": "空间配准算法", "source_interface": "配准数据输出", "target": "目标检测算法", "target_interface": "检测数据输入"},
+        {"source": "空间配准算法", "source_interface": "配准数据输出", "target": "环境感知算法", "target_interface": "感知数据输入"},
+        {"source": "环境感知算法", "source_interface": "感知结果输出", "target": "路径规划算法", "target_interface": "规划数据输入"},
+        {"source": "环境感知算法", "source_interface": "感知结果输出", "target": "避障算法", "target_interface": "避障数据输入"},
+        {"source": "路径规划算法", "source_interface": "规划结果输出", "target": "避障算法", "target_interface": "避障数据输入"},
+        {"source": "避障算法", "source_interface": "避障指令输出", "target": "飞控控制算法", "target_interface": "控制数据输入"},
+        {"source": "目标检测算法", "source_interface": "检测结果输出", "target": "摄像机云台", "target_interface": "云台控制输入"},
+        
+        # 控制连接
+        {"source": "飞控控制算法", "source_interface": "控制指令输出", "target": "自驾仪", "target_interface": "传感器数据输入"},
+        {"source": "自驾仪", "source_interface": "控制指令输出", "target": "执行器", "target_interface": "控制指令输入"},
+        {"source": "自驾仪", "source_interface": "状态反馈输出", "target": "飞控控制算法", "target_interface": "控制数据输入"},
+        
+        # 通信连接
+        {"source": "路径规划算法", "source_interface": "规划结果输出", "target": "通信模块", "target_interface": "通信数据输入"},
+        {"source": "飞控控制算法", "source_interface": "控制指令输出", "target": "通信模块", "target_interface": "通信数据输入"},
+        {"source": "通信模块", "source_interface": "通信数据输出", "target": "地面站", "target_interface": "地面站通信"},
+        
+        # 系统服务连接
+        {"source": "时间同步算法", "source_interface": "时间同步输出", "target": "嵌入式OS", "target_interface": "OS系统接口"},
+        {"source": "空间配准算法", "source_interface": "配准数据输出", "target": "嵌入式OS", "target_interface": "OS系统接口"},
+        {"source": "目标检测算法", "source_interface": "检测结果输出", "target": "机器学习框架", "target_interface": "ML框架接口"},
+        {"source": "避障算法", "source_interface": "避障指令输出", "target": "机器学习框架", "target_interface": "ML框架接口"},
+        {"source": "时间同步算法", "source_interface": "时间同步输出", "target": "专用算力设备", "target_interface": "算力设备接口"},
+        {"source": "空间配准算法", "source_interface": "配准数据输出", "target": "专用算力设备", "target_interface": "算力设备接口"},
     ]
     
-    # 创建接口对象
-    for iface_data in interfaces_data:
-        interface = Interface(
-            iface_data["name"], 
-            iface_data["description"]
-        )
+    # 创建连接对象
+    for conn_data in connections:
+        # 查找源模块和目标模块
+        source_module = next((m for m in system.modules.values() if m.name == conn_data["source"]), None)
+        target_module = next((m for m in system.modules.values() if m.name == conn_data["target"]), None)
         
-        # 设置接口类型 - 使用有效的InterfaceType枚举值
-        description = iface_data["description"]
-        name = iface_data["name"]
-        
-        # 硬件到硬件接口
-        if ("→" in description and 
-            ("硬件" in description or "自驾仪" in description or 
-             "执行器" in description or "摄像机" in description or
-             "地面站" in description)):
-            interface.interface_type = InterfaceType.HARDWARE_HARDWARE
-        # 软件到软件接口
-        elif ("↔" in description and 
-              ("OS" in name or "ML" in name or "算法" in description)):
-            interface.interface_type = InterfaceType.SOFTWARE_SOFTWARE
-        # 软件到硬件接口
-        elif ("→" in description and 
-              ("算法" in description or "应用软件" in description)):
-            interface.interface_type = InterfaceType.SOFTWARE_HARDWARE
-        # 硬件到软件接口  
-        elif ("→" in description and 
-              ("传感器" in description or "摄像机" in description or
-               "雷达" in description)):
-            interface.interface_type = InterfaceType.HARDWARE_SOFTWARE
-        # 默认使用硬件到硬件
-        else:
-            interface.interface_type = InterfaceType.HARDWARE_HARDWARE
-        
-        # 添加故障模式
-        failure_mode = InterfaceFailureMode(
-            FailureMode.COMMUNICATION_FAILURE,
-            iface_data["failure_mode"]
-        )
-        failure_mode.occurrence_rate = iface_data["rate"]
-        failure_mode.description = iface_data["failure_mode"]
-        interface.add_failure_mode(failure_mode)
-        
-        system.add_interface(interface)
+        if source_module and target_module:
+            # 查找源接口和目标接口
+            source_interface = next((iface for iface in source_module.interfaces if iface.name == conn_data["source_interface"]), None)
+            target_interface = next((iface for iface in target_module.interfaces if iface.name == conn_data["target_interface"]), None)
+            
+            if source_interface and target_interface:
+                # 创建连接
+                connection = Connection(
+                    source_module.id,
+                    source_interface.id,
+                    target_module.id,
+                    target_interface.id
+                )
+                connection.name = f"{conn_data['source']}→{conn_data['target']}"
+                system.add_connection(connection)
     
-    print(f"✓ 创建了 {len(system.interfaces)} 个接口")
+    print(f"✓ 创建了 {len(system.connections)} 个模块连接")
     return system
 
 
@@ -759,16 +750,22 @@ def main():
         # 1. 创建系统结构
         system = create_drone_system()
         
-        # 2. 创建接口
+        # 2. 为模块添加接口
         system = create_drone_interfaces(system)
-        
-        # 3. 创建任务剖面
+    
+        # 3. 创建模块连接
+        system = create_module_connections(system)
+    
+        # 4. 创建任务剖面
         system = create_drone_task_profiles(system)
-        
-        # 4. 创建环境模型
+    
+        # 5. 创建环境模型
         system = create_drone_environments(system)
         
-        # 5. 生成故障树
+        # 5. 创建模块连接
+        system = create_module_connections(system)
+        
+        # 6. 生成故障树
         fault_tree = generate_fault_tree_demo(system)
         
         # 6. 保存演示项目
