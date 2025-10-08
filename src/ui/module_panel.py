@@ -17,6 +17,8 @@ from PyQt5.QtGui import QIcon
 
 from ..models.module_model import Module, ModuleType, ModuleTemplate, HardwareModule, SoftwareModule, AlgorithmModule
 from ..models.base_model import ConnectionPoint, Point
+from ..models.interface_model import Interface, InterfaceDirection
+from .interface_editor_widget import InterfaceEditorWidget
 
 
 class ModulePanel(QWidget):
@@ -219,12 +221,16 @@ class ModulePanel(QWidget):
     def create_connections_tab(self):
         """创建接口标签页"""
         widget = QWidget()
-        layout = QVBoxLayout()
+        layout = QHBoxLayout()
+        
+        # 左侧：接口列表和操作
+        left_panel = QWidget()
+        left_layout = QVBoxLayout()
         
         # 接口列表
         self.connection_list = QListWidget()
-        layout.addWidget(QLabel("接口列表"))
-        layout.addWidget(self.connection_list)
+        left_layout.addWidget(QLabel("接口列表"))
+        left_layout.addWidget(self.connection_list)
         
         # 按钮组
         button_layout = QHBoxLayout()
@@ -235,48 +241,53 @@ class ModulePanel(QWidget):
         button_layout.addWidget(self.add_connection_btn)
         button_layout.addWidget(self.edit_connection_btn)
         button_layout.addWidget(self.remove_connection_btn)
-        layout.addLayout(button_layout)
+        left_layout.addLayout(button_layout)
         
-        # 接口详情
-        details_group = QGroupBox("接口详情")
-        details_layout = QFormLayout()
-        
-        self.conn_name_edit = QLineEdit()
-        self.conn_direction_combo = QComboBox()
-        self.conn_direction_combo.addItems(["输入", "输出", "双向"])
-        
-        self.conn_type_combo = QComboBox()
-        self.conn_type_combo.addItems([
-            "算法-操作系统接口", "算法-智能框架接口", "算法-应用接口",
-            "算法-数据平台接口", "算法-硬件设备接口", "一般接口"
-        ])
-        
-        self.conn_data_type_combo = QComboBox()
-        self.conn_data_type_combo.addItems(["signal", "data", "power", "control"])
+        # 接口位置设置
+        position_group = QGroupBox("接口位置")
+        position_layout = QFormLayout()
         
         self.conn_pos_x_spin = QDoubleSpinBox()
         self.conn_pos_x_spin.setRange(0, 500)
         self.conn_pos_y_spin = QDoubleSpinBox()
         self.conn_pos_y_spin.setRange(0, 300)
         
-        self.conn_variables_edit = QLineEdit()
+        position_layout.addRow("X坐标:", self.conn_pos_x_spin)
+        position_layout.addRow("Y坐标:", self.conn_pos_y_spin)
         
-        details_layout.addRow("名称:", self.conn_name_edit)
-        details_layout.addRow("方向:", self.conn_direction_combo)
-        details_layout.addRow("接口类型:", self.conn_type_combo)
-        details_layout.addRow("数据类型:", self.conn_data_type_combo)
+        position_group.setLayout(position_layout)
+        left_layout.addWidget(position_group)
         
-        conn_pos_layout = QHBoxLayout()
-        conn_pos_layout.addWidget(QLabel("X:"))
-        conn_pos_layout.addWidget(self.conn_pos_x_spin)
-        conn_pos_layout.addWidget(QLabel("Y:"))
-        conn_pos_layout.addWidget(self.conn_pos_y_spin)
-        details_layout.addRow("位置:", conn_pos_layout)
+        # 接口与模块变量映射
+        mapping_group = QGroupBox("变量映射")
+        mapping_layout = QVBoxLayout()
         
-        details_layout.addRow("关联变量:", self.conn_variables_edit)
+        self.variable_mapping_list = QListWidget()
+        mapping_layout.addWidget(QLabel("接口变量与模块变量的映射关系:"))
+        mapping_layout.addWidget(self.variable_mapping_list)
         
-        details_group.setLayout(details_layout)
-        layout.addWidget(details_group)
+        mapping_btn_layout = QHBoxLayout()
+        self.add_mapping_btn = QPushButton("添加映射")
+        self.remove_mapping_btn = QPushButton("删除映射")
+        mapping_btn_layout.addWidget(self.add_mapping_btn)
+        mapping_btn_layout.addWidget(self.remove_mapping_btn)
+        mapping_btn_layout.addStretch()
+        mapping_layout.addLayout(mapping_btn_layout)
+        
+        mapping_group.setLayout(mapping_layout)
+        left_layout.addWidget(mapping_group)
+        
+        left_panel.setLayout(left_layout)
+        layout.addWidget(left_panel)
+        
+        # 右侧：接口编辑器
+        self.interface_editor = InterfaceEditorWidget()
+        self.interface_editor.interface_changed.connect(self.on_interface_changed)
+        layout.addWidget(self.interface_editor)
+        
+        # 设置分割比例
+        layout.setStretch(0, 1)  # 左侧占1/3
+        layout.setStretch(1, 2)  # 右侧占2/3
         
         widget.setLayout(layout)
         return widget
@@ -423,6 +434,11 @@ class ModulePanel(QWidget):
         self.add_connection_btn.clicked.connect(self.add_connection_point)
         self.edit_connection_btn.clicked.connect(self.edit_connection_point)
         self.remove_connection_btn.clicked.connect(self.remove_connection_point)
+        self.connection_list.currentItemChanged.connect(self.on_interface_selected)
+        
+        # 变量映射操作
+        self.add_mapping_btn.clicked.connect(self.add_variable_mapping)
+        self.remove_mapping_btn.clicked.connect(self.remove_variable_mapping)
         
         # 参数操作
         self.add_param_btn.clicked.connect(self.add_parameter)
@@ -517,210 +533,48 @@ class ModulePanel(QWidget):
         
         return module
     
+    def create_interface(self, name, description, direction, interface_type, data_format="data"):
+        """创建接口的辅助方法"""
+        from ..models.interface_model import Interface
+        interface = Interface()
+        interface.name = name
+        interface.description = description
+        interface.direction = direction
+        interface.interface_type = interface_type
+        interface.data_format = data_format
+        return interface
+    
     def add_template_interfaces(self, module, template):
         """为模块模板添加接口"""
-        from ..models.base_model import ConnectionPoint, Point
+        from ..models.interface_model import Interface, InterfaceType, InterfaceDirection
         
         # 根据模板类型添加不同的接口
         if template == ModuleTemplate.SENSOR:
             # 传感器模块接口
-            input_interface = ConnectionPoint("传感器数据输入", Point(20, 20))
-            input_interface.connection_type = "input"
-            input_interface.interface_type = "algorithm_hardware"
-            input_interface.data_type = "signal"
-            module.add_connection_point(input_interface)
-            
-            output_interface = ConnectionPoint("传感器数据输出", Point(80, 20))
-            output_interface.connection_type = "output"
-            output_interface.interface_type = "algorithm_hardware"
-            output_interface.data_type = "data"
-            module.add_connection_point(output_interface)
+            module.add_interface(self.create_interface(
+                "传感器数据输入", "传感器数据输入接口", 
+                InterfaceDirection.INPUT, InterfaceType.ALGORITHM_HARDWARE, "signal"))
+            module.add_interface(self.create_interface(
+                "传感器数据输出", "传感器数据输出接口",
+                InterfaceDirection.OUTPUT, InterfaceType.ALGORITHM_HARDWARE, "data"))
             
         elif template == ModuleTemplate.ACTUATOR:
             # 执行器模块接口
-            input_interface = ConnectionPoint("控制信号输入", Point(20, 20))
-            input_interface.connection_type = "input"
-            input_interface.interface_type = "algorithm_hardware"
-            input_interface.data_type = "control"
-            module.add_connection_point(input_interface)
+            module.add_interface(self.create_interface(
+                "控制信号输入", "控制信号输入接口",
+                InterfaceDirection.INPUT, InterfaceType.ALGORITHM_HARDWARE, "control"))
+            module.add_interface(self.create_interface(
+                "状态反馈输出", "状态反馈输出接口",
+                InterfaceDirection.OUTPUT, InterfaceType.ALGORITHM_HARDWARE, "signal"))
             
-            feedback_interface = ConnectionPoint("状态反馈输出", Point(80, 20))
-            feedback_interface.connection_type = "output"
-            feedback_interface.interface_type = "algorithm_hardware"
-            feedback_interface.data_type = "signal"
-            module.add_connection_point(feedback_interface)
-            
-        elif template == ModuleTemplate.PROCESSOR:
-            # 处理器模块接口
-            data_input = ConnectionPoint("数据输入", Point(10, 20))
-            data_input.connection_type = "input"
-            data_input.interface_type = "algorithm_hardware"
-            data_input.data_type = "data"
-            module.add_connection_point(data_input)
-            
-            data_output = ConnectionPoint("数据输出", Point(90, 20))
-            data_output.connection_type = "output"
-            data_output.interface_type = "algorithm_hardware"
-            data_output.data_type = "data"
-            module.add_connection_point(data_output)
-            
-            control_input = ConnectionPoint("控制输入", Point(10, 40))
-            control_input.connection_type = "input"
-            control_input.interface_type = "algorithm_hardware"
-            control_input.data_type = "control"
-            module.add_connection_point(control_input)
-            
-        elif template == ModuleTemplate.MEMORY:
-            # 存储器模块接口
-            read_interface = ConnectionPoint("读取接口", Point(20, 20))
-            read_interface.connection_type = "bidirectional"
-            read_interface.interface_type = "algorithm_hardware"
-            read_interface.data_type = "data"
-            module.add_connection_point(read_interface)
-            
-            write_interface = ConnectionPoint("写入接口", Point(80, 20))
-            write_interface.connection_type = "bidirectional"
-            write_interface.interface_type = "algorithm_hardware"
-            write_interface.data_type = "data"
-            module.add_connection_point(write_interface)
-            
-        elif template == ModuleTemplate.COMMUNICATION:
-            # 通信模块接口
-            tx_interface = ConnectionPoint("发送接口", Point(20, 20))
-            tx_interface.connection_type = "output"
-            tx_interface.interface_type = "algorithm_hardware"
-            tx_interface.data_type = "data"
-            module.add_connection_point(tx_interface)
-            
-            rx_interface = ConnectionPoint("接收接口", Point(80, 20))
-            rx_interface.connection_type = "input"
-            rx_interface.interface_type = "algorithm_hardware"
-            rx_interface.data_type = "data"
-            module.add_connection_point(rx_interface)
-            
-        elif template == ModuleTemplate.OPERATING_SYSTEM:
-            # 操作系统模块接口
-            syscall_interface = ConnectionPoint("系统调用接口", Point(20, 20))
-            syscall_interface.connection_type = "bidirectional"
-            syscall_interface.interface_type = "algorithm_os"
-            syscall_interface.data_type = "control"
-            module.add_connection_point(syscall_interface)
-            
-            resource_interface = ConnectionPoint("资源管理接口", Point(80, 20))
-            resource_interface.connection_type = "bidirectional"
-            resource_interface.interface_type = "algorithm_os"
-            resource_interface.data_type = "data"
-            module.add_connection_point(resource_interface)
-            
-        elif template == ModuleTemplate.MIDDLEWARE:
-            # 中间件模块接口
-            api_interface = ConnectionPoint("API接口", Point(20, 20))
-            api_interface.connection_type = "bidirectional"
-            api_interface.interface_type = "algorithm_application"
-            api_interface.data_type = "data"
-            module.add_connection_point(api_interface)
-            
-            message_interface = ConnectionPoint("消息接口", Point(80, 20))
-            message_interface.connection_type = "bidirectional"
-            message_interface.interface_type = "algorithm_application"
-            message_interface.data_type = "data"
-            module.add_connection_point(message_interface)
-            
-        elif template == ModuleTemplate.APPLICATION:
-            # 应用程序模块接口
-            ui_interface = ConnectionPoint("用户界面接口", Point(20, 20))
-            ui_interface.connection_type = "bidirectional"
-            ui_interface.interface_type = "algorithm_application"
-            ui_interface.data_type = "data"
-            module.add_connection_point(ui_interface)
-            
-            data_interface = ConnectionPoint("数据接口", Point(80, 20))
-            data_interface.connection_type = "bidirectional"
-            data_interface.interface_type = "algorithm_application"
-            data_interface.data_type = "data"
-            module.add_connection_point(data_interface)
-            
-        elif template == ModuleTemplate.DATABASE:
-            # 数据库模块接口
-            query_interface = ConnectionPoint("查询接口", Point(20, 20))
-            query_interface.connection_type = "bidirectional"
-            query_interface.interface_type = "algorithm_data_platform"
-            query_interface.data_type = "data"
-            module.add_connection_point(query_interface)
-            
-            storage_interface = ConnectionPoint("存储接口", Point(80, 20))
-            storage_interface.connection_type = "bidirectional"
-            storage_interface.interface_type = "algorithm_data_platform"
-            storage_interface.data_type = "data"
-            module.add_connection_point(storage_interface)
-            
-        elif template == ModuleTemplate.CONTROL_ALGORITHM:
-            # 控制算法模块接口
-            setpoint_input = ConnectionPoint("设定值输入", Point(20, 20))
-            setpoint_input.connection_type = "input"
-            setpoint_input.interface_type = "algorithm_framework"
-            setpoint_input.data_type = "data"
-            module.add_connection_point(setpoint_input)
-            
-            feedback_input = ConnectionPoint("反馈输入", Point(20, 40))
-            feedback_input.connection_type = "input"
-            feedback_input.interface_type = "algorithm_framework"
-            feedback_input.data_type = "data"
-            module.add_connection_point(feedback_input)
-            
-            control_output = ConnectionPoint("控制输出", Point(80, 30))
-            control_output.connection_type = "output"
-            control_output.interface_type = "algorithm_framework"
-            control_output.data_type = "control"
-            module.add_connection_point(control_output)
-            
-        elif template == ModuleTemplate.PERCEPTION_ALGORITHM:
-            # 感知算法模块接口
-            sensor_input = ConnectionPoint("传感器输入", Point(20, 20))
-            sensor_input.connection_type = "input"
-            sensor_input.interface_type = "algorithm_framework"
-            sensor_input.data_type = "data"
-            module.add_connection_point(sensor_input)
-            
-            perception_output = ConnectionPoint("感知结果输出", Point(80, 20))
-            perception_output.connection_type = "output"
-            perception_output.interface_type = "algorithm_framework"
-            perception_output.data_type = "data"
-            module.add_connection_point(perception_output)
-            
-        elif template == ModuleTemplate.DECISION_ALGORITHM:
-            # 决策算法模块接口
-            situation_input = ConnectionPoint("态势输入", Point(20, 20))
-            situation_input.connection_type = "input"
-            situation_input.interface_type = "algorithm_framework"
-            situation_input.data_type = "data"
-            module.add_connection_point(situation_input)
-            
-            decision_output = ConnectionPoint("决策输出", Point(80, 20))
-            decision_output.connection_type = "output"
-            decision_output.interface_type = "algorithm_framework"
-            decision_output.data_type = "control"
-            module.add_connection_point(decision_output)
-            
-        elif template == ModuleTemplate.LEARNING_ALGORITHM:
-            # 学习算法模块接口
-            training_input = ConnectionPoint("训练数据输入", Point(20, 20))
-            training_input.connection_type = "input"
-            training_input.interface_type = "algorithm_framework"
-            training_input.data_type = "data"
-            module.add_connection_point(training_input)
-            
-            model_output = ConnectionPoint("模型输出", Point(80, 20))
-            model_output.connection_type = "output"
-            model_output.interface_type = "algorithm_framework"
-            model_output.data_type = "data"
-            module.add_connection_point(model_output)
-            
-            inference_interface = ConnectionPoint("推理接口", Point(50, 40))
-            inference_interface.connection_type = "bidirectional"
-            inference_interface.interface_type = "algorithm_framework"
-            inference_interface.data_type = "data"
-            module.add_connection_point(inference_interface)
+        else:
+            # 其他模板使用通用接口
+            module.add_interface(self.create_interface(
+                "通用输入", "通用输入接口",
+                InterfaceDirection.INPUT, InterfaceType.ALGORITHM_HARDWARE, "data"))
+            module.add_interface(self.create_interface(
+                "通用输出", "通用输出接口", 
+                InterfaceDirection.OUTPUT, InterfaceType.ALGORITHM_HARDWARE, "data"))
     
     def update_module_tree(self):
         """更新模块树"""
@@ -784,9 +638,15 @@ class ModulePanel(QWidget):
         """更新接口列表"""
         self.connection_list.clear()
         if self.current_module:
-            for cp in self.current_module.connection_points:
-                item = QListWidgetItem(f"{cp.name} ({cp.connection_type})")
-                item.setData(Qt.UserRole, cp.id)
+            for interface_id, interface in self.current_module.interfaces.items():
+                direction_text = {
+                    InterfaceDirection.INPUT: "输入",
+                    InterfaceDirection.OUTPUT: "输出", 
+                    InterfaceDirection.BIDIRECTIONAL: "双向"
+                }.get(interface.direction, "双向")
+                
+                item = QListWidgetItem(f"{interface.name} ({direction_text})")
+                item.setData(Qt.UserRole, interface_id)
                 self.connection_list.addItem(item)
     
     def update_parameter_list(self):
@@ -877,6 +737,7 @@ class ModulePanel(QWidget):
         self.code_edit.clear()
         self.connection_list.clear()
         self.parameter_list.clear()
+        self.interface_editor.clear_form()
     
     def browse_icon(self):
         """浏览图标文件"""
@@ -885,77 +746,162 @@ class ModulePanel(QWidget):
         if file_path:
             self.icon_path_edit.setText(file_path)
     
+    def on_interface_selected(self):
+        """接口选择变化"""
+        current_item = self.connection_list.currentItem()
+        if current_item and self.current_module:
+            interface_id = current_item.data(Qt.UserRole)
+            interface = self.current_module.get_interface(interface_id)
+            if interface:
+                # 加载接口到编辑器
+                self.interface_editor.load_interface(interface)
+                # 更新位置信息（接口对象中没有position属性，需要从其他地方获取）
+                # 这里暂时设置默认值
+                self.conn_pos_x_spin.setValue(50)
+                self.conn_pos_y_spin.setValue(30)
+                # 更新变量映射列表
+                self.update_variable_mapping_list()
+        else:
+            self.interface_editor.clear_form()
+            self.variable_mapping_list.clear()
+    
+    def on_interface_changed(self, interface):
+        """接口数据变化"""
+        if self.current_module and interface:
+            # 更新模块中的接口
+            self.current_module.interfaces[interface.id] = interface
+            self.current_module.update_modified_time()
+            # 更新接口列表显示
+            self.update_connection_list()
+            # 保存到系统
+            self.save_modules_to_system()
+            # 发射模块修改信号
+            self.module_modified.emit(self.current_module)
+    
+    def update_variable_mapping_list(self):
+        """更新变量映射列表"""
+        self.variable_mapping_list.clear()
+        current_item = self.connection_list.currentItem()
+        if current_item and self.current_module:
+            interface_id = current_item.data(Qt.UserRole)
+            interface = self.current_module.get_interface(interface_id)
+            if interface:
+                # 显示接口参数与模块变量的映射关系
+                for param_name in interface.parameters.keys():
+                    # 检查是否有对应的模块变量映射
+                    module_var = self.current_module.state_variables.get(f"interface_{interface.id}_{param_name}")
+                    if module_var is not None:
+                        item = QListWidgetItem(f"{param_name} -> {f'interface_{interface.id}_{param_name}'}")
+                        item.setData(Qt.UserRole, (param_name, f"interface_{interface.id}_{param_name}"))
+                        self.variable_mapping_list.addItem(item)
+    
+    def add_variable_mapping(self):
+        """添加变量映射"""
+        current_item = self.connection_list.currentItem()
+        if current_item and self.current_module:
+            interface_id = current_item.data(Qt.UserRole)
+            interface = self.current_module.get_interface(interface_id)
+            if interface:
+                # 简单实现：为每个接口参数创建对应的模块变量
+                for param_name, param_value in interface.parameters.items():
+                    module_var_name = f"interface_{interface.id}_{param_name}"
+                    self.current_module.state_variables[module_var_name] = param_value
+                
+                self.update_variable_mapping_list()
+                QMessageBox.information(self, "成功", "已为接口参数创建对应的模块变量映射")
+    
+    def remove_variable_mapping(self):
+        """删除变量映射"""
+        current_item = self.variable_mapping_list.currentItem()
+        if current_item and self.current_module:
+            param_name, module_var_name = current_item.data(Qt.UserRole)
+            if module_var_name in self.current_module.state_variables:
+                del self.current_module.state_variables[module_var_name]
+                self.update_variable_mapping_list()
+                QMessageBox.information(self, "成功", "已删除变量映射")
+    
     def add_connection_point(self):
         """添加接口"""
         if self.current_module:
             # 导入接口选择对话框
-            from .interface_selector_dialog import InterfaceTemplateDialog, InterfaceInstanceDialog
+            from .interface_selector_dialog import InterfaceTemplateDialog
             
             # 获取可用的接口模板
             available_interfaces = {}
             if self.current_system and hasattr(self.current_system, 'interfaces'):
                 available_interfaces = self.current_system.interfaces
             
-            # 总是显示接口模板选择对话框（即使没有模板也可以创建新接口）
+            # 显示接口模板选择对话框
             dialog = InterfaceTemplateDialog(available_interfaces, self)
             if dialog.exec_() == QDialog.Accepted:
                 template_interface = dialog.get_selected_interface()
                 if template_interface:
-                    # 如果选择了模板，显示接口实例化编辑对话框
+                    # 创建接口的副本（实例化）
+                    new_interface = Interface()
                     if hasattr(template_interface, 'interface_type'):
-                        # 这是一个Interface对象，需要实例化
-                        instance_dialog = InterfaceInstanceDialog(template_interface, self)
-                        if instance_dialog.exec_() == QDialog.Accepted:
-                            instance_cp = instance_dialog.get_instance_interface()
-                            if instance_cp:
-                                # 设置位置
-                                instance_cp.position = Point(50, 30)
-                                self.current_module.add_connection_point(instance_cp)
-                                self.save_modules_to_system()
-                                self.update_connection_list()
-                                # 发射模块修改信号
-                                self.module_modified.emit(self.current_module)
+                        # 从模板复制属性
+                        new_interface.name = f"{template_interface.name}_实例"
+                        new_interface.interface_type = template_interface.interface_type
+                        new_interface.direction = template_interface.direction
+                        new_interface.description = template_interface.description
+                        new_interface.protocol = template_interface.protocol
+                        new_interface.data_format = template_interface.data_format
+                        new_interface.bandwidth = template_interface.bandwidth
+                        new_interface.latency = template_interface.latency
+                        new_interface.reliability = template_interface.reliability
+                        new_interface.parameters = template_interface.parameters.copy()
+                        new_interface.failure_modes = template_interface.failure_modes.copy()
+                        new_interface.python_code = template_interface.python_code
                     else:
-                        # 这是一个新创建的ConnectionPoint对象，直接添加
-                        template_interface.position = Point(50, 30)
-                        self.current_module.add_connection_point(template_interface)
-                        self.save_modules_to_system()
-                        self.update_connection_list()
-                        # 发射模块修改信号
-                        self.module_modified.emit(self.current_module)
-            else:
-                # 用户取消了选择，不做任何操作
-                pass
+                        # 创建新接口
+                        new_interface.name = "新接口"
+                        new_interface.description = "新创建的接口"
+                    
+                    # 添加到模块
+                    self.current_module.add_interface(new_interface)
+                    self.save_modules_to_system()
+                    self.update_connection_list()
+                    
+                    # 选择新添加的接口
+                    for i in range(self.connection_list.count()):
+                        item = self.connection_list.item(i)
+                        if item.data(Qt.UserRole) == new_interface.id:
+                            self.connection_list.setCurrentItem(item)
+                            break
+                    
+                    # 发射模块修改信号
+                    self.module_modified.emit(self.current_module)
     
     def edit_connection_point(self):
         """编辑接口"""
+        # 接口编辑功能已经集成到右侧的接口编辑器中
+        # 用户选择接口后，右侧会自动显示编辑界面
         current_item = self.connection_list.currentItem()
-        if current_item and self.current_module:
-            cp_id = current_item.data(Qt.UserRole)
-            cp = self.current_module.get_connection_point(cp_id)
-            if cp:
-                # 导入接口编辑对话框
-                from .interface_edit_dialog import InterfaceEditDialog
-                
-                dialog = InterfaceEditDialog(cp, self)
-                dialog.interface_saved.connect(self.on_interface_edited)
-                dialog.exec_()
-    
-    def on_interface_edited(self, connection_point):
-        """接口编辑完成"""
-        self.save_modules_to_system()
-        self.update_connection_list()
-        # 发射模块修改信号
-        if self.current_module:
-            self.module_modified.emit(self.current_module)
+        if current_item:
+            QMessageBox.information(self, "提示", "请在右侧的接口编辑器中编辑接口属性")
+        else:
+            QMessageBox.warning(self, "警告", "请先选择一个接口")
     
     def remove_connection_point(self):
         """删除接口"""
         current_item = self.connection_list.currentItem()
         if current_item and self.current_module:
-            cp_id = current_item.data(Qt.UserRole)
-            self.current_module.remove_connection_point(cp_id)
-            self.update_connection_list()
+            interface_id = current_item.data(Qt.UserRole)
+            interface = self.current_module.get_interface(interface_id)
+            if interface:
+                reply = QMessageBox.question(
+                    self, "确认删除", 
+                    f"确定要删除接口 '{interface.name}' 吗？",
+                    QMessageBox.Yes | QMessageBox.No,
+                    QMessageBox.No
+                )
+                if reply == QMessageBox.Yes:
+                    self.current_module.remove_interface(interface_id)
+                    self.update_connection_list()
+                    self.interface_editor.clear_form()
+                    self.variable_mapping_list.clear()
+                    self.save_modules_to_system()
+                    self.module_modified.emit(self.current_module)
     
     def add_parameter(self):
         """添加参数"""

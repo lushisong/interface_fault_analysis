@@ -9,9 +9,11 @@ Module Data Model
 from typing import Dict, Any, List, Optional
 from enum import Enum
 try:
-    from .base_model import BaseModel, Point, ConnectionPoint
+    from .base_model import BaseModel, Point
+    from .interface_model import Interface, InterfaceDirection
 except ImportError:
-    from base_model import BaseModel, Point, ConnectionPoint
+    from base_model import BaseModel, Point
+    from interface_model import Interface, InterfaceDirection
 
 
 class ModuleType(Enum):
@@ -61,29 +63,48 @@ class Module(BaseModel):
         self.position = Point()  # 在图形界面中的位置
         self.size = Point(100, 60)  # 模块大小
         self.icon_path = ""  # 图标路径
-        self.connection_points = []  # 接口列表
+        self.interfaces = {}  # 接口字典，key为接口ID，value为Interface对象
         self.parameters = {}  # 模块参数
         self.state_variables = {}  # 状态变量
         self.python_code = ""  # Python建模代码
         self.is_template = False  # 是否为模板
         self.id = f"module_{id(self)}"  # 确保每个模块都有唯一ID
         
-    def add_connection_point(self, point: ConnectionPoint):
+    @property
+    def connection_points(self):
+        """兼容性属性：返回接口列表（用于向后兼容）"""
+        # 创建临时的ConnectionPoint对象列表
+        from .base_model import ConnectionPoint
+        points = []
+        for interface in self.interfaces.values():
+            cp = ConnectionPoint()
+            cp.id = interface.id
+            cp.name = interface.name
+            # 映射direction到connection_type
+            if interface.direction == InterfaceDirection.INPUT:
+                cp.connection_type = 'input'
+            elif interface.direction == InterfaceDirection.OUTPUT:
+                cp.connection_type = 'output'
+            else:
+                cp.connection_type = 'bidirectional'
+            cp.data_type = interface.data_format or 'signal'
+            points.append(cp)
+        return points
+        
+    def add_interface(self, interface: Interface):
         """添加接口"""
-        self.connection_points.append(point)
+        self.interfaces[interface.id] = interface
         self.update_modified_time()
     
-    def remove_connection_point(self, point_id: str):
+    def remove_interface(self, interface_id: str):
         """移除接口"""
-        self.connection_points = [p for p in self.connection_points if p.id != point_id]
-        self.update_modified_time()
+        if interface_id in self.interfaces:
+            del self.interfaces[interface_id]
+            self.update_modified_time()
     
-    def get_connection_point(self, point_id: str) -> Optional[ConnectionPoint]:
+    def get_interface(self, interface_id: str) -> Optional[Interface]:
         """获取接口"""
-        for point in self.connection_points:
-            if point.id == point_id:
-                return point
-        return None
+        return self.interfaces.get(interface_id)
     
     def set_parameter(self, key: str, value: Any):
         """设置参数"""
@@ -126,18 +147,10 @@ class Module(BaseModel):
     
     def to_dict(self) -> Dict[str, Any]:
         base_dict = super().to_dict()
-        # 确保所有连接点都有必要的属性
-        connection_points_data = []
-        for cp in self.connection_points:
-            cp_dict = cp.to_dict()
-            # 确保连接点有必要的字段
-            if 'id' not in cp_dict or not cp_dict['id']:
-                cp_dict['id'] = f"cp_{id(cp)}"
-            if 'connection_type' not in cp_dict:
-                cp_dict['connection_type'] = getattr(cp, 'connection_type', 'input')
-            if 'name' not in cp_dict:
-                cp_dict['name'] = getattr(cp, 'name', '未命名接口')
-            connection_points_data.append(cp_dict)
+        # 序列化接口字典
+        interfaces_data = {}
+        for interface_id, interface in self.interfaces.items():
+            interfaces_data[interface_id] = interface.to_dict()
             
         base_dict.update({
             'module_type': self.module_type.value if hasattr(self.module_type, 'value') else self.module_type,
@@ -145,7 +158,7 @@ class Module(BaseModel):
             'position': self.position.to_dict() if hasattr(self.position, 'to_dict') else self.position,
             'size': self.size.to_dict() if hasattr(self.size, 'to_dict') else self.size,
             'icon_path': self.icon_path,
-            'connection_points': connection_points_data,
+            'interfaces': interfaces_data,
             'parameters': self.parameters,
             'state_variables': self.state_variables,
             'python_code': self.python_code,
@@ -168,18 +181,33 @@ class Module(BaseModel):
         self.icon_path = data.get('icon_path', '')
         
         # 加载接口
-        self.connection_points = []
-        for cp_data in data.get('connection_points', []):
-            cp = ConnectionPoint()
-            cp.from_dict(cp_data)
-            # 确保连接点有必要的属性
-            if not hasattr(cp, 'id') or not cp.id:
-                cp.id = f"cp_{id(cp)}"
-            if not hasattr(cp, 'connection_type') or not cp.connection_type:
-                cp.connection_type = cp_data.get('connection_type', 'input')
-            if not hasattr(cp, 'name') or not cp.name:
-                cp.name = cp_data.get('name', '未命名接口')
-            self.connection_points.append(cp)
+        self.interfaces = {}
+        interfaces_data = data.get('interfaces', {})
+        
+        # 兼容旧格式的connection_points
+        if not interfaces_data and 'connection_points' in data:
+            # 将旧的connection_points转换为新的interfaces格式
+            for cp_data in data.get('connection_points', []):
+                interface = Interface()
+                interface.name = cp_data.get('name', '未命名接口')
+                interface.description = f"从连接点转换: {interface.name}"
+                # 映射connection_type到direction
+                connection_type = cp_data.get('connection_type', 'input')
+                if connection_type == 'input':
+                    interface.direction = InterfaceDirection.INPUT
+                elif connection_type == 'output':
+                    interface.direction = InterfaceDirection.OUTPUT
+                else:
+                    interface.direction = InterfaceDirection.BIDIRECTIONAL
+                
+                interface.data_format = cp_data.get('data_type', 'signal')
+                self.interfaces[interface.id] = interface
+        else:
+            # 加载新格式的interfaces
+            for interface_id, interface_data in interfaces_data.items():
+                interface = Interface()
+                interface.from_dict(interface_data)
+                self.interfaces[interface_id] = interface
         
         self.parameters = data.get('parameters', {})
         self.state_variables = data.get('state_variables', {})
