@@ -483,6 +483,7 @@ def create_module_connections(system):
                 target_x = target_module.position['x']
                 target_y = target_module.position['y'] + 30
                 
+                # 直接使用字典格式，避免 Point 对象序列化问题
                 connection.connection_points = [
                     {"x": source_x, "y": source_y},
                     {"x": target_x, "y": target_y}
@@ -703,42 +704,45 @@ def generate_fault_tree_demo(system):
     """生成故障树演示"""
     print("生成故障树分析...")
     
-    # 选择巡航监控任务
-    patrol_task = None
+    # 选择抵近侦察任务
+    recon_task = None
     for task in system.task_profiles.values():
-        if task.name == "巡航监控任务":
-            patrol_task = task
+        if task.name == "抵近侦察任务":
+            recon_task = task
             break
     
-    if not patrol_task:
-        print("✗ 未找到巡航监控任务")
+    if not recon_task:
+        print("✗ 未找到抵近侦察任务")
         return None
     
     # 生成故障树
     generator = FaultTreeGenerator()
-    fault_tree = generator.generate_fault_tree(system, patrol_task)
+    fault_tree = generator.generate_fault_tree(system, recon_task)
     
-    print(f"✓ 故障树生成成功: {fault_tree.name}")
-    print(f"  事件数量: {len(fault_tree.events)}")
-    print(f"  逻辑门数量: {len(fault_tree.gates)}")
-    
-    # 分析故障树
-    cut_sets = fault_tree.find_minimal_cut_sets()
-    sys_prob = fault_tree.calculate_system_probability()
-    fault_tree.calculate_importance_measures()
-    
-    print(f"✓ 故障树分析完成")
-    print(f"  最小割集数量: {len(cut_sets)}")
-    print(f"  系统失效概率: {sys_prob:.2e}")
-    
-    # 显示前5个最小割集
-    print("  前5个最小割集:")
-    for i, cut_set in enumerate(cut_sets[:5]):
-        event_names = []
-        for event_id in cut_set.events:
-            if event_id in fault_tree.events:
-                event_names.append(fault_tree.events[event_id].name)
-        print(f"    {i+1}. {', '.join(event_names)} (概率: {cut_set.probability:.2e})")
+    if fault_tree:
+        print(f"✓ 故障树生成成功: {fault_tree.name}")
+        print(f"  事件数量: {len(fault_tree.events)}")
+        print(f"  逻辑门数量: {len(fault_tree.gates)}")
+        
+        # 分析故障树
+        cut_sets = fault_tree.find_minimal_cut_sets()
+        sys_prob = fault_tree.calculate_system_probability()
+        fault_tree.calculate_importance_measures()
+        
+        print(f"✓ 故障树分析完成")
+        print(f"  最小割集数量: {len(cut_sets)}")
+        print(f"  系统失效概率: {sys_prob:.2e}")
+        
+        # 显示前5个最小割集
+        print("  前5个最小割集:")
+        for i, cut_set in enumerate(cut_sets[:5]):
+            event_names = []
+            for event_id in cut_set.events:
+                if event_id in fault_tree.events:
+                    event_names.append(fault_tree.events[event_id].name)
+            print(f"    {i+1}. {', '.join(event_names)} (概率: {cut_set.probability:.2e})")
+    else:
+        print("✗ 故障树生成失败")
     
     return fault_tree
 
@@ -756,25 +760,28 @@ def save_demo_project(system, fault_tree=None):
     os.makedirs(os.path.dirname(project_path), exist_ok=True)
     
     try:
-        # 先测试序列化
-        system_dict = system.to_dict()
-        print(f"✓ 系统序列化成功，数据大小: {len(str(system_dict))} 字符")
-        
-        pm.save_project_as(project_path)
-        print(f"✓ 项目已保存到: {project_path}")
-        
-        # 验证文件是否正确保存
-        if os.path.getsize(project_path) > 0:
-            print(f"✓ 项目文件大小: {os.path.getsize(project_path)} 字节")
+        # 直接保存项目，不单独测试序列化
+        success = pm.save_project_as(project_path)
+        if success:
+            print(f"✓ 项目已保存到: {project_path}")
+            
+            # 验证文件是否正确保存
+            if os.path.getsize(project_path) > 0:
+                print(f"✓ 项目文件大小: {os.path.getsize(project_path)} 字节")
+            else:
+                print("✗ 项目文件为空")
+                return False
+            
+            # 生成演示报告
+            report_path = "./demo_projects/drone_system_report.txt"
+            generate_demo_report(system, fault_tree, report_path)
+            print(f"✓ 演示报告已生成: {report_path}")
+            
+            return True
         else:
-            print("✗ 项目文件为空")
-        
-        # 生成演示报告
-        report_path = "./demo_projects/drone_system_report.txt"
-        generate_demo_report(system, fault_tree, report_path)
-        print(f"✓ 演示报告已生成: {report_path}")
-        
-        return True
+            print("✗ 保存项目失败")
+            return False
+            
     except Exception as e:
         print(f"✗ 保存项目失败: {e}")
         import traceback
