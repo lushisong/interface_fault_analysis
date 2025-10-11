@@ -4,7 +4,6 @@
 
 ### 主要程序文件
 - `main.py` - PyQt5图形界面主程序入口
-- `web_demo.py` - Flask Web界面版本（33KB，功能完整）
 - `simple_demo.py` - 命令行功能演示脚本
 - `test_models.py` - 完整的测试套件
 - `demo.py` - 详细功能演示（有导入路径问题，建议使用simple_demo.py）

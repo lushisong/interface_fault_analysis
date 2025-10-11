@@ -1,329 +1,1620 @@
 {
-  "id": "65e89f08-c27b-4325-b79d-a1e1c2c5cf93",
-  "name": "无人机智能系统",
-  "description": "基于多传感器融合的无人机智能监控系统",
-  "created_time": "2025-10-03T17:40:04.074277",
-  "modified_time": "2025-10-03T17:40:04.074478",
+  "id": "f19c2e1e-23d6-44dc-900d-8f3616ccfbb6",
+  "name": "无人机抵近侦察系统",
+  "description": "基于多源传感器融合的自主侦察无人机系统",
+  "created_time": "2025-10-08T22:42:55.397853",
+  "modified_time": "2025-10-08T22:42:55.400854",
   "version": "1.0",
   "modules": {
-    "764c9232-658f-4599-b7ea-b6b56a13d7c4": {
-      "id": "764c9232-658f-4599-b7ea-b6b56a13d7c4",
-      "name": "GPS传感器",
-      "description": "全球定位系统传感器",
-      "created_time": "2025-10-03T17:40:04.074299",
-      "modified_time": "2025-10-03T17:40:04.074300",
+    "module_40431920": {
+      "id": "module_40431920",
+      "name": "惯性测量单元",
+      "description": "IMU传感器硬件",
+      "created_time": "2025-10-08T22:42:55.398354",
+      "modified_time": "2025-10-08T22:42:55.398854",
       "version": "1.0",
       "module_type": "hardware",
       "template": "sensor",
       "position": {
-        "x": 100,
-        "y": 100
+        "x": 46.0,
+        "y": 170.0
       },
       "size": {
         "x": 100,
         "y": 60
       },
       "icon_path": "",
-      "connection_points": [],
+      "interfaces": {
+        "ebcd69ba-766e-42dd-a566-912f1457fd37": {
+          "id": "ebcd69ba-766e-42dd-a566-912f1457fd37",
+          "name": "IMU数据输出",
+          "description": "IMU传感器数据输出接口",
+          "created_time": "2025-10-08T22:42:55.398854",
+          "modified_time": "2025-10-08T22:42:55.398854",
+          "version": "1.0",
+          "interface_type": "software_hardware",
+          "direction": "output",
+          "subtype": null,
+          "source_module_id": "",
+          "target_module_id": "",
+          "protocol": "",
+          "data_format": "",
+          "bandwidth": 0.0,
+          "latency": 0.0,
+          "reliability": 0.99,
+          "failure_modes": [
+            {
+              "failure_mode": "communication_failure",
+              "name": "IMU数据输出通信故障",
+              "description": "",
+              "severity": 1,
+              "occurrence_rate": 1e-05,
+              "detection_rate": 0.0,
+              "trigger_conditions": [],
+              "effects": [],
+              "mitigation_measures": [],
+              "python_code": ""
+            }
+          ],
+          "python_code": "",
+          "parameters": {}
+        }
+      },
       "parameters": {
-        "accuracy": "±3m",
-        "update_rate": "10Hz",
-        "power_consumption": "0.5W"
+        "update_rate": "200Hz",
+        "interface": "SPI"
       },
       "state_variables": {},
       "python_code": "",
-      "is_template": false
+      "is_template": false,
+      "manufacturer": "",
+      "model": "",
+      "specifications": {},
+      "power_consumption": 0.0,
+      "operating_temperature": [
+        -40,
+        85
+      ],
+      "reliability_data": {}
     },
-    "91b0a8ca-4951-4d3b-9d2c-3ca9e0a71925": {
-      "id": "91b0a8ca-4951-4d3b-9d2c-3ca9e0a71925",
-      "name": "IMU传感器",
-      "description": "惯性测量单元",
-      "created_time": "2025-10-03T17:40:04.074313",
-      "modified_time": "2025-10-03T17:40:04.074313",
+    "module_39588624": {
+      "id": "module_39588624",
+      "name": "全球定位模块",
+      "description": "GNSS接收机",
+      "created_time": "2025-10-08T22:42:55.398354",
+      "modified_time": "2025-10-08T22:42:55.398854",
       "version": "1.0",
       "module_type": "hardware",
       "template": "sensor",
       "position": {
-        "x": 250,
-        "y": 100
+        "x": 44.0,
+        "y": 251.0
       },
       "size": {
         "x": 100,
         "y": 60
       },
       "icon_path": "",
-      "connection_points": [],
+      "interfaces": {
+        "753cd1f1-5896-40c8-a5d9-d7d498306a8e": {
+          "id": "753cd1f1-5896-40c8-a5d9-d7d498306a8e",
+          "name": "GNSS数据输出",
+          "description": "GNSS定位数据输出接口",
+          "created_time": "2025-10-08T22:42:55.398854",
+          "modified_time": "2025-10-08T22:42:55.398854",
+          "version": "1.0",
+          "interface_type": "software_hardware",
+          "direction": "output",
+          "subtype": null,
+          "source_module_id": "",
+          "target_module_id": "",
+          "protocol": "",
+          "data_format": "",
+          "bandwidth": 0.0,
+          "latency": 0.0,
+          "reliability": 0.99,
+          "failure_modes": [
+            {
+              "failure_mode": "communication_failure",
+              "name": "GNSS数据输出通信故障",
+              "description": "",
+              "severity": 1,
+              "occurrence_rate": 1e-05,
+              "detection_rate": 0.0,
+              "trigger_conditions": [],
+              "effects": [],
+              "mitigation_measures": [],
+              "python_code": ""
+            }
+          ],
+          "python_code": "",
+          "parameters": {}
+        }
+      },
       "parameters": {
-        "gyro_range": "±2000°/s",
-        "accel_range": "±16g",
-        "update_rate": "100Hz"
+        "accuracy": "1.5m",
+        "update_rate": "10Hz"
       },
       "state_variables": {},
       "python_code": "",
-      "is_template": false
+      "is_template": false,
+      "manufacturer": "",
+      "model": "",
+      "specifications": {},
+      "power_consumption": 0.0,
+      "operating_temperature": [
+        -40,
+        85
+      ],
+      "reliability_data": {}
     },
-    "388ea14d-1a38-464f-be85-379de60fe4df": {
-      "id": "388ea14d-1a38-464f-be85-379de60fe4df",
-      "name": "视觉传感器",
-      "description": "高清摄像头",
-      "created_time": "2025-10-03T17:40:04.074323",
-      "modified_time": "2025-10-03T17:40:04.074323",
+    "module_40432496": {
+      "id": "module_40432496",
+      "name": "光电红外摄像机",
+      "description": "红外与可见光双模摄像机",
+      "created_time": "2025-10-08T22:42:55.398354",
+      "modified_time": "2025-10-08T22:42:55.399354",
       "version": "1.0",
       "module_type": "hardware",
       "template": "sensor",
       "position": {
-        "x": 400,
-        "y": 100
+        "x": 50,
+        "y": 400
       },
       "size": {
         "x": 100,
         "y": 60
       },
       "icon_path": "",
-      "connection_points": [],
+      "interfaces": {
+        "b7a59694-82bf-4afd-acef-616fa9818fae": {
+          "id": "b7a59694-82bf-4afd-acef-616fa9818fae",
+          "name": "图像数据输出",
+          "description": "图像数据输出接口",
+          "created_time": "2025-10-08T22:42:55.398854",
+          "modified_time": "2025-10-08T22:42:55.398854",
+          "version": "1.0",
+          "interface_type": "software_hardware",
+          "direction": "output",
+          "subtype": null,
+          "source_module_id": "",
+          "target_module_id": "",
+          "protocol": "",
+          "data_format": "",
+          "bandwidth": 0.0,
+          "latency": 0.0,
+          "reliability": 0.99,
+          "failure_modes": [
+            {
+              "failure_mode": "communication_failure",
+              "name": "图像数据输出通信故障",
+              "description": "",
+              "severity": 1,
+              "occurrence_rate": 1e-05,
+              "detection_rate": 0.0,
+              "trigger_conditions": [],
+              "effects": [],
+              "mitigation_measures": [],
+              "python_code": ""
+            }
+          ],
+          "python_code": "",
+          "parameters": {}
+        }
+      },
       "parameters": {
         "resolution": "1920x1080",
-        "frame_rate": "30fps",
-        "field_of_view": "90°"
+        "frame_rate": "30fps"
       },
       "state_variables": {},
       "python_code": "",
-      "is_template": false
+      "is_template": false,
+      "manufacturer": "",
+      "model": "",
+      "specifications": {},
+      "power_consumption": 0.0,
+      "operating_temperature": [
+        -40,
+        85
+      ],
+      "reliability_data": {}
     },
-    "9c51b3ba-2199-4a05-853b-c6edb52841b0": {
-      "id": "9c51b3ba-2199-4a05-853b-c6edb52841b0",
-      "name": "激光雷达",
-      "description": "3D激光雷达传感器",
-      "created_time": "2025-10-03T17:40:04.074332",
-      "modified_time": "2025-10-03T17:40:04.074333",
+    "module_40481840": {
+      "id": "module_40481840",
+      "name": "毫米波雷达",
+      "description": "77GHz毫米波雷达",
+      "created_time": "2025-10-08T22:42:55.398354",
+      "modified_time": "2025-10-08T22:42:55.399354",
       "version": "1.0",
       "module_type": "hardware",
       "template": "sensor",
       "position": {
-        "x": 550,
-        "y": 100
+        "x": 50,
+        "y": 500
       },
       "size": {
         "x": 100,
         "y": 60
       },
       "icon_path": "",
-      "connection_points": [],
+      "interfaces": {
+        "6d362875-3cd7-403b-81ba-51d0e3117de2": {
+          "id": "6d362875-3cd7-403b-81ba-51d0e3117de2",
+          "name": "雷达点云输出",
+          "description": "雷达点云数据输出接口",
+          "created_time": "2025-10-08T22:42:55.399354",
+          "modified_time": "2025-10-08T22:42:55.399354",
+          "version": "1.0",
+          "interface_type": "software_hardware",
+          "direction": "output",
+          "subtype": null,
+          "source_module_id": "",
+          "target_module_id": "",
+          "protocol": "",
+          "data_format": "",
+          "bandwidth": 0.0,
+          "latency": 0.0,
+          "reliability": 0.99,
+          "failure_modes": [
+            {
+              "failure_mode": "communication_failure",
+              "name": "雷达点云输出通信故障",
+              "description": "",
+              "severity": 1,
+              "occurrence_rate": 1e-05,
+              "detection_rate": 0.0,
+              "trigger_conditions": [],
+              "effects": [],
+              "mitigation_measures": [],
+              "python_code": ""
+            }
+          ],
+          "python_code": "",
+          "parameters": {}
+        }
+      },
       "parameters": {
-        "range": "100m",
-        "accuracy": "±2cm",
-        "scan_rate": "10Hz"
+        "range": "200m",
+        "accuracy": "0.1m"
       },
       "state_variables": {},
       "python_code": "",
-      "is_template": false
+      "is_template": false,
+      "manufacturer": "",
+      "model": "",
+      "specifications": {},
+      "power_consumption": 0.0,
+      "operating_temperature": [
+        -40,
+        85
+      ],
+      "reliability_data": {}
     },
-    "f164a4e3-136a-4132-bff1-a6d7d085a439": {
-      "id": "f164a4e3-136a-4132-bff1-a6d7d085a439",
-      "name": "飞控系统",
-      "description": "飞行控制器",
-      "created_time": "2025-10-03T17:40:04.074344",
-      "modified_time": "2025-10-03T17:40:04.074344",
+    "module_40481936": {
+      "id": "module_40481936",
+      "name": "自驾仪",
+      "description": "飞行控制自驾仪",
+      "created_time": "2025-10-08T22:42:55.398354",
+      "modified_time": "2025-10-08T22:42:55.399354",
       "version": "1.0",
       "module_type": "hardware",
       "template": "processor",
       "position": {
-        "x": 200,
-        "y": 250
+        "x": 668.0,
+        "y": 215.0
       },
       "size": {
         "x": 100,
         "y": 60
       },
       "icon_path": "",
-      "connection_points": [],
+      "interfaces": {
+        "e02d1c33-f3a0-41a6-858a-9fe657cec39b": {
+          "id": "e02d1c33-f3a0-41a6-858a-9fe657cec39b",
+          "name": "传感器数据输入",
+          "description": "传感器数据输入接口",
+          "created_time": "2025-10-08T22:42:55.399354",
+          "modified_time": "2025-10-08T22:42:55.399354",
+          "version": "1.0",
+          "interface_type": "software_hardware",
+          "direction": "input",
+          "subtype": null,
+          "source_module_id": "",
+          "target_module_id": "",
+          "protocol": "",
+          "data_format": "",
+          "bandwidth": 0.0,
+          "latency": 0.0,
+          "reliability": 0.99,
+          "failure_modes": [
+            {
+              "failure_mode": "communication_failure",
+              "name": "传感器数据输入通信故障",
+              "description": "",
+              "severity": 1,
+              "occurrence_rate": 1e-05,
+              "detection_rate": 0.0,
+              "trigger_conditions": [],
+              "effects": [],
+              "mitigation_measures": [],
+              "python_code": ""
+            }
+          ],
+          "python_code": "",
+          "parameters": {}
+        },
+        "9fde383b-f758-4c4f-8391-83e956c7be0a": {
+          "id": "9fde383b-f758-4c4f-8391-83e956c7be0a",
+          "name": "控制指令输出",
+          "description": "控制指令输出接口",
+          "created_time": "2025-10-08T22:42:55.399354",
+          "modified_time": "2025-10-08T22:42:55.399354",
+          "version": "1.0",
+          "interface_type": "software_hardware",
+          "direction": "output",
+          "subtype": null,
+          "source_module_id": "",
+          "target_module_id": "",
+          "protocol": "",
+          "data_format": "",
+          "bandwidth": 0.0,
+          "latency": 0.0,
+          "reliability": 0.99,
+          "failure_modes": [
+            {
+              "failure_mode": "communication_failure",
+              "name": "控制指令输出通信故障",
+              "description": "",
+              "severity": 1,
+              "occurrence_rate": 1e-05,
+              "detection_rate": 0.0,
+              "trigger_conditions": [],
+              "effects": [],
+              "mitigation_measures": [],
+              "python_code": ""
+            }
+          ],
+          "python_code": "",
+          "parameters": {}
+        },
+        "5f9e6d80-ca7b-484e-ae60-e0dfd514c5fb": {
+          "id": "5f9e6d80-ca7b-484e-ae60-e0dfd514c5fb",
+          "name": "状态反馈输出",
+          "description": "系统状态反馈输出接口",
+          "created_time": "2025-10-08T22:42:55.399354",
+          "modified_time": "2025-10-08T22:42:55.399354",
+          "version": "1.0",
+          "interface_type": "software_hardware",
+          "direction": "output",
+          "subtype": null,
+          "source_module_id": "",
+          "target_module_id": "",
+          "protocol": "",
+          "data_format": "",
+          "bandwidth": 0.0,
+          "latency": 0.0,
+          "reliability": 0.99,
+          "failure_modes": [
+            {
+              "failure_mode": "communication_failure",
+              "name": "状态反馈输出通信故障",
+              "description": "",
+              "severity": 1,
+              "occurrence_rate": 1e-05,
+              "detection_rate": 0.0,
+              "trigger_conditions": [],
+              "effects": [],
+              "mitigation_measures": [],
+              "python_code": ""
+            }
+          ],
+          "python_code": "",
+          "parameters": {}
+        }
+      },
       "parameters": {
-        "cpu": "ARM Cortex-A72",
-        "memory": "4GB RAM",
-        "storage": "32GB eMMC"
+        "cpu": "STM32H7",
+        "interface": "CAN/UART"
       },
       "state_variables": {},
       "python_code": "",
-      "is_template": false
+      "is_template": false,
+      "manufacturer": "",
+      "model": "",
+      "specifications": {},
+      "power_consumption": 0.0,
+      "operating_temperature": [
+        -40,
+        85
+      ],
+      "reliability_data": {}
     },
-    "1bf84235-0197-4392-a753-07e3f8a22840": {
-      "id": "1bf84235-0197-4392-a753-07e3f8a22840",
-      "name": "AI处理器",
-      "description": "人工智能计算单元",
-      "created_time": "2025-10-03T17:40:04.074352",
-      "modified_time": "2025-10-03T17:40:04.074352",
-      "version": "1.0",
-      "module_type": "hardware",
-      "template": "processor",
-      "position": {
-        "x": 400,
-        "y": 250
-      },
-      "size": {
-        "x": 100,
-        "y": 60
-      },
-      "icon_path": "",
-      "connection_points": [],
-      "parameters": {
-        "gpu": "NVIDIA Jetson Xavier",
-        "ai_performance": "32 TOPS",
-        "power": "30W"
-      },
-      "state_variables": {},
-      "python_code": "",
-      "is_template": false
-    },
-    "ef164f12-d563-44ba-806a-ed87f1e3273c": {
-      "id": "ef164f12-d563-44ba-806a-ed87f1e3273c",
-      "name": "电机1",
-      "description": "前左螺旋桨电机",
-      "created_time": "2025-10-03T17:40:04.074362",
-      "modified_time": "2025-10-03T17:40:04.074363",
+    "module_40482176": {
+      "id": "module_40482176",
+      "name": "执行器",
+      "description": "电机与舵机执行器",
+      "created_time": "2025-10-08T22:42:55.398354",
+      "modified_time": "2025-10-08T22:42:55.399354",
       "version": "1.0",
       "module_type": "hardware",
       "template": "actuator",
       "position": {
-        "x": 100,
-        "y": 400
+        "x": 829.0,
+        "y": 214.0
       },
       "size": {
         "x": 100,
         "y": 60
       },
       "icon_path": "",
-      "connection_points": [],
+      "interfaces": {
+        "804d915f-4341-4711-8eef-b9c574c26838": {
+          "id": "804d915f-4341-4711-8eef-b9c574c26838",
+          "name": "控制指令输入",
+          "description": "控制指令输入接口",
+          "created_time": "2025-10-08T22:42:55.399354",
+          "modified_time": "2025-10-08T22:42:55.399354",
+          "version": "1.0",
+          "interface_type": "software_hardware",
+          "direction": "input",
+          "subtype": null,
+          "source_module_id": "",
+          "target_module_id": "",
+          "protocol": "",
+          "data_format": "",
+          "bandwidth": 0.0,
+          "latency": 0.0,
+          "reliability": 0.99,
+          "failure_modes": [
+            {
+              "failure_mode": "communication_failure",
+              "name": "控制指令输入通信故障",
+              "description": "",
+              "severity": 1,
+              "occurrence_rate": 1e-05,
+              "detection_rate": 0.0,
+              "trigger_conditions": [],
+              "effects": [],
+              "mitigation_measures": [],
+              "python_code": ""
+            }
+          ],
+          "python_code": "",
+          "parameters": {}
+        }
+      },
       "parameters": {
-        "max_power": "500W",
-        "max_rpm": "8000"
+        "type": "BLDC Motor",
+        "control": "PWM"
       },
       "state_variables": {},
       "python_code": "",
-      "is_template": false
+      "is_template": false,
+      "manufacturer": "",
+      "model": "",
+      "specifications": {},
+      "power_consumption": 0.0,
+      "operating_temperature": [
+        -40,
+        85
+      ],
+      "reliability_data": {}
     },
-    "292730fc-c839-494c-ba70-7b7d7624ddb2": {
-      "id": "292730fc-c839-494c-ba70-7b7d7624ddb2",
-      "name": "电机2",
-      "description": "前右螺旋桨电机",
-      "created_time": "2025-10-03T17:40:04.074370",
-      "modified_time": "2025-10-03T17:40:04.074370",
-      "version": "1.0",
-      "module_type": "hardware",
-      "template": "actuator",
-      "position": {
-        "x": 250,
-        "y": 400
-      },
-      "size": {
-        "x": 100,
-        "y": 60
-      },
-      "icon_path": "",
-      "connection_points": [],
-      "parameters": {
-        "max_power": "500W",
-        "max_rpm": "8000"
-      },
-      "state_variables": {},
-      "python_code": "",
-      "is_template": false
-    },
-    "04b3c2ec-215d-4e16-8627-300e4ad5f7b3": {
-      "id": "04b3c2ec-215d-4e16-8627-300e4ad5f7b3",
-      "name": "电机3",
-      "description": "后左螺旋桨电机",
-      "created_time": "2025-10-03T17:40:04.074377",
-      "modified_time": "2025-10-03T17:40:04.074378",
-      "version": "1.0",
-      "module_type": "hardware",
-      "template": "actuator",
-      "position": {
-        "x": 400,
-        "y": 400
-      },
-      "size": {
-        "x": 100,
-        "y": 60
-      },
-      "icon_path": "",
-      "connection_points": [],
-      "parameters": {
-        "max_power": "500W",
-        "max_rpm": "8000"
-      },
-      "state_variables": {},
-      "python_code": "",
-      "is_template": false
-    },
-    "8c7d80a5-e517-4b5a-98ed-8874dc7f4990": {
-      "id": "8c7d80a5-e517-4b5a-98ed-8874dc7f4990",
-      "name": "电机4",
-      "description": "后右螺旋桨电机",
-      "created_time": "2025-10-03T17:40:04.074385",
-      "modified_time": "2025-10-03T17:40:04.074385",
-      "version": "1.0",
-      "module_type": "hardware",
-      "template": "actuator",
-      "position": {
-        "x": 550,
-        "y": 400
-      },
-      "size": {
-        "x": 100,
-        "y": 60
-      },
-      "icon_path": "",
-      "connection_points": [],
-      "parameters": {
-        "max_power": "500W",
-        "max_rpm": "8000"
-      },
-      "state_variables": {},
-      "python_code": "",
-      "is_template": false
-    },
-    "e0313d88-334e-4cc9-b5b2-a0a05a9ebc2f": {
-      "id": "e0313d88-334e-4cc9-b5b2-a0a05a9ebc2f",
+    "module_40482416": {
+      "id": "module_40482416",
       "name": "通信模块",
-      "description": "无线通信系统",
-      "created_time": "2025-10-03T17:40:04.074398",
-      "modified_time": "2025-10-03T17:40:04.074398",
+      "description": "数传与图传电台",
+      "created_time": "2025-10-08T22:42:55.398354",
+      "modified_time": "2025-10-08T22:42:55.399354",
       "version": "1.0",
       "module_type": "hardware",
       "template": "communication",
       "position": {
-        "x": 300,
-        "y": 550
+        "x": 700,
+        "y": 400
       },
       "size": {
         "x": 100,
         "y": 60
       },
       "icon_path": "",
-      "connection_points": [],
+      "interfaces": {
+        "87345dd9-f0e6-4b70-92b7-f19953a56002": {
+          "id": "87345dd9-f0e6-4b70-92b7-f19953a56002",
+          "name": "通信数据输入",
+          "description": "通信数据输入接口",
+          "created_time": "2025-10-08T22:42:55.399354",
+          "modified_time": "2025-10-08T22:42:55.399354",
+          "version": "1.0",
+          "interface_type": "software_hardware",
+          "direction": "input",
+          "subtype": null,
+          "source_module_id": "",
+          "target_module_id": "",
+          "protocol": "",
+          "data_format": "",
+          "bandwidth": 0.0,
+          "latency": 0.0,
+          "reliability": 0.99,
+          "failure_modes": [
+            {
+              "failure_mode": "communication_failure",
+              "name": "通信数据输入通信故障",
+              "description": "",
+              "severity": 1,
+              "occurrence_rate": 1e-05,
+              "detection_rate": 0.0,
+              "trigger_conditions": [],
+              "effects": [],
+              "mitigation_measures": [],
+              "python_code": ""
+            }
+          ],
+          "python_code": "",
+          "parameters": {}
+        },
+        "37e3bdc7-dc61-4e8b-972b-a151788a9e19": {
+          "id": "37e3bdc7-dc61-4e8b-972b-a151788a9e19",
+          "name": "通信数据输出",
+          "description": "通信数据输出接口",
+          "created_time": "2025-10-08T22:42:55.399354",
+          "modified_time": "2025-10-08T22:42:55.399354",
+          "version": "1.0",
+          "interface_type": "software_hardware",
+          "direction": "output",
+          "subtype": null,
+          "source_module_id": "",
+          "target_module_id": "",
+          "protocol": "",
+          "data_format": "",
+          "bandwidth": 0.0,
+          "latency": 0.0,
+          "reliability": 0.99,
+          "failure_modes": [
+            {
+              "failure_mode": "communication_failure",
+              "name": "通信数据输出通信故障",
+              "description": "",
+              "severity": 1,
+              "occurrence_rate": 1e-05,
+              "detection_rate": 0.0,
+              "trigger_conditions": [],
+              "effects": [],
+              "mitigation_measures": [],
+              "python_code": ""
+            }
+          ],
+          "python_code": "",
+          "parameters": {}
+        }
+      },
       "parameters": {
-        "frequency": "2.4GHz/5.8GHz",
-        "range": "10km",
-        "data_rate": "100Mbps"
+        "frequency": "2.4GHz",
+        "range": "10km"
       },
       "state_variables": {},
       "python_code": "",
-      "is_template": false
+      "is_template": false,
+      "manufacturer": "",
+      "model": "",
+      "specifications": {},
+      "power_consumption": 0.0,
+      "operating_temperature": [
+        -40,
+        85
+      ],
+      "reliability_data": {}
+    },
+    "module_40482656": {
+      "id": "module_40482656",
+      "name": "摄像机云台",
+      "description": "三轴稳定云台",
+      "created_time": "2025-10-08T22:42:55.398354",
+      "modified_time": "2025-10-08T22:42:55.399354",
+      "version": "1.0",
+      "module_type": "hardware",
+      "template": "actuator",
+      "position": {
+        "x": 700,
+        "y": 500
+      },
+      "size": {
+        "x": 100,
+        "y": 60
+      },
+      "icon_path": "",
+      "interfaces": {
+        "0462e264-12a8-49e6-9034-aa1bd738a869": {
+          "id": "0462e264-12a8-49e6-9034-aa1bd738a869",
+          "name": "云台控制输入",
+          "description": "云台控制指令输入接口",
+          "created_time": "2025-10-08T22:42:55.399354",
+          "modified_time": "2025-10-08T22:42:55.399354",
+          "version": "1.0",
+          "interface_type": "software_hardware",
+          "direction": "input",
+          "subtype": null,
+          "source_module_id": "",
+          "target_module_id": "",
+          "protocol": "",
+          "data_format": "",
+          "bandwidth": 0.0,
+          "latency": 0.0,
+          "reliability": 0.99,
+          "failure_modes": [
+            {
+              "failure_mode": "communication_failure",
+              "name": "云台控制输入通信故障",
+              "description": "",
+              "severity": 1,
+              "occurrence_rate": 1e-05,
+              "detection_rate": 0.0,
+              "trigger_conditions": [],
+              "effects": [],
+              "mitigation_measures": [],
+              "python_code": ""
+            }
+          ],
+          "python_code": "",
+          "parameters": {}
+        }
+      },
+      "parameters": {
+        "stabilization": "0.01°",
+        "control": "CAN"
+      },
+      "state_variables": {},
+      "python_code": "",
+      "is_template": false,
+      "manufacturer": "",
+      "model": "",
+      "specifications": {},
+      "power_consumption": 0.0,
+      "operating_temperature": [
+        -40,
+        85
+      ],
+      "reliability_data": {}
+    },
+    "module_40482896": {
+      "id": "module_40482896",
+      "name": "地面站",
+      "description": "地面控制站",
+      "created_time": "2025-10-08T22:42:55.398354",
+      "modified_time": "2025-10-08T22:42:55.399354",
+      "version": "1.0",
+      "module_type": "hardware",
+      "template": "communication",
+      "position": {
+        "x": 700,
+        "y": 600
+      },
+      "size": {
+        "x": 100,
+        "y": 60
+      },
+      "icon_path": "",
+      "interfaces": {
+        "5fc8226e-6fcf-4fb7-9202-aba767d1a89c": {
+          "id": "5fc8226e-6fcf-4fb7-9202-aba767d1a89c",
+          "name": "地面站通信",
+          "description": "地面站通信接口",
+          "created_time": "2025-10-08T22:42:55.399354",
+          "modified_time": "2025-10-08T22:42:55.399354",
+          "version": "1.0",
+          "interface_type": "software_hardware",
+          "direction": "bidirectional",
+          "subtype": null,
+          "source_module_id": "",
+          "target_module_id": "",
+          "protocol": "",
+          "data_format": "",
+          "bandwidth": 0.0,
+          "latency": 0.0,
+          "reliability": 0.99,
+          "failure_modes": [
+            {
+              "failure_mode": "communication_failure",
+              "name": "地面站通信通信故障",
+              "description": "",
+              "severity": 1,
+              "occurrence_rate": 1e-05,
+              "detection_rate": 0.0,
+              "trigger_conditions": [],
+              "effects": [],
+              "mitigation_measures": [],
+              "python_code": ""
+            }
+          ],
+          "python_code": "",
+          "parameters": {}
+        }
+      },
+      "parameters": {
+        "interface": "Ethernet/Wifi",
+        "range": "10km"
+      },
+      "state_variables": {},
+      "python_code": "",
+      "is_template": false,
+      "manufacturer": "",
+      "model": "",
+      "specifications": {},
+      "power_consumption": 0.0,
+      "operating_temperature": [
+        -40,
+        85
+      ],
+      "reliability_data": {}
+    },
+    "module_40483376": {
+      "id": "module_40483376",
+      "name": "时间同步算法",
+      "description": "多源传感器时间同步",
+      "created_time": "2025-10-08T22:42:55.398854",
+      "modified_time": "2025-10-08T22:42:55.399354",
+      "version": "1.0",
+      "module_type": "algorithm",
+      "template": "algorithm",
+      "position": {
+        "x": 233.0,
+        "y": 231.0
+      },
+      "size": {
+        "x": 100,
+        "y": 60
+      },
+      "icon_path": "",
+      "interfaces": {
+        "ff70cbf9-0c0f-4ff4-993e-1b68049f4c0c": {
+          "id": "ff70cbf9-0c0f-4ff4-993e-1b68049f4c0c",
+          "name": "时间同步输入",
+          "description": "时间同步数据输入接口",
+          "created_time": "2025-10-08T22:42:55.399354",
+          "modified_time": "2025-10-08T22:42:55.399354",
+          "version": "1.0",
+          "interface_type": "software_hardware",
+          "direction": "input",
+          "subtype": null,
+          "source_module_id": "",
+          "target_module_id": "",
+          "protocol": "",
+          "data_format": "",
+          "bandwidth": 0.0,
+          "latency": 0.0,
+          "reliability": 0.99,
+          "failure_modes": [
+            {
+              "failure_mode": "communication_failure",
+              "name": "时间同步输入通信故障",
+              "description": "",
+              "severity": 1,
+              "occurrence_rate": 1e-05,
+              "detection_rate": 0.0,
+              "trigger_conditions": [],
+              "effects": [],
+              "mitigation_measures": [],
+              "python_code": ""
+            }
+          ],
+          "python_code": "",
+          "parameters": {}
+        },
+        "de060823-af79-4123-a8a6-03a3db2302a3": {
+          "id": "de060823-af79-4123-a8a6-03a3db2302a3",
+          "name": "时间同步输出",
+          "description": "时间同步数据输出接口",
+          "created_time": "2025-10-08T22:42:55.399354",
+          "modified_time": "2025-10-08T22:42:55.399354",
+          "version": "1.0",
+          "interface_type": "software_hardware",
+          "direction": "output",
+          "subtype": null,
+          "source_module_id": "",
+          "target_module_id": "",
+          "protocol": "",
+          "data_format": "",
+          "bandwidth": 0.0,
+          "latency": 0.0,
+          "reliability": 0.99,
+          "failure_modes": [
+            {
+              "failure_mode": "communication_failure",
+              "name": "时间同步输出通信故障",
+              "description": "",
+              "severity": 1,
+              "occurrence_rate": 1e-05,
+              "detection_rate": 0.0,
+              "trigger_conditions": [],
+              "effects": [],
+              "mitigation_measures": [],
+              "python_code": ""
+            }
+          ],
+          "python_code": "",
+          "parameters": {}
+        }
+      },
+      "parameters": {
+        "method": "PTP",
+        "accuracy": "1ms"
+      },
+      "state_variables": {},
+      "python_code": "",
+      "is_template": false,
+      "algorithm_type": "",
+      "complexity": "",
+      "accuracy": 0.0,
+      "performance_metrics": {},
+      "training_data": "",
+      "model_parameters": {}
+    },
+    "module_40483616": {
+      "id": "module_40483616",
+      "name": "空间配准算法",
+      "description": "多传感器坐标系配准",
+      "created_time": "2025-10-08T22:42:55.398854",
+      "modified_time": "2025-10-08T22:42:55.399354",
+      "version": "1.0",
+      "module_type": "algorithm",
+      "template": "algorithm",
+      "position": {
+        "x": 373.0,
+        "y": 212.0
+      },
+      "size": {
+        "x": 100,
+        "y": 60
+      },
+      "icon_path": "",
+      "interfaces": {
+        "d8581c22-824c-4b35-b759-fac36db81bb0": {
+          "id": "d8581c22-824c-4b35-b759-fac36db81bb0",
+          "name": "配准数据输入",
+          "description": "配准数据输入接口",
+          "created_time": "2025-10-08T22:42:55.399354",
+          "modified_time": "2025-10-08T22:42:55.399354",
+          "version": "1.0",
+          "interface_type": "software_hardware",
+          "direction": "input",
+          "subtype": null,
+          "source_module_id": "",
+          "target_module_id": "",
+          "protocol": "",
+          "data_format": "",
+          "bandwidth": 0.0,
+          "latency": 0.0,
+          "reliability": 0.99,
+          "failure_modes": [
+            {
+              "failure_mode": "communication_failure",
+              "name": "配准数据输入通信故障",
+              "description": "",
+              "severity": 1,
+              "occurrence_rate": 1e-05,
+              "detection_rate": 0.0,
+              "trigger_conditions": [],
+              "effects": [],
+              "mitigation_measures": [],
+              "python_code": ""
+            }
+          ],
+          "python_code": "",
+          "parameters": {}
+        },
+        "5ce61d9e-62fa-4d8a-a4aa-a600a8bb2860": {
+          "id": "5ce61d9e-62fa-4d8a-a4aa-a600a8bb2860",
+          "name": "配准数据输出",
+          "description": "配准数据输出接口",
+          "created_time": "2025-10-08T22:42:55.399354",
+          "modified_time": "2025-10-08T22:42:55.399354",
+          "version": "1.0",
+          "interface_type": "software_hardware",
+          "direction": "output",
+          "subtype": null,
+          "source_module_id": "",
+          "target_module_id": "",
+          "protocol": "",
+          "data_format": "",
+          "bandwidth": 0.0,
+          "latency": 0.0,
+          "reliability": 0.99,
+          "failure_modes": [
+            {
+              "failure_mode": "communication_failure",
+              "name": "配准数据输出通信故障",
+              "description": "",
+              "severity": 1,
+              "occurrence_rate": 1e-05,
+              "detection_rate": 0.0,
+              "trigger_conditions": [],
+              "effects": [],
+              "mitigation_measures": [],
+              "python_code": ""
+            }
+          ],
+          "python_code": "",
+          "parameters": {}
+        }
+      },
+      "parameters": {
+        "method": "ICP",
+        "accuracy": "0.1m"
+      },
+      "state_variables": {},
+      "python_code": "",
+      "is_template": false,
+      "algorithm_type": "",
+      "complexity": "",
+      "accuracy": 0.0,
+      "performance_metrics": {},
+      "training_data": "",
+      "model_parameters": {}
+    },
+    "module_40483856": {
+      "id": "module_40483856",
+      "name": "目标检测算法",
+      "description": "基于深度学习的目标检测",
+      "created_time": "2025-10-08T22:42:55.398854",
+      "modified_time": "2025-10-08T22:42:55.399354",
+      "version": "1.0",
+      "module_type": "algorithm",
+      "template": "algorithm",
+      "position": {
+        "x": 508.0,
+        "y": 213.0
+      },
+      "size": {
+        "x": 100,
+        "y": 60
+      },
+      "icon_path": "",
+      "interfaces": {
+        "4fe4abef-92c8-49d1-8326-c19c8043cfa8": {
+          "id": "4fe4abef-92c8-49d1-8326-c19c8043cfa8",
+          "name": "检测数据输入",
+          "description": "检测数据输入接口",
+          "created_time": "2025-10-08T22:42:55.399354",
+          "modified_time": "2025-10-08T22:42:55.399354",
+          "version": "1.0",
+          "interface_type": "software_hardware",
+          "direction": "input",
+          "subtype": null,
+          "source_module_id": "",
+          "target_module_id": "",
+          "protocol": "",
+          "data_format": "",
+          "bandwidth": 0.0,
+          "latency": 0.0,
+          "reliability": 0.99,
+          "failure_modes": [
+            {
+              "failure_mode": "communication_failure",
+              "name": "检测数据输入通信故障",
+              "description": "",
+              "severity": 1,
+              "occurrence_rate": 1e-05,
+              "detection_rate": 0.0,
+              "trigger_conditions": [],
+              "effects": [],
+              "mitigation_measures": [],
+              "python_code": ""
+            }
+          ],
+          "python_code": "",
+          "parameters": {}
+        },
+        "432ed0d1-b5a7-4e92-9a9a-f30888cde33f": {
+          "id": "432ed0d1-b5a7-4e92-9a9a-f30888cde33f",
+          "name": "检测结果输出",
+          "description": "检测结果输出接口",
+          "created_time": "2025-10-08T22:42:55.399354",
+          "modified_time": "2025-10-08T22:42:55.399354",
+          "version": "1.0",
+          "interface_type": "software_hardware",
+          "direction": "output",
+          "subtype": null,
+          "source_module_id": "",
+          "target_module_id": "",
+          "protocol": "",
+          "data_format": "",
+          "bandwidth": 0.0,
+          "latency": 0.0,
+          "reliability": 0.99,
+          "failure_modes": [
+            {
+              "failure_mode": "communication_failure",
+              "name": "检测结果输出通信故障",
+              "description": "",
+              "severity": 1,
+              "occurrence_rate": 1e-05,
+              "detection_rate": 0.0,
+              "trigger_conditions": [],
+              "effects": [],
+              "mitigation_measures": [],
+              "python_code": ""
+            }
+          ],
+          "python_code": "",
+          "parameters": {}
+        }
+      },
+      "parameters": {
+        "model": "YOLOv5",
+        "accuracy": "95%"
+      },
+      "state_variables": {},
+      "python_code": "",
+      "is_template": false,
+      "algorithm_type": "",
+      "complexity": "",
+      "accuracy": 0.0,
+      "performance_metrics": {},
+      "training_data": "",
+      "model_parameters": {}
+    },
+    "module_40484096": {
+      "id": "module_40484096",
+      "name": "环境感知算法",
+      "description": "环境建模与理解",
+      "created_time": "2025-10-08T22:42:55.398854",
+      "modified_time": "2025-10-08T22:42:55.399854",
+      "version": "1.0",
+      "module_type": "algorithm",
+      "template": "algorithm",
+      "position": {
+        "x": 235.0,
+        "y": 340.0
+      },
+      "size": {
+        "x": 100,
+        "y": 60
+      },
+      "icon_path": "",
+      "interfaces": {
+        "be135edf-d076-4d9e-9013-2666092fcc50": {
+          "id": "be135edf-d076-4d9e-9013-2666092fcc50",
+          "name": "感知数据输入",
+          "description": "感知数据输入接口",
+          "created_time": "2025-10-08T22:42:55.399354",
+          "modified_time": "2025-10-08T22:42:55.399354",
+          "version": "1.0",
+          "interface_type": "software_hardware",
+          "direction": "input",
+          "subtype": null,
+          "source_module_id": "",
+          "target_module_id": "",
+          "protocol": "",
+          "data_format": "",
+          "bandwidth": 0.0,
+          "latency": 0.0,
+          "reliability": 0.99,
+          "failure_modes": [
+            {
+              "failure_mode": "communication_failure",
+              "name": "感知数据输入通信故障",
+              "description": "",
+              "severity": 1,
+              "occurrence_rate": 1e-05,
+              "detection_rate": 0.0,
+              "trigger_conditions": [],
+              "effects": [],
+              "mitigation_measures": [],
+              "python_code": ""
+            }
+          ],
+          "python_code": "",
+          "parameters": {}
+        },
+        "18bda085-f111-4085-bf48-9fafb5e86a6c": {
+          "id": "18bda085-f111-4085-bf48-9fafb5e86a6c",
+          "name": "感知结果输出",
+          "description": "感知结果输出接口",
+          "created_time": "2025-10-08T22:42:55.399354",
+          "modified_time": "2025-10-08T22:42:55.399854",
+          "version": "1.0",
+          "interface_type": "software_hardware",
+          "direction": "output",
+          "subtype": null,
+          "source_module_id": "",
+          "target_module_id": "",
+          "protocol": "",
+          "data_format": "",
+          "bandwidth": 0.0,
+          "latency": 0.0,
+          "reliability": 0.99,
+          "failure_modes": [
+            {
+              "failure_mode": "communication_failure",
+              "name": "感知结果输出通信故障",
+              "description": "",
+              "severity": 1,
+              "occurrence_rate": 1e-05,
+              "detection_rate": 0.0,
+              "trigger_conditions": [],
+              "effects": [],
+              "mitigation_measures": [],
+              "python_code": ""
+            }
+          ],
+          "python_code": "",
+          "parameters": {}
+        }
+      },
+      "parameters": {
+        "method": "SLAM",
+        "update_rate": "10Hz"
+      },
+      "state_variables": {},
+      "python_code": "",
+      "is_template": false,
+      "algorithm_type": "",
+      "complexity": "",
+      "accuracy": 0.0,
+      "performance_metrics": {},
+      "training_data": "",
+      "model_parameters": {}
+    },
+    "module_40484336": {
+      "id": "module_40484336",
+      "name": "路径规划算法",
+      "description": "实时路径规划",
+      "created_time": "2025-10-08T22:42:55.398854",
+      "modified_time": "2025-10-08T22:42:55.399854",
+      "version": "1.0",
+      "module_type": "algorithm",
+      "template": "algorithm",
+      "position": {
+        "x": 374.0,
+        "y": 345.0
+      },
+      "size": {
+        "x": 100,
+        "y": 60
+      },
+      "icon_path": "",
+      "interfaces": {
+        "4f53c198-723f-41b4-9a1e-e48b278bafc2": {
+          "id": "4f53c198-723f-41b4-9a1e-e48b278bafc2",
+          "name": "规划数据输入",
+          "description": "规划数据输入接口",
+          "created_time": "2025-10-08T22:42:55.399854",
+          "modified_time": "2025-10-08T22:42:55.399854",
+          "version": "1.0",
+          "interface_type": "software_hardware",
+          "direction": "input",
+          "subtype": null,
+          "source_module_id": "",
+          "target_module_id": "",
+          "protocol": "",
+          "data_format": "",
+          "bandwidth": 0.0,
+          "latency": 0.0,
+          "reliability": 0.99,
+          "failure_modes": [
+            {
+              "failure_mode": "communication_failure",
+              "name": "规划数据输入通信故障",
+              "description": "",
+              "severity": 1,
+              "occurrence_rate": 1e-05,
+              "detection_rate": 0.0,
+              "trigger_conditions": [],
+              "effects": [],
+              "mitigation_measures": [],
+              "python_code": ""
+            }
+          ],
+          "python_code": "",
+          "parameters": {}
+        },
+        "76151aba-2d61-497c-9e6e-eb5e1995c6a3": {
+          "id": "76151aba-2d61-497c-9e6e-eb5e1995c6a3",
+          "name": "规划结果输出",
+          "description": "规划结果输出接口",
+          "created_time": "2025-10-08T22:42:55.399854",
+          "modified_time": "2025-10-08T22:42:55.399854",
+          "version": "1.0",
+          "interface_type": "software_hardware",
+          "direction": "output",
+          "subtype": null,
+          "source_module_id": "",
+          "target_module_id": "",
+          "protocol": "",
+          "data_format": "",
+          "bandwidth": 0.0,
+          "latency": 0.0,
+          "reliability": 0.99,
+          "failure_modes": [
+            {
+              "failure_mode": "communication_failure",
+              "name": "规划结果输出通信故障",
+              "description": "",
+              "severity": 1,
+              "occurrence_rate": 1e-05,
+              "detection_rate": 0.0,
+              "trigger_conditions": [],
+              "effects": [],
+              "mitigation_measures": [],
+              "python_code": ""
+            }
+          ],
+          "python_code": "",
+          "parameters": {}
+        }
+      },
+      "parameters": {
+        "method": "A*",
+        "update_rate": "5Hz"
+      },
+      "state_variables": {},
+      "python_code": "",
+      "is_template": false,
+      "algorithm_type": "",
+      "complexity": "",
+      "accuracy": 0.0,
+      "performance_metrics": {},
+      "training_data": "",
+      "model_parameters": {}
+    },
+    "module_40484576": {
+      "id": "module_40484576",
+      "name": "避障算法",
+      "description": "实时障碍物规避",
+      "created_time": "2025-10-08T22:42:55.398854",
+      "modified_time": "2025-10-08T22:42:55.399854",
+      "version": "1.0",
+      "module_type": "algorithm",
+      "template": "algorithm",
+      "position": {
+        "x": 516.0,
+        "y": 343.0
+      },
+      "size": {
+        "x": 100,
+        "y": 60
+      },
+      "icon_path": "",
+      "interfaces": {
+        "e89a9324-773a-45fc-9129-a9b7fdc42b9a": {
+          "id": "e89a9324-773a-45fc-9129-a9b7fdc42b9a",
+          "name": "避障数据输入",
+          "description": "避障数据输入接口",
+          "created_time": "2025-10-08T22:42:55.399854",
+          "modified_time": "2025-10-08T22:42:55.399854",
+          "version": "1.0",
+          "interface_type": "software_hardware",
+          "direction": "input",
+          "subtype": null,
+          "source_module_id": "",
+          "target_module_id": "",
+          "protocol": "",
+          "data_format": "",
+          "bandwidth": 0.0,
+          "latency": 0.0,
+          "reliability": 0.99,
+          "failure_modes": [
+            {
+              "failure_mode": "communication_failure",
+              "name": "避障数据输入通信故障",
+              "description": "",
+              "severity": 1,
+              "occurrence_rate": 1e-05,
+              "detection_rate": 0.0,
+              "trigger_conditions": [],
+              "effects": [],
+              "mitigation_measures": [],
+              "python_code": ""
+            }
+          ],
+          "python_code": "",
+          "parameters": {}
+        },
+        "85917b7d-3cdd-4f7f-bbee-cb1e5a172cf4": {
+          "id": "85917b7d-3cdd-4f7f-bbee-cb1e5a172cf4",
+          "name": "避障指令输出",
+          "description": "避障指令输出接口",
+          "created_time": "2025-10-08T22:42:55.399854",
+          "modified_time": "2025-10-08T22:42:55.399854",
+          "version": "1.0",
+          "interface_type": "software_hardware",
+          "direction": "output",
+          "subtype": null,
+          "source_module_id": "",
+          "target_module_id": "",
+          "protocol": "",
+          "data_format": "",
+          "bandwidth": 0.0,
+          "latency": 0.0,
+          "reliability": 0.99,
+          "failure_modes": [
+            {
+              "failure_mode": "communication_failure",
+              "name": "避障指令输出通信故障",
+              "description": "",
+              "severity": 1,
+              "occurrence_rate": 1e-05,
+              "detection_rate": 0.0,
+              "trigger_conditions": [],
+              "effects": [],
+              "mitigation_measures": [],
+              "python_code": ""
+            }
+          ],
+          "python_code": "",
+          "parameters": {}
+        }
+      },
+      "parameters": {
+        "method": "Potential Field",
+        "response_time": "100ms"
+      },
+      "state_variables": {},
+      "python_code": "",
+      "is_template": false,
+      "algorithm_type": "",
+      "complexity": "",
+      "accuracy": 0.0,
+      "performance_metrics": {},
+      "training_data": "",
+      "model_parameters": {}
+    },
+    "module_40521888": {
+      "id": "module_40521888",
+      "name": "飞控控制算法",
+      "description": "飞行姿态与轨迹控制",
+      "created_time": "2025-10-08T22:42:55.398854",
+      "modified_time": "2025-10-08T22:42:55.399854",
+      "version": "1.0",
+      "module_type": "algorithm",
+      "template": "algorithm",
+      "position": {
+        "x": 376.0,
+        "y": 442.0
+      },
+      "size": {
+        "x": 100,
+        "y": 60
+      },
+      "icon_path": "",
+      "interfaces": {
+        "bb6fd389-0f30-4d9c-b432-233d67a8aa4c": {
+          "id": "bb6fd389-0f30-4d9c-b432-233d67a8aa4c",
+          "name": "控制数据输入",
+          "description": "控制数据输入接口",
+          "created_time": "2025-10-08T22:42:55.399854",
+          "modified_time": "2025-10-08T22:42:55.399854",
+          "version": "1.0",
+          "interface_type": "software_hardware",
+          "direction": "input",
+          "subtype": null,
+          "source_module_id": "",
+          "target_module_id": "",
+          "protocol": "",
+          "data_format": "",
+          "bandwidth": 0.0,
+          "latency": 0.0,
+          "reliability": 0.99,
+          "failure_modes": [
+            {
+              "failure_mode": "communication_failure",
+              "name": "控制数据输入通信故障",
+              "description": "",
+              "severity": 1,
+              "occurrence_rate": 1e-05,
+              "detection_rate": 0.0,
+              "trigger_conditions": [],
+              "effects": [],
+              "mitigation_measures": [],
+              "python_code": ""
+            }
+          ],
+          "python_code": "",
+          "parameters": {}
+        },
+        "e2fd9a20-5538-4434-adb1-433e23c4de21": {
+          "id": "e2fd9a20-5538-4434-adb1-433e23c4de21",
+          "name": "控制指令输出",
+          "description": "控制指令输出接口",
+          "created_time": "2025-10-08T22:42:55.399854",
+          "modified_time": "2025-10-08T22:42:55.399854",
+          "version": "1.0",
+          "interface_type": "software_hardware",
+          "direction": "output",
+          "subtype": null,
+          "source_module_id": "",
+          "target_module_id": "",
+          "protocol": "",
+          "data_format": "",
+          "bandwidth": 0.0,
+          "latency": 0.0,
+          "reliability": 0.99,
+          "failure_modes": [
+            {
+              "failure_mode": "communication_failure",
+              "name": "控制指令输出通信故障",
+              "description": "",
+              "severity": 1,
+              "occurrence_rate": 1e-05,
+              "detection_rate": 0.0,
+              "trigger_conditions": [],
+              "effects": [],
+              "mitigation_measures": [],
+              "python_code": ""
+            }
+          ],
+          "python_code": "",
+          "parameters": {}
+        }
+      },
+      "parameters": {
+        "method": "PID",
+        "update_rate": "100Hz"
+      },
+      "state_variables": {},
+      "python_code": "",
+      "is_template": false,
+      "algorithm_type": "",
+      "complexity": "",
+      "accuracy": 0.0,
+      "performance_metrics": {},
+      "training_data": "",
+      "model_parameters": {}
+    },
+    "module_40521984": {
+      "id": "module_40521984",
+      "name": "机器学习框架",
+      "description": "TensorRT推理引擎",
+      "created_time": "2025-10-08T22:42:55.398854",
+      "modified_time": "2025-10-08T22:42:55.399854",
+      "version": "1.0",
+      "module_type": "software",
+      "template": "application",
+      "position": {
+        "x": 513.0,
+        "y": 440.0
+      },
+      "size": {
+        "x": 100,
+        "y": 60
+      },
+      "icon_path": "",
+      "interfaces": {
+        "b7352fb7-0e2f-4ca3-b2f1-0ec20b192b3e": {
+          "id": "b7352fb7-0e2f-4ca3-b2f1-0ec20b192b3e",
+          "name": "ML框架接口",
+          "description": "机器学习框架接口",
+          "created_time": "2025-10-08T22:42:55.399854",
+          "modified_time": "2025-10-08T22:42:55.399854",
+          "version": "1.0",
+          "interface_type": "software_hardware",
+          "direction": "bidirectional",
+          "subtype": null,
+          "source_module_id": "",
+          "target_module_id": "",
+          "protocol": "",
+          "data_format": "",
+          "bandwidth": 0.0,
+          "latency": 0.0,
+          "reliability": 0.99,
+          "failure_modes": [
+            {
+              "failure_mode": "communication_failure",
+              "name": "ML框架接口通信故障",
+              "description": "",
+              "severity": 1,
+              "occurrence_rate": 1e-05,
+              "detection_rate": 0.0,
+              "trigger_conditions": [],
+              "effects": [],
+              "mitigation_measures": [],
+              "python_code": ""
+            }
+          ],
+          "python_code": "",
+          "parameters": {}
+        }
+      },
+      "parameters": {
+        "version": "8.0",
+        "precision": "FP16"
+      },
+      "state_variables": {},
+      "python_code": "",
+      "is_template": false,
+      "software_version": "1.0",
+      "programming_language": "Python",
+      "dependencies": [],
+      "memory_usage": 0,
+      "cpu_usage": 0.0,
+      "execution_time": 0.0
+    },
+    "module_40522464": {
+      "id": "module_40522464",
+      "name": "专用算力设备",
+      "description": "FPGA加速卡",
+      "created_time": "2025-10-08T22:42:55.398854",
+      "modified_time": "2025-10-08T22:42:55.399854",
+      "version": "1.0",
+      "module_type": "hardware",
+      "template": "processor",
+      "position": {
+        "x": 241.0,
+        "y": 445.0
+      },
+      "size": {
+        "x": 100,
+        "y": 60
+      },
+      "icon_path": "",
+      "interfaces": {
+        "775a0699-e707-4416-b625-43530945939a": {
+          "id": "775a0699-e707-4416-b625-43530945939a",
+          "name": "算力设备接口",
+          "description": "专用算力设备接口",
+          "created_time": "2025-10-08T22:42:55.399854",
+          "modified_time": "2025-10-08T22:42:55.399854",
+          "version": "1.0",
+          "interface_type": "software_hardware",
+          "direction": "bidirectional",
+          "subtype": null,
+          "source_module_id": "",
+          "target_module_id": "",
+          "protocol": "",
+          "data_format": "",
+          "bandwidth": 0.0,
+          "latency": 0.0,
+          "reliability": 0.99,
+          "failure_modes": [
+            {
+              "failure_mode": "communication_failure",
+              "name": "算力设备接口通信故障",
+              "description": "",
+              "severity": 1,
+              "occurrence_rate": 1e-05,
+              "detection_rate": 0.0,
+              "trigger_conditions": [],
+              "effects": [],
+              "mitigation_measures": [],
+              "python_code": ""
+            }
+          ],
+          "python_code": "",
+          "parameters": {}
+        }
+      },
+      "parameters": {
+        "type": "Xilinx Zynq",
+        "performance": "1TOPS"
+      },
+      "state_variables": {},
+      "python_code": "",
+      "is_template": false,
+      "manufacturer": "",
+      "model": "",
+      "specifications": {},
+      "power_consumption": 0.0,
+      "operating_temperature": [
+        -40,
+        85
+      ],
+      "reliability_data": {}
     }
   },
   "interfaces": {
-    "fc928a31-aba4-4834-9214-30e239129b51": {
-      "id": "fc928a31-aba4-4834-9214-30e239129b51",
-      "name": "GPS数据接口",
-      "description": "GPS传感器到飞控的数据接口",
-      "created_time": "2025-10-03T17:40:04.074423",
-      "modified_time": "2025-10-03T17:40:04.074433",
+    "ebcd69ba-766e-42dd-a566-912f1457fd37": {
+      "id": "ebcd69ba-766e-42dd-a566-912f1457fd37",
+      "name": "IMU数据输出",
+      "description": "IMU传感器数据输出接口",
+      "created_time": "2025-10-08T22:42:55.398854",
+      "modified_time": "2025-10-08T22:42:55.398854",
       "version": "1.0",
-      "interface_type": "sensor_to_controller",
+      "interface_type": "software_hardware",
+      "direction": "output",
       "subtype": null,
       "source_module_id": "",
       "target_module_id": "",
-      "protocol": "UART",
+      "protocol": "",
       "data_format": "",
       "bandwidth": 0.0,
       "latency": 0.0,
@@ -331,118 +1622,7 @@
       "failure_modes": [
         {
           "failure_mode": "communication_failure",
-          "name": "GPS通信失效",
-          "description": "GPS传感器与飞控通信中断",
-          "severity": 1,
-          "occurrence_rate": 1e-06,
-          "detection_rate": 0.0,
-          "trigger_conditions": [],
-          "effects": [],
-          "mitigation_measures": [],
-          "python_code": ""
-        },
-        {
-          "failure_mode": "data_corruption",
-          "name": "GPS数据损坏",
-          "description": "GPS数据在传输过程中损坏",
-          "severity": 1,
-          "occurrence_rate": 5e-07,
-          "detection_rate": 0.0,
-          "trigger_conditions": [],
-          "effects": [],
-          "mitigation_measures": [],
-          "python_code": ""
-        }
-      ],
-      "python_code": "",
-      "parameters": {}
-    },
-    "371a98b4-575d-48f5-9ddf-e0c83c42f291": {
-      "id": "371a98b4-575d-48f5-9ddf-e0c83c42f291",
-      "name": "IMU数据接口",
-      "description": "IMU传感器到飞控的数据接口",
-      "created_time": "2025-10-03T17:40:04.074441",
-      "modified_time": "2025-10-03T17:40:04.074444",
-      "version": "1.0",
-      "interface_type": "sensor_to_controller",
-      "subtype": null,
-      "source_module_id": "",
-      "target_module_id": "",
-      "protocol": "SPI",
-      "data_format": "",
-      "bandwidth": 0.0,
-      "latency": 0.0,
-      "reliability": 0.99,
-      "failure_modes": [
-        {
-          "failure_mode": "communication_failure",
-          "name": "IMU通信失效",
-          "description": "",
-          "severity": 1,
-          "occurrence_rate": 2e-06,
-          "detection_rate": 0.0,
-          "trigger_conditions": [],
-          "effects": [],
-          "mitigation_measures": [],
-          "python_code": ""
-        }
-      ],
-      "python_code": "",
-      "parameters": {}
-    },
-    "e2884ada-d5f8-45a0-897f-4f82f05a39bd": {
-      "id": "e2884ada-d5f8-45a0-897f-4f82f05a39bd",
-      "name": "视觉数据接口",
-      "description": "摄像头到AI处理器的数据接口",
-      "created_time": "2025-10-03T17:40:04.074453",
-      "modified_time": "2025-10-03T17:40:04.074456",
-      "version": "1.0",
-      "interface_type": "sensor_to_ai",
-      "subtype": null,
-      "source_module_id": "",
-      "target_module_id": "",
-      "protocol": "CSI-2",
-      "data_format": "",
-      "bandwidth": 0.0,
-      "latency": 0.0,
-      "reliability": 0.99,
-      "failure_modes": [
-        {
-          "failure_mode": "communication_failure",
-          "name": "视觉数据传输失效",
-          "description": "",
-          "severity": 1,
-          "occurrence_rate": 3e-06,
-          "detection_rate": 0.0,
-          "trigger_conditions": [],
-          "effects": [],
-          "mitigation_measures": [],
-          "python_code": ""
-        }
-      ],
-      "python_code": "",
-      "parameters": {}
-    },
-    "8b67c3fd-b22d-489e-8e49-a8a78e450535": {
-      "id": "8b67c3fd-b22d-489e-8e49-a8a78e450535",
-      "name": "电机控制接口",
-      "description": "飞控到电机的控制接口",
-      "created_time": "2025-10-03T17:40:04.074462",
-      "modified_time": "2025-10-03T17:40:04.074464",
-      "version": "1.0",
-      "interface_type": "controller_to_actuator",
-      "subtype": null,
-      "source_module_id": "",
-      "target_module_id": "",
-      "protocol": "PWM",
-      "data_format": "",
-      "bandwidth": 0.0,
-      "latency": 0.0,
-      "reliability": 0.99,
-      "failure_modes": [
-        {
-          "failure_mode": "communication_failure",
-          "name": "电机控制失效",
+          "name": "IMU数据输出通信故障",
           "description": "",
           "severity": 1,
           "occurrence_rate": 1e-05,
@@ -456,18 +1636,19 @@
       "python_code": "",
       "parameters": {}
     },
-    "148de42b-4286-4f48-9082-ac75b0829b43": {
-      "id": "148de42b-4286-4f48-9082-ac75b0829b43",
-      "name": "无线通信接口",
-      "description": "无人机与地面站通信接口",
-      "created_time": "2025-10-03T17:40:04.074475",
-      "modified_time": "2025-10-03T17:40:04.074477",
+    "753cd1f1-5896-40c8-a5d9-d7d498306a8e": {
+      "id": "753cd1f1-5896-40c8-a5d9-d7d498306a8e",
+      "name": "GNSS数据输出",
+      "description": "GNSS定位数据输出接口",
+      "created_time": "2025-10-08T22:42:55.398854",
+      "modified_time": "2025-10-08T22:42:55.398854",
       "version": "1.0",
-      "interface_type": "wireless_communication",
+      "interface_type": "software_hardware",
+      "direction": "output",
       "subtype": null,
       "source_module_id": "",
       "target_module_id": "",
-      "protocol": "WiFi/LTE",
+      "protocol": "",
       "data_format": "",
       "bandwidth": 0.0,
       "latency": 0.0,
@@ -475,10 +1656,962 @@
       "failure_modes": [
         {
           "failure_mode": "communication_failure",
-          "name": "无线通信中断",
+          "name": "GNSS数据输出通信故障",
           "description": "",
           "severity": 1,
-          "occurrence_rate": 0.0001,
+          "occurrence_rate": 1e-05,
+          "detection_rate": 0.0,
+          "trigger_conditions": [],
+          "effects": [],
+          "mitigation_measures": [],
+          "python_code": ""
+        }
+      ],
+      "python_code": "",
+      "parameters": {}
+    },
+    "b7a59694-82bf-4afd-acef-616fa9818fae": {
+      "id": "b7a59694-82bf-4afd-acef-616fa9818fae",
+      "name": "图像数据输出",
+      "description": "图像数据输出接口",
+      "created_time": "2025-10-08T22:42:55.398854",
+      "modified_time": "2025-10-08T22:42:55.398854",
+      "version": "1.0",
+      "interface_type": "software_hardware",
+      "direction": "output",
+      "subtype": null,
+      "source_module_id": "",
+      "target_module_id": "",
+      "protocol": "",
+      "data_format": "",
+      "bandwidth": 0.0,
+      "latency": 0.0,
+      "reliability": 0.99,
+      "failure_modes": [
+        {
+          "failure_mode": "communication_failure",
+          "name": "图像数据输出通信故障",
+          "description": "",
+          "severity": 1,
+          "occurrence_rate": 1e-05,
+          "detection_rate": 0.0,
+          "trigger_conditions": [],
+          "effects": [],
+          "mitigation_measures": [],
+          "python_code": ""
+        }
+      ],
+      "python_code": "",
+      "parameters": {}
+    },
+    "6d362875-3cd7-403b-81ba-51d0e3117de2": {
+      "id": "6d362875-3cd7-403b-81ba-51d0e3117de2",
+      "name": "雷达点云输出",
+      "description": "雷达点云数据输出接口",
+      "created_time": "2025-10-08T22:42:55.399354",
+      "modified_time": "2025-10-08T22:42:55.399354",
+      "version": "1.0",
+      "interface_type": "software_hardware",
+      "direction": "output",
+      "subtype": null,
+      "source_module_id": "",
+      "target_module_id": "",
+      "protocol": "",
+      "data_format": "",
+      "bandwidth": 0.0,
+      "latency": 0.0,
+      "reliability": 0.99,
+      "failure_modes": [
+        {
+          "failure_mode": "communication_failure",
+          "name": "雷达点云输出通信故障",
+          "description": "",
+          "severity": 1,
+          "occurrence_rate": 1e-05,
+          "detection_rate": 0.0,
+          "trigger_conditions": [],
+          "effects": [],
+          "mitigation_measures": [],
+          "python_code": ""
+        }
+      ],
+      "python_code": "",
+      "parameters": {}
+    },
+    "e02d1c33-f3a0-41a6-858a-9fe657cec39b": {
+      "id": "e02d1c33-f3a0-41a6-858a-9fe657cec39b",
+      "name": "传感器数据输入",
+      "description": "传感器数据输入接口",
+      "created_time": "2025-10-08T22:42:55.399354",
+      "modified_time": "2025-10-08T22:42:55.399354",
+      "version": "1.0",
+      "interface_type": "software_hardware",
+      "direction": "input",
+      "subtype": null,
+      "source_module_id": "",
+      "target_module_id": "",
+      "protocol": "",
+      "data_format": "",
+      "bandwidth": 0.0,
+      "latency": 0.0,
+      "reliability": 0.99,
+      "failure_modes": [
+        {
+          "failure_mode": "communication_failure",
+          "name": "传感器数据输入通信故障",
+          "description": "",
+          "severity": 1,
+          "occurrence_rate": 1e-05,
+          "detection_rate": 0.0,
+          "trigger_conditions": [],
+          "effects": [],
+          "mitigation_measures": [],
+          "python_code": ""
+        }
+      ],
+      "python_code": "",
+      "parameters": {}
+    },
+    "9fde383b-f758-4c4f-8391-83e956c7be0a": {
+      "id": "9fde383b-f758-4c4f-8391-83e956c7be0a",
+      "name": "控制指令输出",
+      "description": "控制指令输出接口",
+      "created_time": "2025-10-08T22:42:55.399354",
+      "modified_time": "2025-10-08T22:42:55.399354",
+      "version": "1.0",
+      "interface_type": "software_hardware",
+      "direction": "output",
+      "subtype": null,
+      "source_module_id": "",
+      "target_module_id": "",
+      "protocol": "",
+      "data_format": "",
+      "bandwidth": 0.0,
+      "latency": 0.0,
+      "reliability": 0.99,
+      "failure_modes": [
+        {
+          "failure_mode": "communication_failure",
+          "name": "控制指令输出通信故障",
+          "description": "",
+          "severity": 1,
+          "occurrence_rate": 1e-05,
+          "detection_rate": 0.0,
+          "trigger_conditions": [],
+          "effects": [],
+          "mitigation_measures": [],
+          "python_code": ""
+        }
+      ],
+      "python_code": "",
+      "parameters": {}
+    },
+    "5f9e6d80-ca7b-484e-ae60-e0dfd514c5fb": {
+      "id": "5f9e6d80-ca7b-484e-ae60-e0dfd514c5fb",
+      "name": "状态反馈输出",
+      "description": "系统状态反馈输出接口",
+      "created_time": "2025-10-08T22:42:55.399354",
+      "modified_time": "2025-10-08T22:42:55.399354",
+      "version": "1.0",
+      "interface_type": "software_hardware",
+      "direction": "output",
+      "subtype": null,
+      "source_module_id": "",
+      "target_module_id": "",
+      "protocol": "",
+      "data_format": "",
+      "bandwidth": 0.0,
+      "latency": 0.0,
+      "reliability": 0.99,
+      "failure_modes": [
+        {
+          "failure_mode": "communication_failure",
+          "name": "状态反馈输出通信故障",
+          "description": "",
+          "severity": 1,
+          "occurrence_rate": 1e-05,
+          "detection_rate": 0.0,
+          "trigger_conditions": [],
+          "effects": [],
+          "mitigation_measures": [],
+          "python_code": ""
+        }
+      ],
+      "python_code": "",
+      "parameters": {}
+    },
+    "804d915f-4341-4711-8eef-b9c574c26838": {
+      "id": "804d915f-4341-4711-8eef-b9c574c26838",
+      "name": "控制指令输入",
+      "description": "控制指令输入接口",
+      "created_time": "2025-10-08T22:42:55.399354",
+      "modified_time": "2025-10-08T22:42:55.399354",
+      "version": "1.0",
+      "interface_type": "software_hardware",
+      "direction": "input",
+      "subtype": null,
+      "source_module_id": "",
+      "target_module_id": "",
+      "protocol": "",
+      "data_format": "",
+      "bandwidth": 0.0,
+      "latency": 0.0,
+      "reliability": 0.99,
+      "failure_modes": [
+        {
+          "failure_mode": "communication_failure",
+          "name": "控制指令输入通信故障",
+          "description": "",
+          "severity": 1,
+          "occurrence_rate": 1e-05,
+          "detection_rate": 0.0,
+          "trigger_conditions": [],
+          "effects": [],
+          "mitigation_measures": [],
+          "python_code": ""
+        }
+      ],
+      "python_code": "",
+      "parameters": {}
+    },
+    "87345dd9-f0e6-4b70-92b7-f19953a56002": {
+      "id": "87345dd9-f0e6-4b70-92b7-f19953a56002",
+      "name": "通信数据输入",
+      "description": "通信数据输入接口",
+      "created_time": "2025-10-08T22:42:55.399354",
+      "modified_time": "2025-10-08T22:42:55.399354",
+      "version": "1.0",
+      "interface_type": "software_hardware",
+      "direction": "input",
+      "subtype": null,
+      "source_module_id": "",
+      "target_module_id": "",
+      "protocol": "",
+      "data_format": "",
+      "bandwidth": 0.0,
+      "latency": 0.0,
+      "reliability": 0.99,
+      "failure_modes": [
+        {
+          "failure_mode": "communication_failure",
+          "name": "通信数据输入通信故障",
+          "description": "",
+          "severity": 1,
+          "occurrence_rate": 1e-05,
+          "detection_rate": 0.0,
+          "trigger_conditions": [],
+          "effects": [],
+          "mitigation_measures": [],
+          "python_code": ""
+        }
+      ],
+      "python_code": "",
+      "parameters": {}
+    },
+    "37e3bdc7-dc61-4e8b-972b-a151788a9e19": {
+      "id": "37e3bdc7-dc61-4e8b-972b-a151788a9e19",
+      "name": "通信数据输出",
+      "description": "通信数据输出接口",
+      "created_time": "2025-10-08T22:42:55.399354",
+      "modified_time": "2025-10-08T22:42:55.399354",
+      "version": "1.0",
+      "interface_type": "software_hardware",
+      "direction": "output",
+      "subtype": null,
+      "source_module_id": "",
+      "target_module_id": "",
+      "protocol": "",
+      "data_format": "",
+      "bandwidth": 0.0,
+      "latency": 0.0,
+      "reliability": 0.99,
+      "failure_modes": [
+        {
+          "failure_mode": "communication_failure",
+          "name": "通信数据输出通信故障",
+          "description": "",
+          "severity": 1,
+          "occurrence_rate": 1e-05,
+          "detection_rate": 0.0,
+          "trigger_conditions": [],
+          "effects": [],
+          "mitigation_measures": [],
+          "python_code": ""
+        }
+      ],
+      "python_code": "",
+      "parameters": {}
+    },
+    "0462e264-12a8-49e6-9034-aa1bd738a869": {
+      "id": "0462e264-12a8-49e6-9034-aa1bd738a869",
+      "name": "云台控制输入",
+      "description": "云台控制指令输入接口",
+      "created_time": "2025-10-08T22:42:55.399354",
+      "modified_time": "2025-10-08T22:42:55.399354",
+      "version": "1.0",
+      "interface_type": "software_hardware",
+      "direction": "input",
+      "subtype": null,
+      "source_module_id": "",
+      "target_module_id": "",
+      "protocol": "",
+      "data_format": "",
+      "bandwidth": 0.0,
+      "latency": 0.0,
+      "reliability": 0.99,
+      "failure_modes": [
+        {
+          "failure_mode": "communication_failure",
+          "name": "云台控制输入通信故障",
+          "description": "",
+          "severity": 1,
+          "occurrence_rate": 1e-05,
+          "detection_rate": 0.0,
+          "trigger_conditions": [],
+          "effects": [],
+          "mitigation_measures": [],
+          "python_code": ""
+        }
+      ],
+      "python_code": "",
+      "parameters": {}
+    },
+    "5fc8226e-6fcf-4fb7-9202-aba767d1a89c": {
+      "id": "5fc8226e-6fcf-4fb7-9202-aba767d1a89c",
+      "name": "地面站通信",
+      "description": "地面站通信接口",
+      "created_time": "2025-10-08T22:42:55.399354",
+      "modified_time": "2025-10-08T22:42:55.399354",
+      "version": "1.0",
+      "interface_type": "software_hardware",
+      "direction": "bidirectional",
+      "subtype": null,
+      "source_module_id": "",
+      "target_module_id": "",
+      "protocol": "",
+      "data_format": "",
+      "bandwidth": 0.0,
+      "latency": 0.0,
+      "reliability": 0.99,
+      "failure_modes": [
+        {
+          "failure_mode": "communication_failure",
+          "name": "地面站通信通信故障",
+          "description": "",
+          "severity": 1,
+          "occurrence_rate": 1e-05,
+          "detection_rate": 0.0,
+          "trigger_conditions": [],
+          "effects": [],
+          "mitigation_measures": [],
+          "python_code": ""
+        }
+      ],
+      "python_code": "",
+      "parameters": {}
+    },
+    "2f1ac301-e856-4f4d-b8a8-79999a1e2085": {
+      "id": "2f1ac301-e856-4f4d-b8a8-79999a1e2085",
+      "name": "应用数据接口",
+      "description": "应用数据接口",
+      "created_time": "2025-10-08T22:42:55.399354",
+      "modified_time": "2025-10-08T22:42:55.399354",
+      "version": "1.0",
+      "interface_type": "software_hardware",
+      "direction": "bidirectional",
+      "subtype": null,
+      "source_module_id": "",
+      "target_module_id": "",
+      "protocol": "",
+      "data_format": "",
+      "bandwidth": 0.0,
+      "latency": 0.0,
+      "reliability": 0.99,
+      "failure_modes": [
+        {
+          "failure_mode": "communication_failure",
+          "name": "应用数据接口通信故障",
+          "description": "",
+          "severity": 1,
+          "occurrence_rate": 1e-05,
+          "detection_rate": 0.0,
+          "trigger_conditions": [],
+          "effects": [],
+          "mitigation_measures": [],
+          "python_code": ""
+        }
+      ],
+      "python_code": "",
+      "parameters": {}
+    },
+    "ff70cbf9-0c0f-4ff4-993e-1b68049f4c0c": {
+      "id": "ff70cbf9-0c0f-4ff4-993e-1b68049f4c0c",
+      "name": "时间同步输入",
+      "description": "时间同步数据输入接口",
+      "created_time": "2025-10-08T22:42:55.399354",
+      "modified_time": "2025-10-08T22:42:55.399354",
+      "version": "1.0",
+      "interface_type": "software_hardware",
+      "direction": "input",
+      "subtype": null,
+      "source_module_id": "",
+      "target_module_id": "",
+      "protocol": "",
+      "data_format": "",
+      "bandwidth": 0.0,
+      "latency": 0.0,
+      "reliability": 0.99,
+      "failure_modes": [
+        {
+          "failure_mode": "communication_failure",
+          "name": "时间同步输入通信故障",
+          "description": "",
+          "severity": 1,
+          "occurrence_rate": 1e-05,
+          "detection_rate": 0.0,
+          "trigger_conditions": [],
+          "effects": [],
+          "mitigation_measures": [],
+          "python_code": ""
+        }
+      ],
+      "python_code": "",
+      "parameters": {}
+    },
+    "de060823-af79-4123-a8a6-03a3db2302a3": {
+      "id": "de060823-af79-4123-a8a6-03a3db2302a3",
+      "name": "时间同步输出",
+      "description": "时间同步数据输出接口",
+      "created_time": "2025-10-08T22:42:55.399354",
+      "modified_time": "2025-10-08T22:42:55.399354",
+      "version": "1.0",
+      "interface_type": "software_hardware",
+      "direction": "output",
+      "subtype": null,
+      "source_module_id": "",
+      "target_module_id": "",
+      "protocol": "",
+      "data_format": "",
+      "bandwidth": 0.0,
+      "latency": 0.0,
+      "reliability": 0.99,
+      "failure_modes": [
+        {
+          "failure_mode": "communication_failure",
+          "name": "时间同步输出通信故障",
+          "description": "",
+          "severity": 1,
+          "occurrence_rate": 1e-05,
+          "detection_rate": 0.0,
+          "trigger_conditions": [],
+          "effects": [],
+          "mitigation_measures": [],
+          "python_code": ""
+        }
+      ],
+      "python_code": "",
+      "parameters": {}
+    },
+    "d8581c22-824c-4b35-b759-fac36db81bb0": {
+      "id": "d8581c22-824c-4b35-b759-fac36db81bb0",
+      "name": "配准数据输入",
+      "description": "配准数据输入接口",
+      "created_time": "2025-10-08T22:42:55.399354",
+      "modified_time": "2025-10-08T22:42:55.399354",
+      "version": "1.0",
+      "interface_type": "software_hardware",
+      "direction": "input",
+      "subtype": null,
+      "source_module_id": "",
+      "target_module_id": "",
+      "protocol": "",
+      "data_format": "",
+      "bandwidth": 0.0,
+      "latency": 0.0,
+      "reliability": 0.99,
+      "failure_modes": [
+        {
+          "failure_mode": "communication_failure",
+          "name": "配准数据输入通信故障",
+          "description": "",
+          "severity": 1,
+          "occurrence_rate": 1e-05,
+          "detection_rate": 0.0,
+          "trigger_conditions": [],
+          "effects": [],
+          "mitigation_measures": [],
+          "python_code": ""
+        }
+      ],
+      "python_code": "",
+      "parameters": {}
+    },
+    "5ce61d9e-62fa-4d8a-a4aa-a600a8bb2860": {
+      "id": "5ce61d9e-62fa-4d8a-a4aa-a600a8bb2860",
+      "name": "配准数据输出",
+      "description": "配准数据输出接口",
+      "created_time": "2025-10-08T22:42:55.399354",
+      "modified_time": "2025-10-08T22:42:55.399354",
+      "version": "1.0",
+      "interface_type": "software_hardware",
+      "direction": "output",
+      "subtype": null,
+      "source_module_id": "",
+      "target_module_id": "",
+      "protocol": "",
+      "data_format": "",
+      "bandwidth": 0.0,
+      "latency": 0.0,
+      "reliability": 0.99,
+      "failure_modes": [
+        {
+          "failure_mode": "communication_failure",
+          "name": "配准数据输出通信故障",
+          "description": "",
+          "severity": 1,
+          "occurrence_rate": 1e-05,
+          "detection_rate": 0.0,
+          "trigger_conditions": [],
+          "effects": [],
+          "mitigation_measures": [],
+          "python_code": ""
+        }
+      ],
+      "python_code": "",
+      "parameters": {}
+    },
+    "4fe4abef-92c8-49d1-8326-c19c8043cfa8": {
+      "id": "4fe4abef-92c8-49d1-8326-c19c8043cfa8",
+      "name": "检测数据输入",
+      "description": "检测数据输入接口",
+      "created_time": "2025-10-08T22:42:55.399354",
+      "modified_time": "2025-10-08T22:42:55.399354",
+      "version": "1.0",
+      "interface_type": "software_hardware",
+      "direction": "input",
+      "subtype": null,
+      "source_module_id": "",
+      "target_module_id": "",
+      "protocol": "",
+      "data_format": "",
+      "bandwidth": 0.0,
+      "latency": 0.0,
+      "reliability": 0.99,
+      "failure_modes": [
+        {
+          "failure_mode": "communication_failure",
+          "name": "检测数据输入通信故障",
+          "description": "",
+          "severity": 1,
+          "occurrence_rate": 1e-05,
+          "detection_rate": 0.0,
+          "trigger_conditions": [],
+          "effects": [],
+          "mitigation_measures": [],
+          "python_code": ""
+        }
+      ],
+      "python_code": "",
+      "parameters": {}
+    },
+    "432ed0d1-b5a7-4e92-9a9a-f30888cde33f": {
+      "id": "432ed0d1-b5a7-4e92-9a9a-f30888cde33f",
+      "name": "检测结果输出",
+      "description": "检测结果输出接口",
+      "created_time": "2025-10-08T22:42:55.399354",
+      "modified_time": "2025-10-08T22:42:55.399354",
+      "version": "1.0",
+      "interface_type": "software_hardware",
+      "direction": "output",
+      "subtype": null,
+      "source_module_id": "",
+      "target_module_id": "",
+      "protocol": "",
+      "data_format": "",
+      "bandwidth": 0.0,
+      "latency": 0.0,
+      "reliability": 0.99,
+      "failure_modes": [
+        {
+          "failure_mode": "communication_failure",
+          "name": "检测结果输出通信故障",
+          "description": "",
+          "severity": 1,
+          "occurrence_rate": 1e-05,
+          "detection_rate": 0.0,
+          "trigger_conditions": [],
+          "effects": [],
+          "mitigation_measures": [],
+          "python_code": ""
+        }
+      ],
+      "python_code": "",
+      "parameters": {}
+    },
+    "be135edf-d076-4d9e-9013-2666092fcc50": {
+      "id": "be135edf-d076-4d9e-9013-2666092fcc50",
+      "name": "感知数据输入",
+      "description": "感知数据输入接口",
+      "created_time": "2025-10-08T22:42:55.399354",
+      "modified_time": "2025-10-08T22:42:55.399354",
+      "version": "1.0",
+      "interface_type": "software_hardware",
+      "direction": "input",
+      "subtype": null,
+      "source_module_id": "",
+      "target_module_id": "",
+      "protocol": "",
+      "data_format": "",
+      "bandwidth": 0.0,
+      "latency": 0.0,
+      "reliability": 0.99,
+      "failure_modes": [
+        {
+          "failure_mode": "communication_failure",
+          "name": "感知数据输入通信故障",
+          "description": "",
+          "severity": 1,
+          "occurrence_rate": 1e-05,
+          "detection_rate": 0.0,
+          "trigger_conditions": [],
+          "effects": [],
+          "mitigation_measures": [],
+          "python_code": ""
+        }
+      ],
+      "python_code": "",
+      "parameters": {}
+    },
+    "18bda085-f111-4085-bf48-9fafb5e86a6c": {
+      "id": "18bda085-f111-4085-bf48-9fafb5e86a6c",
+      "name": "感知结果输出",
+      "description": "感知结果输出接口",
+      "created_time": "2025-10-08T22:42:55.399354",
+      "modified_time": "2025-10-08T22:42:55.399854",
+      "version": "1.0",
+      "interface_type": "software_hardware",
+      "direction": "output",
+      "subtype": null,
+      "source_module_id": "",
+      "target_module_id": "",
+      "protocol": "",
+      "data_format": "",
+      "bandwidth": 0.0,
+      "latency": 0.0,
+      "reliability": 0.99,
+      "failure_modes": [
+        {
+          "failure_mode": "communication_failure",
+          "name": "感知结果输出通信故障",
+          "description": "",
+          "severity": 1,
+          "occurrence_rate": 1e-05,
+          "detection_rate": 0.0,
+          "trigger_conditions": [],
+          "effects": [],
+          "mitigation_measures": [],
+          "python_code": ""
+        }
+      ],
+      "python_code": "",
+      "parameters": {}
+    },
+    "4f53c198-723f-41b4-9a1e-e48b278bafc2": {
+      "id": "4f53c198-723f-41b4-9a1e-e48b278bafc2",
+      "name": "规划数据输入",
+      "description": "规划数据输入接口",
+      "created_time": "2025-10-08T22:42:55.399854",
+      "modified_time": "2025-10-08T22:42:55.399854",
+      "version": "1.0",
+      "interface_type": "software_hardware",
+      "direction": "input",
+      "subtype": null,
+      "source_module_id": "",
+      "target_module_id": "",
+      "protocol": "",
+      "data_format": "",
+      "bandwidth": 0.0,
+      "latency": 0.0,
+      "reliability": 0.99,
+      "failure_modes": [
+        {
+          "failure_mode": "communication_failure",
+          "name": "规划数据输入通信故障",
+          "description": "",
+          "severity": 1,
+          "occurrence_rate": 1e-05,
+          "detection_rate": 0.0,
+          "trigger_conditions": [],
+          "effects": [],
+          "mitigation_measures": [],
+          "python_code": ""
+        }
+      ],
+      "python_code": "",
+      "parameters": {}
+    },
+    "76151aba-2d61-497c-9e6e-eb5e1995c6a3": {
+      "id": "76151aba-2d61-497c-9e6e-eb5e1995c6a3",
+      "name": "规划结果输出",
+      "description": "规划结果输出接口",
+      "created_time": "2025-10-08T22:42:55.399854",
+      "modified_time": "2025-10-08T22:42:55.399854",
+      "version": "1.0",
+      "interface_type": "software_hardware",
+      "direction": "output",
+      "subtype": null,
+      "source_module_id": "",
+      "target_module_id": "",
+      "protocol": "",
+      "data_format": "",
+      "bandwidth": 0.0,
+      "latency": 0.0,
+      "reliability": 0.99,
+      "failure_modes": [
+        {
+          "failure_mode": "communication_failure",
+          "name": "规划结果输出通信故障",
+          "description": "",
+          "severity": 1,
+          "occurrence_rate": 1e-05,
+          "detection_rate": 0.0,
+          "trigger_conditions": [],
+          "effects": [],
+          "mitigation_measures": [],
+          "python_code": ""
+        }
+      ],
+      "python_code": "",
+      "parameters": {}
+    },
+    "e89a9324-773a-45fc-9129-a9b7fdc42b9a": {
+      "id": "e89a9324-773a-45fc-9129-a9b7fdc42b9a",
+      "name": "避障数据输入",
+      "description": "避障数据输入接口",
+      "created_time": "2025-10-08T22:42:55.399854",
+      "modified_time": "2025-10-08T22:42:55.399854",
+      "version": "1.0",
+      "interface_type": "software_hardware",
+      "direction": "input",
+      "subtype": null,
+      "source_module_id": "",
+      "target_module_id": "",
+      "protocol": "",
+      "data_format": "",
+      "bandwidth": 0.0,
+      "latency": 0.0,
+      "reliability": 0.99,
+      "failure_modes": [
+        {
+          "failure_mode": "communication_failure",
+          "name": "避障数据输入通信故障",
+          "description": "",
+          "severity": 1,
+          "occurrence_rate": 1e-05,
+          "detection_rate": 0.0,
+          "trigger_conditions": [],
+          "effects": [],
+          "mitigation_measures": [],
+          "python_code": ""
+        }
+      ],
+      "python_code": "",
+      "parameters": {}
+    },
+    "85917b7d-3cdd-4f7f-bbee-cb1e5a172cf4": {
+      "id": "85917b7d-3cdd-4f7f-bbee-cb1e5a172cf4",
+      "name": "避障指令输出",
+      "description": "避障指令输出接口",
+      "created_time": "2025-10-08T22:42:55.399854",
+      "modified_time": "2025-10-08T22:42:55.399854",
+      "version": "1.0",
+      "interface_type": "software_hardware",
+      "direction": "output",
+      "subtype": null,
+      "source_module_id": "",
+      "target_module_id": "",
+      "protocol": "",
+      "data_format": "",
+      "bandwidth": 0.0,
+      "latency": 0.0,
+      "reliability": 0.99,
+      "failure_modes": [
+        {
+          "failure_mode": "communication_failure",
+          "name": "避障指令输出通信故障",
+          "description": "",
+          "severity": 1,
+          "occurrence_rate": 1e-05,
+          "detection_rate": 0.0,
+          "trigger_conditions": [],
+          "effects": [],
+          "mitigation_measures": [],
+          "python_code": ""
+        }
+      ],
+      "python_code": "",
+      "parameters": {}
+    },
+    "bb6fd389-0f30-4d9c-b432-233d67a8aa4c": {
+      "id": "bb6fd389-0f30-4d9c-b432-233d67a8aa4c",
+      "name": "控制数据输入",
+      "description": "控制数据输入接口",
+      "created_time": "2025-10-08T22:42:55.399854",
+      "modified_time": "2025-10-08T22:42:55.399854",
+      "version": "1.0",
+      "interface_type": "software_hardware",
+      "direction": "input",
+      "subtype": null,
+      "source_module_id": "",
+      "target_module_id": "",
+      "protocol": "",
+      "data_format": "",
+      "bandwidth": 0.0,
+      "latency": 0.0,
+      "reliability": 0.99,
+      "failure_modes": [
+        {
+          "failure_mode": "communication_failure",
+          "name": "控制数据输入通信故障",
+          "description": "",
+          "severity": 1,
+          "occurrence_rate": 1e-05,
+          "detection_rate": 0.0,
+          "trigger_conditions": [],
+          "effects": [],
+          "mitigation_measures": [],
+          "python_code": ""
+        }
+      ],
+      "python_code": "",
+      "parameters": {}
+    },
+    "e2fd9a20-5538-4434-adb1-433e23c4de21": {
+      "id": "e2fd9a20-5538-4434-adb1-433e23c4de21",
+      "name": "控制指令输出",
+      "description": "控制指令输出接口",
+      "created_time": "2025-10-08T22:42:55.399854",
+      "modified_time": "2025-10-08T22:42:55.399854",
+      "version": "1.0",
+      "interface_type": "software_hardware",
+      "direction": "output",
+      "subtype": null,
+      "source_module_id": "",
+      "target_module_id": "",
+      "protocol": "",
+      "data_format": "",
+      "bandwidth": 0.0,
+      "latency": 0.0,
+      "reliability": 0.99,
+      "failure_modes": [
+        {
+          "failure_mode": "communication_failure",
+          "name": "控制指令输出通信故障",
+          "description": "",
+          "severity": 1,
+          "occurrence_rate": 1e-05,
+          "detection_rate": 0.0,
+          "trigger_conditions": [],
+          "effects": [],
+          "mitigation_measures": [],
+          "python_code": ""
+        }
+      ],
+      "python_code": "",
+      "parameters": {}
+    },
+    "b7352fb7-0e2f-4ca3-b2f1-0ec20b192b3e": {
+      "id": "b7352fb7-0e2f-4ca3-b2f1-0ec20b192b3e",
+      "name": "ML框架接口",
+      "description": "机器学习框架接口",
+      "created_time": "2025-10-08T22:42:55.399854",
+      "modified_time": "2025-10-08T22:42:55.399854",
+      "version": "1.0",
+      "interface_type": "software_hardware",
+      "direction": "bidirectional",
+      "subtype": null,
+      "source_module_id": "",
+      "target_module_id": "",
+      "protocol": "",
+      "data_format": "",
+      "bandwidth": 0.0,
+      "latency": 0.0,
+      "reliability": 0.99,
+      "failure_modes": [
+        {
+          "failure_mode": "communication_failure",
+          "name": "ML框架接口通信故障",
+          "description": "",
+          "severity": 1,
+          "occurrence_rate": 1e-05,
+          "detection_rate": 0.0,
+          "trigger_conditions": [],
+          "effects": [],
+          "mitigation_measures": [],
+          "python_code": ""
+        }
+      ],
+      "python_code": "",
+      "parameters": {}
+    },
+    "c12b866e-33b9-4572-8399-c1882e132618": {
+      "id": "c12b866e-33b9-4572-8399-c1882e132618",
+      "name": "OS系统接口",
+      "description": "操作系统接口",
+      "created_time": "2025-10-08T22:42:55.399854",
+      "modified_time": "2025-10-08T22:42:55.399854",
+      "version": "1.0",
+      "interface_type": "software_hardware",
+      "direction": "bidirectional",
+      "subtype": null,
+      "source_module_id": "",
+      "target_module_id": "",
+      "protocol": "",
+      "data_format": "",
+      "bandwidth": 0.0,
+      "latency": 0.0,
+      "reliability": 0.99,
+      "failure_modes": [
+        {
+          "failure_mode": "communication_failure",
+          "name": "OS系统接口通信故障",
+          "description": "",
+          "severity": 1,
+          "occurrence_rate": 1e-05,
+          "detection_rate": 0.0,
+          "trigger_conditions": [],
+          "effects": [],
+          "mitigation_measures": [],
+          "python_code": ""
+        }
+      ],
+      "python_code": "",
+      "parameters": {}
+    },
+    "775a0699-e707-4416-b625-43530945939a": {
+      "id": "775a0699-e707-4416-b625-43530945939a",
+      "name": "算力设备接口",
+      "description": "专用算力设备接口",
+      "created_time": "2025-10-08T22:42:55.399854",
+      "modified_time": "2025-10-08T22:42:55.399854",
+      "version": "1.0",
+      "interface_type": "software_hardware",
+      "direction": "bidirectional",
+      "subtype": null,
+      "source_module_id": "",
+      "target_module_id": "",
+      "protocol": "",
+      "data_format": "",
+      "bandwidth": 0.0,
+      "latency": 0.0,
+      "reliability": 0.99,
+      "failure_modes": [
+        {
+          "failure_mode": "communication_failure",
+          "name": "算力设备接口通信故障",
+          "description": "",
+          "severity": 1,
+          "occurrence_rate": 1e-05,
           "detection_rate": 0.0,
           "trigger_conditions": [],
           "effects": [],
@@ -490,16 +2623,1120 @@
       "parameters": {}
     }
   },
-  "connections": {},
+  "connections": {
+    "connection_1": {
+      "id": "connection_1",
+      "source_module_id": "ebcd69ba-766e-42dd-a566-912f1457fd37",
+      "target_module_id": "module_40481936",
+      "source_point_id": "ebcd69ba-766e-42dd-a566-912f1457fd37",
+      "target_point_id": "e02d1c33-f3a0-41a6-858a-9fe657cec39b",
+      "interface_id": "",
+      "connection_points": [
+        {
+          "x": 150,
+          "y": 230
+        },
+        {
+          "x": 700,
+          "y": 230
+        }
+      ],
+      "enabled": true
+    },
+    "connection_2": {
+      "id": "connection_2",
+      "source_module_id": "753cd1f1-5896-40c8-a5d9-d7d498306a8e",
+      "target_module_id": "module_40481936",
+      "source_point_id": "753cd1f1-5896-40c8-a5d9-d7d498306a8e",
+      "target_point_id": "e02d1c33-f3a0-41a6-858a-9fe657cec39b",
+      "interface_id": "",
+      "connection_points": [
+        {
+          "x": 150,
+          "y": 330
+        },
+        {
+          "x": 700,
+          "y": 230
+        }
+      ],
+      "enabled": true
+    },
+    "connection_3": {
+      "id": "connection_3",
+      "source_module_id": "b7a59694-82bf-4afd-acef-616fa9818fae",
+      "target_module_id": "module_40483376",
+      "source_point_id": "b7a59694-82bf-4afd-acef-616fa9818fae",
+      "target_point_id": "ff70cbf9-0c0f-4ff4-993e-1b68049f4c0c",
+      "interface_id": "",
+      "connection_points": [
+        {
+          "x": 150,
+          "y": 430
+        },
+        {
+          "x": 250,
+          "y": 230
+        }
+      ],
+      "enabled": true
+    },
+    "connection_4": {
+      "id": "connection_4",
+      "source_module_id": "6d362875-3cd7-403b-81ba-51d0e3117de2",
+      "target_module_id": "module_40483376",
+      "source_point_id": "6d362875-3cd7-403b-81ba-51d0e3117de2",
+      "target_point_id": "ff70cbf9-0c0f-4ff4-993e-1b68049f4c0c",
+      "interface_id": "",
+      "connection_points": [
+        {
+          "x": 150,
+          "y": 530
+        },
+        {
+          "x": 250,
+          "y": 230
+        }
+      ],
+      "enabled": true
+    },
+    "connection_5": {
+      "id": "connection_5",
+      "source_module_id": "de060823-af79-4123-a8a6-03a3db2302a3",
+      "target_module_id": "module_40522224",
+      "source_point_id": "de060823-af79-4123-a8a6-03a3db2302a3",
+      "target_point_id": "c12b866e-33b9-4572-8399-c1882e132618",
+      "interface_id": "",
+      "connection_points": [
+        {
+          "x": 350,
+          "y": 230
+        },
+        {
+          "x": 350,
+          "y": 530
+        }
+      ],
+      "enabled": true
+    },
+    "connection_6": {
+      "id": "connection_6",
+      "source_module_id": "c12b866e-33b9-4572-8399-c1882e132618",
+      "target_module_id": "module_40483376",
+      "source_point_id": "c12b866e-33b9-4572-8399-c1882e132618",
+      "target_point_id": "ff70cbf9-0c0f-4ff4-993e-1b68049f4c0c",
+      "interface_id": "",
+      "connection_points": [
+        {
+          "x": 450,
+          "y": 530
+        },
+        {
+          "x": 250,
+          "y": 230
+        }
+      ],
+      "enabled": true
+    },
+    "connection_7": {
+      "id": "connection_7",
+      "source_module_id": "de060823-af79-4123-a8a6-03a3db2302a3",
+      "target_module_id": "module_40522464",
+      "source_point_id": "de060823-af79-4123-a8a6-03a3db2302a3",
+      "target_point_id": "775a0699-e707-4416-b625-43530945939a",
+      "interface_id": "",
+      "connection_points": [
+        {
+          "x": 350,
+          "y": 230
+        },
+        {
+          "x": 250,
+          "y": 430
+        }
+      ],
+      "enabled": true
+    },
+    "connection_8": {
+      "id": "connection_8",
+      "source_module_id": "775a0699-e707-4416-b625-43530945939a",
+      "target_module_id": "module_40483376",
+      "source_point_id": "775a0699-e707-4416-b625-43530945939a",
+      "target_point_id": "ff70cbf9-0c0f-4ff4-993e-1b68049f4c0c",
+      "interface_id": "",
+      "connection_points": [
+        {
+          "x": 350,
+          "y": 430
+        },
+        {
+          "x": 250,
+          "y": 230
+        }
+      ],
+      "enabled": true
+    },
+    "connection_9": {
+      "id": "connection_9",
+      "source_module_id": "5ce61d9e-62fa-4d8a-a4aa-a600a8bb2860",
+      "target_module_id": "module_40522464",
+      "source_point_id": "5ce61d9e-62fa-4d8a-a4aa-a600a8bb2860",
+      "target_point_id": "775a0699-e707-4416-b625-43530945939a",
+      "interface_id": "",
+      "connection_points": [
+        {
+          "x": 450,
+          "y": 230
+        },
+        {
+          "x": 250,
+          "y": 430
+        }
+      ],
+      "enabled": true
+    },
+    "connection_10": {
+      "id": "connection_10",
+      "source_module_id": "775a0699-e707-4416-b625-43530945939a",
+      "target_module_id": "module_40483616",
+      "source_point_id": "775a0699-e707-4416-b625-43530945939a",
+      "target_point_id": "d8581c22-824c-4b35-b759-fac36db81bb0",
+      "interface_id": "",
+      "connection_points": [
+        {
+          "x": 350,
+          "y": 430
+        },
+        {
+          "x": 350,
+          "y": 230
+        }
+      ],
+      "enabled": true
+    },
+    "connection_11": {
+      "id": "connection_11",
+      "source_module_id": "de060823-af79-4123-a8a6-03a3db2302a3",
+      "target_module_id": "module_40483616",
+      "source_point_id": "de060823-af79-4123-a8a6-03a3db2302a3",
+      "target_point_id": "d8581c22-824c-4b35-b759-fac36db81bb0",
+      "interface_id": "",
+      "connection_points": [
+        {
+          "x": 350,
+          "y": 230
+        },
+        {
+          "x": 350,
+          "y": 230
+        }
+      ],
+      "enabled": true
+    },
+    "connection_12": {
+      "id": "connection_12",
+      "source_module_id": "5ce61d9e-62fa-4d8a-a4aa-a600a8bb2860",
+      "target_module_id": "module_40484096",
+      "source_point_id": "5ce61d9e-62fa-4d8a-a4aa-a600a8bb2860",
+      "target_point_id": "be135edf-d076-4d9e-9013-2666092fcc50",
+      "interface_id": "",
+      "connection_points": [
+        {
+          "x": 450,
+          "y": 230
+        },
+        {
+          "x": 250,
+          "y": 330
+        }
+      ],
+      "enabled": true
+    },
+    "connection_13": {
+      "id": "connection_13",
+      "source_module_id": "5ce61d9e-62fa-4d8a-a4aa-a600a8bb2860",
+      "target_module_id": "module_40522224",
+      "source_point_id": "5ce61d9e-62fa-4d8a-a4aa-a600a8bb2860",
+      "target_point_id": "c12b866e-33b9-4572-8399-c1882e132618",
+      "interface_id": "",
+      "connection_points": [
+        {
+          "x": 450,
+          "y": 230
+        },
+        {
+          "x": 350,
+          "y": 530
+        }
+      ],
+      "enabled": true
+    },
+    "connection_14": {
+      "id": "connection_14",
+      "source_module_id": "c12b866e-33b9-4572-8399-c1882e132618",
+      "target_module_id": "module_40483616",
+      "source_point_id": "c12b866e-33b9-4572-8399-c1882e132618",
+      "target_point_id": "d8581c22-824c-4b35-b759-fac36db81bb0",
+      "interface_id": "",
+      "connection_points": [
+        {
+          "x": 450,
+          "y": 530
+        },
+        {
+          "x": 350,
+          "y": 230
+        }
+      ],
+      "enabled": true
+    },
+    "connection_15": {
+      "id": "connection_15",
+      "source_module_id": "5ce61d9e-62fa-4d8a-a4aa-a600a8bb2860",
+      "target_module_id": "module_40483856",
+      "source_point_id": "5ce61d9e-62fa-4d8a-a4aa-a600a8bb2860",
+      "target_point_id": "4fe4abef-92c8-49d1-8326-c19c8043cfa8",
+      "interface_id": "",
+      "connection_points": [
+        {
+          "x": 450,
+          "y": 230
+        },
+        {
+          "x": 450,
+          "y": 230
+        }
+      ],
+      "enabled": true
+    },
+    "connection_16": {
+      "id": "connection_16",
+      "source_module_id": "432ed0d1-b5a7-4e92-9a9a-f30888cde33f",
+      "target_module_id": "module_40522224",
+      "source_point_id": "432ed0d1-b5a7-4e92-9a9a-f30888cde33f",
+      "target_point_id": "c12b866e-33b9-4572-8399-c1882e132618",
+      "interface_id": "",
+      "connection_points": [
+        {
+          "x": 550,
+          "y": 230
+        },
+        {
+          "x": 350,
+          "y": 530
+        }
+      ],
+      "enabled": true
+    },
+    "connection_17": {
+      "id": "connection_17",
+      "source_module_id": "c12b866e-33b9-4572-8399-c1882e132618",
+      "target_module_id": "module_40483856",
+      "source_point_id": "c12b866e-33b9-4572-8399-c1882e132618",
+      "target_point_id": "4fe4abef-92c8-49d1-8326-c19c8043cfa8",
+      "interface_id": "",
+      "connection_points": [
+        {
+          "x": 450,
+          "y": 530
+        },
+        {
+          "x": 450,
+          "y": 230
+        }
+      ],
+      "enabled": true
+    },
+    "connection_18": {
+      "id": "connection_18",
+      "source_module_id": "432ed0d1-b5a7-4e92-9a9a-f30888cde33f",
+      "target_module_id": "module_40521984",
+      "source_point_id": "432ed0d1-b5a7-4e92-9a9a-f30888cde33f",
+      "target_point_id": "b7352fb7-0e2f-4ca3-b2f1-0ec20b192b3e",
+      "interface_id": "",
+      "connection_points": [
+        {
+          "x": 550,
+          "y": 230
+        },
+        {
+          "x": 450,
+          "y": 430
+        }
+      ],
+      "enabled": true
+    },
+    "connection_19": {
+      "id": "connection_19",
+      "source_module_id": "b7352fb7-0e2f-4ca3-b2f1-0ec20b192b3e",
+      "target_module_id": "module_40483856",
+      "source_point_id": "b7352fb7-0e2f-4ca3-b2f1-0ec20b192b3e",
+      "target_point_id": "4fe4abef-92c8-49d1-8326-c19c8043cfa8",
+      "interface_id": "",
+      "connection_points": [
+        {
+          "x": 550,
+          "y": 430
+        },
+        {
+          "x": 450,
+          "y": 230
+        }
+      ],
+      "enabled": true
+    },
+    "connection_20": {
+      "id": "connection_20",
+      "source_module_id": "432ed0d1-b5a7-4e92-9a9a-f30888cde33f",
+      "target_module_id": "module_40484336",
+      "source_point_id": "432ed0d1-b5a7-4e92-9a9a-f30888cde33f",
+      "target_point_id": "4f53c198-723f-41b4-9a1e-e48b278bafc2",
+      "interface_id": "",
+      "connection_points": [
+        {
+          "x": 550,
+          "y": 230
+        },
+        {
+          "x": 350,
+          "y": 330
+        }
+      ],
+      "enabled": true
+    },
+    "connection_21": {
+      "id": "connection_21",
+      "source_module_id": "432ed0d1-b5a7-4e92-9a9a-f30888cde33f",
+      "target_module_id": "module_40482656",
+      "source_point_id": "432ed0d1-b5a7-4e92-9a9a-f30888cde33f",
+      "target_point_id": "0462e264-12a8-49e6-9034-aa1bd738a869",
+      "interface_id": "",
+      "connection_points": [
+        {
+          "x": 550,
+          "y": 230
+        },
+        {
+          "x": 700,
+          "y": 530
+        }
+      ],
+      "enabled": true
+    },
+    "connection_22": {
+      "id": "connection_22",
+      "source_module_id": "2f1ac301-e856-4f4d-b8a8-79999a1e2085",
+      "target_module_id": "module_40522224",
+      "source_point_id": "2f1ac301-e856-4f4d-b8a8-79999a1e2085",
+      "target_point_id": "c12b866e-33b9-4572-8399-c1882e132618",
+      "interface_id": "",
+      "connection_points": [
+        {
+          "x": 400,
+          "y": 280
+        },
+        {
+          "x": 350,
+          "y": 530
+        }
+      ],
+      "enabled": true
+    },
+    "connection_23": {
+      "id": "connection_23",
+      "source_module_id": "18bda085-f111-4085-bf48-9fafb5e86a6c",
+      "target_module_id": "module_40522224",
+      "source_point_id": "18bda085-f111-4085-bf48-9fafb5e86a6c",
+      "target_point_id": "c12b866e-33b9-4572-8399-c1882e132618",
+      "interface_id": "",
+      "connection_points": [
+        {
+          "x": 350,
+          "y": 330
+        },
+        {
+          "x": 350,
+          "y": 530
+        }
+      ],
+      "enabled": true
+    },
+    "connection_24": {
+      "id": "connection_24",
+      "source_module_id": "c12b866e-33b9-4572-8399-c1882e132618",
+      "target_module_id": "module_40484096",
+      "source_point_id": "c12b866e-33b9-4572-8399-c1882e132618",
+      "target_point_id": "be135edf-d076-4d9e-9013-2666092fcc50",
+      "interface_id": "",
+      "connection_points": [
+        {
+          "x": 450,
+          "y": 530
+        },
+        {
+          "x": 250,
+          "y": 330
+        }
+      ],
+      "enabled": true
+    },
+    "connection_25": {
+      "id": "connection_25",
+      "source_module_id": "18bda085-f111-4085-bf48-9fafb5e86a6c",
+      "target_module_id": "module_40484576",
+      "source_point_id": "18bda085-f111-4085-bf48-9fafb5e86a6c",
+      "target_point_id": "e89a9324-773a-45fc-9129-a9b7fdc42b9a",
+      "interface_id": "",
+      "connection_points": [
+        {
+          "x": 350,
+          "y": 330
+        },
+        {
+          "x": 450,
+          "y": 330
+        }
+      ],
+      "enabled": true
+    },
+    "connection_26": {
+      "id": "connection_26",
+      "source_module_id": "76151aba-2d61-497c-9e6e-eb5e1995c6a3",
+      "target_module_id": "module_40522224",
+      "source_point_id": "76151aba-2d61-497c-9e6e-eb5e1995c6a3",
+      "target_point_id": "c12b866e-33b9-4572-8399-c1882e132618",
+      "interface_id": "",
+      "connection_points": [
+        {
+          "x": 450,
+          "y": 330
+        },
+        {
+          "x": 350,
+          "y": 530
+        }
+      ],
+      "enabled": true
+    },
+    "connection_27": {
+      "id": "connection_27",
+      "source_module_id": "c12b866e-33b9-4572-8399-c1882e132618",
+      "target_module_id": "module_40484336",
+      "source_point_id": "c12b866e-33b9-4572-8399-c1882e132618",
+      "target_point_id": "4f53c198-723f-41b4-9a1e-e48b278bafc2",
+      "interface_id": "",
+      "connection_points": [
+        {
+          "x": 450,
+          "y": 530
+        },
+        {
+          "x": 350,
+          "y": 330
+        }
+      ],
+      "enabled": true
+    },
+    "connection_28": {
+      "id": "connection_28",
+      "source_module_id": "76151aba-2d61-497c-9e6e-eb5e1995c6a3",
+      "target_module_id": "module_40482416",
+      "source_point_id": "76151aba-2d61-497c-9e6e-eb5e1995c6a3",
+      "target_point_id": "87345dd9-f0e6-4b70-92b7-f19953a56002",
+      "interface_id": "",
+      "connection_points": [
+        {
+          "x": 450,
+          "y": 330
+        },
+        {
+          "x": 700,
+          "y": 430
+        }
+      ],
+      "enabled": true
+    },
+    "connection_29": {
+      "id": "connection_29",
+      "source_module_id": "37e3bdc7-dc61-4e8b-972b-a151788a9e19",
+      "target_module_id": "module_40484336",
+      "source_point_id": "37e3bdc7-dc61-4e8b-972b-a151788a9e19",
+      "target_point_id": "4f53c198-723f-41b4-9a1e-e48b278bafc2",
+      "interface_id": "",
+      "connection_points": [
+        {
+          "x": 800,
+          "y": 430
+        },
+        {
+          "x": 350,
+          "y": 330
+        }
+      ],
+      "enabled": true
+    },
+    "connection_30": {
+      "id": "connection_30",
+      "source_module_id": "76151aba-2d61-497c-9e6e-eb5e1995c6a3",
+      "target_module_id": "module_40484576",
+      "source_point_id": "76151aba-2d61-497c-9e6e-eb5e1995c6a3",
+      "target_point_id": "e89a9324-773a-45fc-9129-a9b7fdc42b9a",
+      "interface_id": "",
+      "connection_points": [
+        {
+          "x": 450,
+          "y": 330
+        },
+        {
+          "x": 450,
+          "y": 330
+        }
+      ],
+      "enabled": true
+    },
+    "connection_31": {
+      "id": "connection_31",
+      "source_module_id": "85917b7d-3cdd-4f7f-bbee-cb1e5a172cf4",
+      "target_module_id": "module_40484336",
+      "source_point_id": "85917b7d-3cdd-4f7f-bbee-cb1e5a172cf4",
+      "target_point_id": "4f53c198-723f-41b4-9a1e-e48b278bafc2",
+      "interface_id": "",
+      "connection_points": [
+        {
+          "x": 550,
+          "y": 330
+        },
+        {
+          "x": 350,
+          "y": 330
+        }
+      ],
+      "enabled": true
+    },
+    "connection_32": {
+      "id": "connection_32",
+      "source_module_id": "85917b7d-3cdd-4f7f-bbee-cb1e5a172cf4",
+      "target_module_id": "module_40521984",
+      "source_point_id": "85917b7d-3cdd-4f7f-bbee-cb1e5a172cf4",
+      "target_point_id": "b7352fb7-0e2f-4ca3-b2f1-0ec20b192b3e",
+      "interface_id": "",
+      "connection_points": [
+        {
+          "x": 550,
+          "y": 330
+        },
+        {
+          "x": 450,
+          "y": 430
+        }
+      ],
+      "enabled": true
+    },
+    "connection_33": {
+      "id": "connection_33",
+      "source_module_id": "b7352fb7-0e2f-4ca3-b2f1-0ec20b192b3e",
+      "target_module_id": "module_40484576",
+      "source_point_id": "b7352fb7-0e2f-4ca3-b2f1-0ec20b192b3e",
+      "target_point_id": "e89a9324-773a-45fc-9129-a9b7fdc42b9a",
+      "interface_id": "",
+      "connection_points": [
+        {
+          "x": 550,
+          "y": 430
+        },
+        {
+          "x": 450,
+          "y": 330
+        }
+      ],
+      "enabled": true
+    },
+    "connection_34": {
+      "id": "connection_34",
+      "source_module_id": "85917b7d-3cdd-4f7f-bbee-cb1e5a172cf4",
+      "target_module_id": "module_40522224",
+      "source_point_id": "85917b7d-3cdd-4f7f-bbee-cb1e5a172cf4",
+      "target_point_id": "c12b866e-33b9-4572-8399-c1882e132618",
+      "interface_id": "",
+      "connection_points": [
+        {
+          "x": 550,
+          "y": 330
+        },
+        {
+          "x": 350,
+          "y": 530
+        }
+      ],
+      "enabled": true
+    },
+    "connection_35": {
+      "id": "connection_35",
+      "source_module_id": "c12b866e-33b9-4572-8399-c1882e132618",
+      "target_module_id": "module_40484576",
+      "source_point_id": "c12b866e-33b9-4572-8399-c1882e132618",
+      "target_point_id": "e89a9324-773a-45fc-9129-a9b7fdc42b9a",
+      "interface_id": "",
+      "connection_points": [
+        {
+          "x": 450,
+          "y": 530
+        },
+        {
+          "x": 450,
+          "y": 330
+        }
+      ],
+      "enabled": true
+    },
+    "connection_36": {
+      "id": "connection_36",
+      "source_module_id": "85917b7d-3cdd-4f7f-bbee-cb1e5a172cf4",
+      "target_module_id": "module_40521888",
+      "source_point_id": "85917b7d-3cdd-4f7f-bbee-cb1e5a172cf4",
+      "target_point_id": "bb6fd389-0f30-4d9c-b432-233d67a8aa4c",
+      "interface_id": "",
+      "connection_points": [
+        {
+          "x": 550,
+          "y": 330
+        },
+        {
+          "x": 350,
+          "y": 430
+        }
+      ],
+      "enabled": true
+    },
+    "connection_37": {
+      "id": "connection_37",
+      "source_module_id": "e2fd9a20-5538-4434-adb1-433e23c4de21",
+      "target_module_id": "module_40482416",
+      "source_point_id": "e2fd9a20-5538-4434-adb1-433e23c4de21",
+      "target_point_id": "87345dd9-f0e6-4b70-92b7-f19953a56002",
+      "interface_id": "",
+      "connection_points": [
+        {
+          "x": 450,
+          "y": 430
+        },
+        {
+          "x": 700,
+          "y": 430
+        }
+      ],
+      "enabled": true
+    },
+    "connection_38": {
+      "id": "connection_38",
+      "source_module_id": "37e3bdc7-dc61-4e8b-972b-a151788a9e19",
+      "target_module_id": "module_40521888",
+      "source_point_id": "37e3bdc7-dc61-4e8b-972b-a151788a9e19",
+      "target_point_id": "bb6fd389-0f30-4d9c-b432-233d67a8aa4c",
+      "interface_id": "",
+      "connection_points": [
+        {
+          "x": 800,
+          "y": 430
+        },
+        {
+          "x": 350,
+          "y": 430
+        }
+      ],
+      "enabled": true
+    },
+    "connection_39": {
+      "id": "connection_39",
+      "source_module_id": "e2fd9a20-5538-4434-adb1-433e23c4de21",
+      "target_module_id": "module_40481936",
+      "source_point_id": "e2fd9a20-5538-4434-adb1-433e23c4de21",
+      "target_point_id": "e02d1c33-f3a0-41a6-858a-9fe657cec39b",
+      "interface_id": "",
+      "connection_points": [
+        {
+          "x": 450,
+          "y": 430
+        },
+        {
+          "x": 700,
+          "y": 230
+        }
+      ],
+      "enabled": true
+    },
+    "connection_40": {
+      "id": "connection_40",
+      "source_module_id": "5f9e6d80-ca7b-484e-ae60-e0dfd514c5fb",
+      "target_module_id": "module_40521888",
+      "source_point_id": "5f9e6d80-ca7b-484e-ae60-e0dfd514c5fb",
+      "target_point_id": "bb6fd389-0f30-4d9c-b432-233d67a8aa4c",
+      "interface_id": "",
+      "connection_points": [
+        {
+          "x": 800,
+          "y": 230
+        },
+        {
+          "x": 350,
+          "y": 430
+        }
+      ],
+      "enabled": true
+    },
+    "connection_41": {
+      "id": "connection_41",
+      "source_module_id": "e2fd9a20-5538-4434-adb1-433e23c4de21",
+      "target_module_id": "module_40522224",
+      "source_point_id": "e2fd9a20-5538-4434-adb1-433e23c4de21",
+      "target_point_id": "c12b866e-33b9-4572-8399-c1882e132618",
+      "interface_id": "",
+      "connection_points": [
+        {
+          "x": 450,
+          "y": 430
+        },
+        {
+          "x": 350,
+          "y": 530
+        }
+      ],
+      "enabled": true
+    },
+    "connection_42": {
+      "id": "connection_42",
+      "source_module_id": "c12b866e-33b9-4572-8399-c1882e132618",
+      "target_module_id": "module_40521888",
+      "source_point_id": "c12b866e-33b9-4572-8399-c1882e132618",
+      "target_point_id": "bb6fd389-0f30-4d9c-b432-233d67a8aa4c",
+      "interface_id": "",
+      "connection_points": [
+        {
+          "x": 450,
+          "y": 530
+        },
+        {
+          "x": 350,
+          "y": 430
+        }
+      ],
+      "enabled": true
+    },
+    "connection_43": {
+      "id": "connection_43",
+      "source_module_id": "5f9e6d80-ca7b-484e-ae60-e0dfd514c5fb",
+      "target_module_id": "module_40483616",
+      "source_point_id": "5f9e6d80-ca7b-484e-ae60-e0dfd514c5fb",
+      "target_point_id": "d8581c22-824c-4b35-b759-fac36db81bb0",
+      "interface_id": "",
+      "connection_points": [
+        {
+          "x": 800,
+          "y": 230
+        },
+        {
+          "x": 350,
+          "y": 230
+        }
+      ],
+      "enabled": true
+    },
+    "connection_44": {
+      "id": "connection_44",
+      "source_module_id": "9fde383b-f758-4c4f-8391-83e956c7be0a",
+      "target_module_id": "module_40482176",
+      "source_point_id": "9fde383b-f758-4c4f-8391-83e956c7be0a",
+      "target_point_id": "804d915f-4341-4711-8eef-b9c574c26838",
+      "interface_id": "",
+      "connection_points": [
+        {
+          "x": 800,
+          "y": 230
+        },
+        {
+          "x": 700,
+          "y": 330
+        }
+      ],
+      "enabled": true
+    },
+    "connection_45": {
+      "id": "connection_45",
+      "source_module_id": "37e3bdc7-dc61-4e8b-972b-a151788a9e19",
+      "target_module_id": "module_40482896",
+      "source_point_id": "37e3bdc7-dc61-4e8b-972b-a151788a9e19",
+      "target_point_id": "5fc8226e-6fcf-4fb7-9202-aba767d1a89c",
+      "interface_id": "",
+      "connection_points": [
+        {
+          "x": 800,
+          "y": 430
+        },
+        {
+          "x": 700,
+          "y": 630
+        }
+      ],
+      "enabled": true
+    },
+    "connection_46": {
+      "id": "connection_46",
+      "source_module_id": "5fc8226e-6fcf-4fb7-9202-aba767d1a89c",
+      "target_module_id": "module_40482416",
+      "source_point_id": "5fc8226e-6fcf-4fb7-9202-aba767d1a89c",
+      "target_point_id": "87345dd9-f0e6-4b70-92b7-f19953a56002",
+      "interface_id": "",
+      "connection_points": [
+        {
+          "x": 800,
+          "y": 630
+        },
+        {
+          "x": 700,
+          "y": 430
+        }
+      ],
+      "enabled": true
+    },
+    "connection_47": {
+      "id": "connection_47",
+      "source_module_id": "module_40431920",
+      "target_module_id": "module_40481936",
+      "source_point_id": "ebcd69ba-766e-42dd-a566-912f1457fd37",
+      "target_point_id": "e02d1c33-f3a0-41a6-858a-9fe657cec39b",
+      "interface_id": "",
+      "connection_points": [
+        {
+          "x": 305.9,
+          "y": 73.0
+        },
+        {
+          "x": 523.1,
+          "y": 62.0
+        }
+      ],
+      "enabled": true
+    },
+    "connection_48": {
+      "id": "connection_48",
+      "source_module_id": "module_40432496",
+      "target_module_id": "module_40483376",
+      "source_point_id": "b7a59694-82bf-4afd-acef-616fa9818fae",
+      "target_point_id": "ff70cbf9-0c0f-4ff4-993e-1b68049f4c0c",
+      "interface_id": "",
+      "connection_points": [
+        {
+          "x": 177.1,
+          "y": 430.0
+        },
+        {
+          "x": 207.9,
+          "y": 290.0
+        }
+      ],
+      "enabled": true
+    },
+    "connection_49": {
+      "id": "connection_49",
+      "source_module_id": "module_40481840",
+      "target_module_id": "module_40483376",
+      "source_point_id": "6d362875-3cd7-403b-81ba-51d0e3117de2",
+      "target_point_id": "ff70cbf9-0c0f-4ff4-993e-1b68049f4c0c",
+      "interface_id": "",
+      "connection_points": [
+        {
+          "x": 177.1,
+          "y": 530.0
+        },
+        {
+          "x": 207.9,
+          "y": 290.0
+        }
+      ],
+      "enabled": true
+    },
+    "connection_50": {
+      "id": "connection_50",
+      "source_module_id": "module_40483616",
+      "target_module_id": "module_40484096",
+      "source_point_id": "5ce61d9e-62fa-4d8a-a4aa-a600a8bb2860",
+      "target_point_id": "be135edf-d076-4d9e-9013-2666092fcc50",
+      "interface_id": "",
+      "connection_points": [
+        {
+          "x": 404.1,
+          "y": 252.0
+        },
+        {
+          "x": 306.9,
+          "y": 364.0
+        }
+      ],
+      "enabled": true
+    },
+    "connection_51": {
+      "id": "connection_51",
+      "source_module_id": "module_40484096",
+      "target_module_id": "module_40484576",
+      "source_point_id": "18bda085-f111-4085-bf48-9fafb5e86a6c",
+      "target_point_id": "e89a9324-773a-45fc-9129-a9b7fdc42b9a",
+      "interface_id": "",
+      "connection_points": [
+        {
+          "x": 388.5,
+          "y": 331.0
+        },
+        {
+          "x": 458.5,
+          "y": 312.0
+        }
+      ],
+      "enabled": true
+    },
+    "connection_52": {
+      "id": "connection_52",
+      "source_module_id": "module_40484576",
+      "target_module_id": "module_40521888",
+      "source_point_id": "85917b7d-3cdd-4f7f-bbee-cb1e5a172cf4",
+      "target_point_id": "bb6fd389-0f30-4d9c-b432-233d67a8aa4c",
+      "interface_id": "",
+      "connection_points": [
+        {
+          "x": 545.6,
+          "y": 383.0
+        },
+        {
+          "x": 446.4,
+          "y": 462.0
+        }
+      ],
+      "enabled": true
+    },
+    "connection_55": {
+      "id": "connection_55",
+      "source_module_id": "module_40483856",
+      "target_module_id": "module_40482656",
+      "source_point_id": "432ed0d1-b5a7-4e92-9a9a-f30888cde33f",
+      "target_point_id": "0462e264-12a8-49e6-9034-aa1bd738a869",
+      "interface_id": "",
+      "connection_points": [
+        {
+          "x": 637.2,
+          "y": 253.0
+        },
+        {
+          "x": 670.8,
+          "y": 530.0
+        }
+      ],
+      "enabled": true
+    },
+    "connection_56": {
+      "id": "connection_56",
+      "source_module_id": "module_40482896",
+      "target_module_id": "module_40482416",
+      "source_point_id": "5fc8226e-6fcf-4fb7-9202-aba767d1a89c",
+      "target_point_id": "37e3bdc7-dc61-4e8b-972b-a151788a9e19",
+      "interface_id": "",
+      "connection_points": [
+        {
+          "x": 766.2,
+          "y": 596.0
+        },
+        {
+          "x": 787.8,
+          "y": 440.0
+        }
+      ],
+      "enabled": true
+    },
+    "connection_57": {
+      "id": "connection_57",
+      "source_module_id": "module_40484336",
+      "target_module_id": "module_40482416",
+      "source_point_id": "76151aba-2d61-497c-9e6e-eb5e1995c6a3",
+      "target_point_id": "87345dd9-f0e6-4b70-92b7-f19953a56002",
+      "interface_id": "",
+      "connection_points": [
+        {
+          "x": 543.4,
+          "y": 385.0
+        },
+        {
+          "x": 630.6,
+          "y": 420.0
+        }
+      ],
+      "enabled": true
+    },
+    "connection_58": {
+      "id": "connection_58",
+      "source_module_id": "module_40521888",
+      "target_module_id": "module_40482416",
+      "source_point_id": "e2fd9a20-5538-4434-adb1-433e23c4de21",
+      "target_point_id": "87345dd9-f0e6-4b70-92b7-f19953a56002",
+      "interface_id": "",
+      "connection_points": [
+        {
+          "x": 544.8,
+          "y": 482.0
+        },
+        {
+          "x": 631.2,
+          "y": 420.0
+        }
+      ],
+      "enabled": true
+    },
+    "connection_59": {
+      "id": "connection_59",
+      "source_module_id": "module_40481936",
+      "target_module_id": "module_40484576",
+      "source_point_id": "5f9e6d80-ca7b-484e-ae60-e0dfd514c5fb",
+      "target_point_id": "85917b7d-3cdd-4f7f-bbee-cb1e5a172cf4",
+      "interface_id": "",
+      "connection_points": [
+        {
+          "x": 802.7,
+          "y": 259.0
+        },
+        {
+          "x": 698.3,
+          "y": 383.0
+        }
+      ],
+      "enabled": true
+    },
+    "connection_61": {
+      "id": "connection_61",
+      "source_module_id": "module_40483616",
+      "target_module_id": "module_40483856",
+      "source_point_id": "5ce61d9e-62fa-4d8a-a4aa-a600a8bb2860",
+      "target_point_id": "4fe4abef-92c8-49d1-8326-c19c8043cfa8",
+      "interface_id": "",
+      "connection_points": [
+        {
+          "x": 485.1,
+          "y": 252.0
+        },
+        {
+          "x": 495.9,
+          "y": 233.0
+        }
+      ],
+      "enabled": true
+    }
+  },
   "environment_models": {
-    "38a79983-4f38-4f5e-9477-43e8cdab054b": {
-      "id": "38a79983-4f38-4f5e-9477-43e8cdab054b",
+    "7b960e86-917c-482f-a124-06ae9a16c673": {
+      "id": "7b960e86-917c-482f-a124-06ae9a16c673",
       "name": "恶劣天气环境",
       "description": "包含强风、降雨等恶劣天气条件",
-      "created_time": "2025-10-03T17:40:04.074561",
-      "modified_time": "2025-10-03T17:40:04.074571",
+      "created_time": "2025-10-08T22:42:55.401354",
+      "modified_time": "2025-10-08T22:42:55.401354",
       "version": "1.0",
       "environment_type": "weather",
+      "parameters": {},
       "stress_factors": [
         {
           "name": "风速",
@@ -530,33 +3767,26 @@
           "python_code": ""
         }
       ],
-      "parameters": {},
       "python_code": "",
       "position": {
         "x": 50,
         "y": 50
       },
       "size": {
-        "width": 120,
-        "height": 80
+        "x": 0.0,
+        "y": 0.0
       },
-      "icon_path": "",
-      "color": "#87CEEB",
-      "affected_modules": [
-        "764c9232-658f-4599-b7ea-b6b56a13d7c4",
-        "388ea14d-1a38-464f-be85-379de60fe4df",
-        "e0313d88-334e-4cc9-b5b2-a0a05a9ebc2f"
-      ],
-      "enabled": true
+      "icon_path": ""
     },
-    "54e1b31c-c820-4a77-a12b-27451069d051": {
-      "id": "54e1b31c-c820-4a77-a12b-27451069d051",
+    "9b95cd73-adda-4710-bae0-2fe73a78a0db": {
+      "id": "9b95cd73-adda-4710-bae0-2fe73a78a0db",
       "name": "电磁干扰环境",
       "description": "电磁干扰对通信和导航的影响",
-      "created_time": "2025-10-03T17:40:04.074580",
-      "modified_time": "2025-10-03T17:40:04.074585",
+      "created_time": "2025-10-08T22:42:55.401354",
+      "modified_time": "2025-10-08T22:42:55.401354",
       "version": "1.0",
       "environment_type": "electromagnetic",
+      "parameters": {},
       "stress_factors": [
         {
           "name": "电磁场强度",
@@ -575,32 +3805,26 @@
           "python_code": ""
         }
       ],
-      "parameters": {},
       "python_code": "",
       "position": {
         "x": 200,
         "y": 50
       },
       "size": {
-        "width": 120,
-        "height": 80
+        "x": 0.0,
+        "y": 0.0
       },
-      "icon_path": "",
-      "color": "#FFD700",
-      "affected_modules": [
-        "764c9232-658f-4599-b7ea-b6b56a13d7c4",
-        "e0313d88-334e-4cc9-b5b2-a0a05a9ebc2f"
-      ],
-      "enabled": true
+      "icon_path": ""
     },
-    "8f85b1da-4652-4060-8a08-38f7eaba5a57": {
-      "id": "8f85b1da-4652-4060-8a08-38f7eaba5a57",
+    "2a49ea2b-f302-4425-98b0-465edbf31ec1": {
+      "id": "2a49ea2b-f302-4425-98b0-465edbf31ec1",
       "name": "高温环境",
       "description": "高温对电子设备的影响",
-      "created_time": "2025-10-03T17:40:04.074592",
-      "modified_time": "2025-10-03T17:40:04.074599",
+      "created_time": "2025-10-08T22:42:55.401354",
+      "modified_time": "2025-10-08T22:42:55.401354",
       "version": "1.0",
       "environment_type": "thermal",
+      "parameters": {},
       "stress_factors": [
         {
           "name": "环境温度",
@@ -619,76 +3843,160 @@
           "python_code": ""
         }
       ],
-      "parameters": {},
       "python_code": "",
       "position": {
         "x": 350,
         "y": 50
       },
       "size": {
+        "x": 0.0,
+        "y": 0.0
+      },
+      "icon_path": ""
+    },
+    "1853e41e-350a-4fd3-a85f-42a48b1079a6": {
+      "id": "1853e41e-350a-4fd3-a85f-42a48b1079a6",
+      "name": "恶劣天气环境",
+      "description": "恶劣天气条件，包括风雨雪等",
+      "created_time": "2025-10-08T22:55:10.092648",
+      "modified_time": "2025-10-08T22:55:10.092648",
+      "version": "1.0",
+      "environment_type": "weather",
+      "stress_factors": [
+        {
+          "name": "风速",
+          "stress_type": "custom",
+          "description": "风速变化",
+          "base_value": 15.0,
+          "variation_range": 10.0,
+          "distribution": "normal",
+          "time_profile": "random",
+          "duration": 0.0,
+          "start_time": 0.0,
+          "enabled": true,
+          "parameters": {},
+          "python_code": ""
+        },
+        {
+          "name": "降雨量",
+          "stress_type": "custom",
+          "description": "降雨量",
+          "base_value": 5.0,
+          "variation_range": 8.0,
+          "distribution": "exponential",
+          "time_profile": "linear",
+          "duration": 0.0,
+          "start_time": 0.0,
+          "enabled": true,
+          "parameters": {},
+          "python_code": ""
+        }
+      ],
+      "parameters": {
+        "visibility": "low",
+        "humidity": "high"
+      },
+      "python_code": "",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "size": {
         "width": 120,
         "height": 80
       },
       "icon_path": "",
-      "color": "#FF6B6B",
-      "affected_modules": [
-        "f164a4e3-136a-4132-bff1-a6d7d085a439",
-        "1bf84235-0197-4392-a753-07e3f8a22840",
-        "e0313d88-334e-4cc9-b5b2-a0a05a9ebc2f"
-      ],
+      "color": "#85C1E9",
+      "affected_modules": [],
       "enabled": true
     }
   },
   "task_profiles": {
-    "e2fdca12-2e6b-4426-835c-6896241c24d5": {
-      "id": "e2fdca12-2e6b-4426-835c-6896241c24d5",
-      "name": "巡航监控任务",
-      "description": "无人机执行区域巡航监控任务",
-      "created_time": "2025-10-03T17:40:04.074502",
-      "modified_time": "2025-10-03T17:40:04.074530",
+    "25f8deac-087d-4aac-bb8b-8647ad5bed10": {
+      "id": "25f8deac-087d-4aac-bb8b-8647ad5bed10",
+      "name": "抵近侦察任务",
+      "description": "在目标区域内完成目标识别，保持安全距离，按时脱离返航",
+      "created_time": "2025-10-08T22:42:55.401354",
+      "modified_time": "2025-10-08T22:42:55.401354",
       "version": "1.0",
-      "mission_type": "surveillance",
-      "total_duration": 3600.0,
+      "duration": 0.0,
+      "priority": 1,
       "success_criteria": [
         {
-          "name": "GPS定位精度",
-          "description": "GPS定位精度满足要求",
+          "name": "目标识别成功",
           "criteria_type": "module_output",
-          "module_id": "764c9232-658f-4599-b7ea-b6b56a13d7c4",
-          "parameter_name": "position_accuracy",
-          "operator": "<",
-          "target_value": 5.0,
-          "range_min": 0.0,
-          "range_max": 100.0,
-          "weight": 2.0,
-          "enabled": true,
-          "python_code": ""
+          "target_module_id": "",
+          "target_parameter": "",
+          "threshold_value": 0.0,
+          "comparison_operator": ">=",
+          "python_code": "",
+          "weight": 3.0,
+          "enabled": true
         },
+        {
+          "name": "安全返航",
+          "criteria_type": "module_output",
+          "target_module_id": "",
+          "target_parameter": "",
+          "threshold_value": 0.0,
+          "comparison_operator": ">=",
+          "python_code": "",
+          "weight": 3.0,
+          "enabled": true
+        },
+        {
+          "name": "通信链路可用",
+          "criteria_type": "module_output",
+          "target_module_id": "",
+          "target_parameter": "",
+          "threshold_value": 0.0,
+          "comparison_operator": ">=",
+          "python_code": "",
+          "weight": 2.0,
+          "enabled": true
+        }
+      ],
+      "initial_conditions": {},
+      "environment_conditions": {},
+      "expected_outputs": {},
+      "fault_tree_analysis_results": {},
+      "analysis_completed": false
+    },
+    "a07000a0-dc83-4eb5-8fff-54d08adba101": {
+      "id": "a07000a0-dc83-4eb5-8fff-54d08adba101",
+      "name": "无人机巡航任务",
+      "description": "无人机执行巡航监控任务",
+      "created_time": "2025-10-08T22:54:55.259264",
+      "modified_time": "2025-10-08T22:54:55.259264",
+      "version": "1.0",
+      "mission_type": "surveillance",
+      "total_duration": 1800.0,
+      "success_criteria": [
         {
           "name": "飞行高度维持",
           "description": "维持指定飞行高度",
           "criteria_type": "module_output",
-          "module_id": "f164a4e3-136a-4132-bff1-a6d7d085a439",
+          "module_id": "flight_controller",
           "parameter_name": "altitude",
           "operator": "in_range",
           "target_value": 0.0,
           "range_min": 95.0,
           "range_max": 105.0,
-          "weight": 3.0,
+          "weight": 2.0,
           "enabled": true,
           "python_code": ""
         },
         {
-          "name": "通信链路正常",
-          "description": "与地面站通信正常",
+          "name": "航线跟踪精度",
+          "description": "航线跟踪误差小于5米",
           "criteria_type": "module_output",
-          "module_id": "e0313d88-334e-4cc9-b5b2-a0a05a9ebc2f",
-          "parameter_name": "signal_strength",
-          "operator": ">",
-          "target_value": -80.0,
+          "module_id": "navigation",
+          "parameter_name": "track_error",
+          "operator": "<=",
+          "target_value": 5.0,
           "range_min": 0.0,
           "range_max": 100.0,
-          "weight": 2.0,
+          "weight": 3.0,
           "enabled": true,
           "python_code": ""
         }
@@ -705,55 +4013,23 @@
         },
         {
           "name": "巡航阶段",
-          "description": "按预定路线巡航监控",
+          "description": "按预定航线巡航",
           "start_time": 120.0,
-          "duration": 3300.0,
+          "duration": 1500.0,
           "conditions": [],
           "parameters": {},
           "enabled": true
         },
         {
-          "name": "降落阶段",
+          "name": "返航降落",
           "description": "返回起飞点并降落",
-          "start_time": 3420.0,
+          "start_time": 1620.0,
           "duration": 180.0,
           "conditions": [],
           "parameters": {},
           "enabled": true
         }
       ],
-      "environment_conditions": {},
-      "initial_conditions": {},
-      "fault_tree_generated": false,
-      "fault_tree_data": {},
-      "analysis_results": {}
-    },
-    "9c70e580-f1b3-4756-8cd1-b997a2f2f1d3": {
-      "id": "9c70e580-f1b3-4756-8cd1-b997a2f2f1d3",
-      "name": "目标跟踪任务",
-      "description": "无人机执行特定目标跟踪任务",
-      "created_time": "2025-10-03T17:40:04.074536",
-      "modified_time": "2025-10-03T17:40:04.074541",
-      "version": "1.0",
-      "mission_type": "tracking",
-      "total_duration": 1800.0,
-      "success_criteria": [
-        {
-          "name": "目标跟踪精度",
-          "description": "目标跟踪精度满足要求",
-          "criteria_type": "module_output",
-          "module_id": "1bf84235-0197-4392-a753-07e3f8a22840",
-          "parameter_name": "tracking_accuracy",
-          "operator": ">",
-          "target_value": 0.9,
-          "range_min": 0.0,
-          "range_max": 100.0,
-          "weight": 3.0,
-          "enabled": true,
-          "python_code": ""
-        }
-      ],
-      "task_phases": [],
       "environment_conditions": {},
       "initial_conditions": {},
       "fault_tree_generated": false,
