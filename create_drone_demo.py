@@ -795,6 +795,765 @@ INTERFACE_SPECS: List[Dict[str, object]] = [
     },
 ]
 
+# ---------------------------------------------------------------------------
+# 布局常量
+# ---------------------------------------------------------------------------
+
+MODULE_WIDTH = 120.0
+MODULE_HEIGHT = 80.0
+HORIZONTAL_MARGIN = 60.0
+VERTICAL_MARGIN = 40.0
+
+
+# ---------------------------------------------------------------------------
+# 数据定义
+# ---------------------------------------------------------------------------
+
+MODULE_SPECS: List[Dict[str, object]] = [
+    {
+        "name": "惯性测量单元",
+        "description": "IMU传感器硬件",
+        "type": ModuleType.HARDWARE,
+        "template": ModuleTemplate.SENSOR,
+        "position": (40, 200),
+        "parameters": {"update_rate": "200Hz", "interface": "SPI"},
+        "failure_rate": 2e-5,
+    },
+    {
+        "name": "全球定位模块",
+        "description": "GNSS接收机",
+        "type": ModuleType.HARDWARE,
+        "template": ModuleTemplate.SENSOR,
+        "position": (40, 300),
+        "parameters": {"accuracy": "1.5m", "update_rate": "10Hz"},
+        "failure_rate": 1.2e-5,
+    },
+    {
+        "name": "光电红外摄像机",
+        "description": "双谱段光电红外摄像机",
+        "type": ModuleType.HARDWARE,
+        "template": ModuleTemplate.SENSOR,
+        "position": (40, 410),
+        "parameters": {"resolution": "1920x1080", "frame_rate": "30fps"},
+        "failure_rate": 3.5e-5,
+    },
+    {
+        "name": "毫米波雷达",
+        "description": "77GHz毫米波雷达",
+        "type": ModuleType.HARDWARE,
+        "template": ModuleTemplate.SENSOR,
+        "position": (40, 520),
+        "parameters": {"range": "200m", "accuracy": "0.1m"},
+        "failure_rate": 4.1e-5,
+    },
+    {
+        "name": "飞控任务应用软件",
+        "description": "无人机任务管理与飞控任务容器",
+        "type": ModuleType.SOFTWARE,
+        "template": ModuleTemplate.APPLICATION,
+        "position": (320, 240),
+        "parameters": {"language": "C++", "runtime": "RTOS"},
+        "failure_rate": 1.0e-4,
+    },
+    {
+        "name": "时间同步算法",
+        "description": "多源传感器时间同步算法",
+        "type": ModuleType.ALGORITHM,
+        "template": ModuleTemplate.ALGORITHM,
+        "position": (220, 180),
+        "parameters": {"method": "PTP", "accuracy": "1ms"},
+        "failure_rate": 5.0e-5,
+    },
+    {
+        "name": "空间配准算法",
+        "description": "多源坐标系配准算法",
+        "type": ModuleType.ALGORITHM,
+        "template": ModuleTemplate.ALGORITHM,
+        "position": (320, 180),
+        "parameters": {"method": "ICP", "accuracy": "0.1m"},
+        "failure_rate": 5.0e-5,
+    },
+    {
+        "name": "多模态感知冗余管理",
+        "description": "双通道感知数据冗余与健康监测模块",
+        "type": ModuleType.SOFTWARE,
+        "template": ModuleTemplate.APPLICATION,
+        "position": (420, 240),
+        "parameters": {"mode": "dual-feed", "latency_budget_ms": 40},
+        "failure_rate": 4.5e-5,
+    },
+    {
+        "name": "目标检测算法",
+        "description": "基于深度学习的目标检测算法",
+        "type": ModuleType.ALGORITHM,
+        "template": ModuleTemplate.ALGORITHM,
+        "position": (520, 180),
+        "parameters": {"model": "YOLOv5", "pd": 0.95},
+        "failure_rate": 8.0e-5,
+    },
+    {
+        "name": "环境感知算法",
+        "description": "多传感环境理解算法",
+        "type": ModuleType.ALGORITHM,
+        "template": ModuleTemplate.ALGORITHM,
+        "position": (520, 300),
+        "parameters": {"method": "OccupancyFusion", "update_rate": "10Hz"},
+        "failure_rate": 7.0e-5,
+    },
+    {
+        "name": "路径规划算法",
+        "description": "实时路径规划算法",
+        "type": ModuleType.ALGORITHM,
+        "template": ModuleTemplate.ALGORITHM,
+        "position": (620, 240),
+        "parameters": {"method": "A*", "replan_period": 0.3},
+        "failure_rate": 6.0e-5,
+    },
+    {
+        "name": "避障算法",
+        "description": "动态避障与安全裕度评估算法",
+        "type": ModuleType.ALGORITHM,
+        "template": ModuleTemplate.ALGORITHM,
+        "position": (720, 240),
+        "parameters": {"method": "ModelPredictive", "latency": "120ms"},
+        "failure_rate": 1.1e-4,
+    },
+    {
+        "name": "飞控控制算法",
+        "description": "姿态/航迹闭环控制算法",
+        "type": ModuleType.ALGORITHM,
+        "template": ModuleTemplate.ALGORITHM,
+        "position": (620, 360),
+        "parameters": {"method": "PID+LQR", "rate": "100Hz"},
+        "failure_rate": 2.0e-4,
+    },
+    {
+        "name": "自驾仪",
+        "description": "飞行控制自驾仪硬件",
+        "type": ModuleType.HARDWARE,
+        "template": ModuleTemplate.PROCESSOR,
+        "position": (840, 200),
+        "parameters": {"cpu": "STM32H7", "buses": "CAN/UART"},
+        "failure_rate": 1.1e-4,
+    },
+    {
+        "name": "执行器",
+        "description": "电机与舵面执行器阵列",
+        "type": ModuleType.HARDWARE,
+        "template": ModuleTemplate.ACTUATOR,
+        "position": (950, 280),
+        "parameters": {"type": "BLDC", "control": "PWM"},
+        "failure_rate": 4.8e-4,
+    },
+    {
+        "name": "通信模块",
+        "description": "机载通信与数传模块",
+        "type": ModuleType.HARDWARE,
+        "template": ModuleTemplate.COMMUNICATION,
+        "position": (840, 360),
+        "parameters": {"band": "2.4/5.8GHz", "range": "10km"},
+        "failure_rate": 1.1e-4,
+    },
+    {
+        "name": "通信链路健康管理",
+        "description": "通信链路心跳与干扰监测服务",
+        "type": ModuleType.SOFTWARE,
+        "template": ModuleTemplate.APPLICATION,
+        "position": (720, 360),
+        "parameters": {"heartbeat_period_ms": 500, "failover": True},
+        "failure_rate": 5.5e-5,
+    },
+    {
+        "name": "摄像机云台",
+        "description": "三轴稳定云台",
+        "type": ModuleType.HARDWARE,
+        "template": ModuleTemplate.ACTUATOR,
+        "position": (950, 180),
+        "parameters": {"precision": "0.01°", "control": "CAN"},
+        "failure_rate": 2.2e-4,
+    },
+    {
+        "name": "地面站",
+        "description": "地面控制站",
+        "type": ModuleType.HARDWARE,
+        "template": ModuleTemplate.COMMUNICATION,
+        "position": (950, 420),
+        "parameters": {"link": "Ethernet/Wireless", "range": "15km"},
+        "failure_rate": 1.0e-5,
+    },
+    {
+        "name": "机器学习框架",
+        "description": "TensorRT推理框架",
+        "type": ModuleType.SOFTWARE,
+        "template": ModuleTemplate.APPLICATION,
+        "position": (520, 420),
+        "parameters": {"version": "8.5", "precision": "FP16"},
+        "failure_rate": 3.5e-5,
+    },
+    {
+        "name": "嵌入式OS",
+        "description": "实时嵌入式操作系统",
+        "type": ModuleType.SOFTWARE,
+        "template": ModuleTemplate.APPLICATION,
+        "position": (420, 420),
+        "parameters": {"name": "VxWorks", "scheduler": "Priority"},
+        "failure_rate": 1.0e-6,
+    },
+    {
+        "name": "专用算力设备",
+        "description": "FPGA/SoC算力加速设备",
+        "type": ModuleType.HARDWARE,
+        "template": ModuleTemplate.PROCESSOR,
+        "position": (220, 300),
+        "parameters": {"type": "Zynq", "tops": "1.2"},
+        "failure_rate": 2.0e-4,
+    },
+]
+
+
+INTERFACE_SPECS: List[Dict[str, object]] = [
+    {
+        "id": 1,
+        "name": "IMU数据采集",
+        "description": "惯性测量单元 → 自驾仪",
+        "source": "惯性测量单元",
+        "target": "自驾仪",
+        "direction": InterfaceDirection.OUTPUT,
+        "type": InterfaceType.HARDWARE_HARDWARE,
+        "subtype": HardwareInterfaceSubtype.SENSOR,
+        "protocol": "SPI",
+        "failure_mode": {
+            "category": FailureMode.DATA_CORRUPTION,
+            "name": "时间戳漂移",
+            "description": "时间戳漂移导致姿态解算渐偏",
+            "rate": 2.5e-5,
+        },
+    },
+    {
+        "id": 2,
+        "name": "GNSS数据采集",
+        "description": "GNSS → 自驾仪",
+        "source": "全球定位模块",
+        "target": "自驾仪",
+        "direction": InterfaceDirection.OUTPUT,
+        "type": InterfaceType.HARDWARE_HARDWARE,
+        "subtype": HardwareInterfaceSubtype.SENSOR,
+        "protocol": "UART",
+        "failure_mode": {
+            "category": FailureMode.TIMEOUT,
+            "name": "PPS抖动",
+            "description": "PPS抖动引起对时偏差",
+            "rate": 1.8e-5,
+        },
+    },
+    {
+        "id": 3,
+        "name": "光电红外图像采集",
+        "description": "摄像机 → 时间同步算法",
+        "source": "光电红外摄像机",
+        "target": "时间同步算法",
+        "direction": InterfaceDirection.OUTPUT,
+        "type": InterfaceType.ALGORITHM_HARDWARE,
+        "subtype": HardwareInterfaceSubtype.SENSOR,
+        "protocol": "GigE Vision",
+        "failure_mode": {
+            "category": FailureMode.TIMEOUT,
+            "name": "高负载丢帧",
+            "description": "高负载下图像帧丢失",
+            "rate": 3.2e-5,
+        },
+    },
+    {
+        "id": 4,
+        "name": "雷达点云采集",
+        "description": "毫米波雷达 → 时间同步算法",
+        "source": "毫米波雷达",
+        "target": "时间同步算法",
+        "direction": InterfaceDirection.OUTPUT,
+        "type": InterfaceType.ALGORITHM_HARDWARE,
+        "subtype": HardwareInterfaceSubtype.SENSOR,
+        "protocol": "UDP",
+        "failure_mode": {
+            "category": FailureMode.COMMUNICATION_FAILURE,
+            "name": "UDP分片丢包",
+            "description": "UDP分片丢包导致点云缺失",
+            "rate": 3.0e-5,
+        },
+    },
+    {
+        "id": 5,
+        "name": "同步-OS",
+        "description": "时间同步算法 ↔ 嵌入式OS",
+        "source": "时间同步算法",
+        "target": "嵌入式OS",
+        "direction": InterfaceDirection.BIDIRECTIONAL,
+        "type": InterfaceType.ALGORITHM_OS,
+        "protocol": "RTIPC",
+        "failure_mode": {
+            "category": FailureMode.RESOURCE_EXHAUSTION,
+            "name": "优先级反转",
+            "description": "优先级反转导致对时超时",
+            "rate": 1.0e-5,
+        },
+    },
+    {
+        "id": 6,
+        "name": "同步-算力设备",
+        "description": "时间同步算法 ↔ 专用算力设备",
+        "source": "时间同步算法",
+        "target": "专用算力设备",
+        "direction": InterfaceDirection.BIDIRECTIONAL,
+        "type": InterfaceType.ALGORITHM_HARDWARE,
+        "subtype": HardwareInterfaceSubtype.COMPUTING_HARDWARE,
+        "protocol": "DMA",
+        "failure_mode": {
+            "category": FailureMode.TIMEOUT,
+            "name": "DMA传输超时",
+            "description": "DMA传输超时导致同步窗口失配",
+            "rate": 2.6e-5,
+        },
+    },
+    {
+        "id": 7,
+        "name": "配准-算力设备",
+        "description": "空间配准算法 ↔ 专用算力设备",
+        "source": "空间配准算法",
+        "target": "专用算力设备",
+        "direction": InterfaceDirection.BIDIRECTIONAL,
+        "type": InterfaceType.ALGORITHM_HARDWARE,
+        "subtype": HardwareInterfaceSubtype.COMPUTING_HARDWARE,
+        "protocol": "DMA",
+        "failure_mode": {
+            "category": FailureMode.DATA_CORRUPTION,
+            "name": "缓存不一致",
+            "description": "缓存不一致导致结果失效",
+            "rate": 2.4e-5,
+        },
+    },
+    {
+        "id": 8,
+        "name": "同步-配准",
+        "description": "时间同步算法 → 空间配准算法",
+        "source": "时间同步算法",
+        "target": "空间配准算法",
+        "direction": InterfaceDirection.OUTPUT,
+        "type": InterfaceType.ALGORITHM_APPLICATION,
+        "failure_mode": {
+            "category": FailureMode.DATA_CORRUPTION,
+            "name": "帧错配",
+            "description": "时空窗口错位导致帧错配",
+            "rate": 1.9e-5,
+        },
+    },
+    {
+        "id": 9,
+        "name": "配准-感知",
+        "description": "空间配准算法 → 环境感知算法",
+        "source": "空间配准算法",
+        "target": "环境感知算法",
+        "direction": InterfaceDirection.OUTPUT,
+        "type": InterfaceType.ALGORITHM_APPLICATION,
+        "failure_mode": {
+            "category": FailureMode.DATA_CORRUPTION,
+            "name": "坐标系错标",
+            "description": "坐标系标签错误",
+            "rate": 2.1e-5,
+        },
+    },
+    {
+        "id": 10,
+        "name": "配准-OS",
+        "description": "空间配准算法 ↔ 嵌入式OS",
+        "source": "空间配准算法",
+        "target": "嵌入式OS",
+        "direction": InterfaceDirection.BIDIRECTIONAL,
+        "type": InterfaceType.ALGORITHM_OS,
+        "failure_mode": {
+            "category": FailureMode.RESOURCE_EXHAUSTION,
+            "name": "环形缓冲溢出",
+            "description": "环形缓冲溢出导致数据丢失",
+            "rate": 1.4e-5,
+        },
+    },
+    {
+        "id": 11,
+        "name": "配准-检测",
+        "description": "空间配准算法 → 目标检测算法",
+        "source": "空间配准算法",
+        "target": "目标检测算法",
+        "direction": InterfaceDirection.OUTPUT,
+        "type": InterfaceType.ALGORITHM_APPLICATION,
+        "failure_mode": {
+            "category": FailureMode.CONFIGURATION_ERROR,
+            "name": "分辨率错配",
+            "description": "分辨率/步幅错配导致输入失效",
+            "rate": 2.0e-5,
+        },
+    },
+    {
+        "id": 12,
+        "name": "检测-OS",
+        "description": "目标检测算法 ↔ 嵌入式OS",
+        "source": "目标检测算法",
+        "target": "嵌入式OS",
+        "direction": InterfaceDirection.BIDIRECTIONAL,
+        "type": InterfaceType.ALGORITHM_OS,
+        "failure_mode": {
+            "category": FailureMode.RESOURCE_EXHAUSTION,
+            "name": "推理进程OOM",
+            "description": "推理进程因内存不足被终止",
+            "rate": 2.7e-5,
+        },
+    },
+    {
+        "id": 13,
+        "name": "检测-ML",
+        "description": "目标检测算法 ↔ 机器学习框架",
+        "source": "目标检测算法",
+        "target": "机器学习框架",
+        "direction": InterfaceDirection.BIDIRECTIONAL,
+        "type": InterfaceType.ALGORITHM_FRAMEWORK,
+        "failure_mode": {
+            "category": FailureMode.VERSION_INCOMPATIBILITY,
+            "name": "模型版本不兼容",
+            "description": "模型/算子版本不兼容",
+            "rate": 1.8e-5,
+        },
+    },
+    {
+        "id": 14,
+        "name": "检测-规划",
+        "description": "目标检测算法 → 路径规划算法",
+        "source": "目标检测算法",
+        "target": "路径规划算法",
+        "direction": InterfaceDirection.OUTPUT,
+        "type": InterfaceType.ALGORITHM_APPLICATION,
+        "failure_mode": {
+            "category": FailureMode.DATA_CORRUPTION,
+            "name": "目标ID跳变",
+            "description": "目标ID跳变引起航迹震荡",
+            "rate": 2.3e-5,
+        },
+    },
+    {
+        "id": 15,
+        "name": "检测-云台",
+        "description": "目标检测算法 → 摄像机云台",
+        "source": "目标检测算法",
+        "target": "摄像机云台",
+        "direction": InterfaceDirection.OUTPUT,
+        "type": InterfaceType.ALGORITHM_HARDWARE,
+        "subtype": HardwareInterfaceSubtype.ACTUATOR,
+        "failure_mode": {
+            "category": FailureMode.COMMUNICATION_FAILURE,
+            "name": "指向命令丢失",
+            "description": "云台指向命令丢失",
+            "rate": 1.7e-5,
+        },
+    },
+    {
+        "id": 16,
+        "name": "数据存档",
+        "description": "飞控任务应用软件 → 嵌入式OS",
+        "source": "飞控任务应用软件",
+        "target": "嵌入式OS",
+        "direction": InterfaceDirection.OUTPUT,
+        "type": InterfaceType.ALGORITHM_DATA_PLATFORM,
+        "failure_mode": {
+            "category": FailureMode.TIMEOUT,
+            "name": "阻塞I/O",
+            "description": "阻塞I/O反压上游链路",
+            "rate": 1.3e-5,
+        },
+    },
+    {
+        "id": 17,
+        "name": "感知-OS",
+        "description": "环境感知算法 ↔ 嵌入式OS",
+        "source": "环境感知算法",
+        "target": "嵌入式OS",
+        "direction": InterfaceDirection.BIDIRECTIONAL,
+        "type": InterfaceType.ALGORITHM_OS,
+        "failure_mode": {
+            "category": FailureMode.RESOURCE_EXHAUSTION,
+            "name": "线程池枯竭",
+            "description": "线程池枯竭导致感知滞后",
+            "rate": 2.5e-5,
+        },
+    },
+    {
+        "id": 18,
+        "name": "感知-避障",
+        "description": "环境感知算法 → 避障算法",
+        "source": "环境感知算法",
+        "target": "避障算法",
+        "direction": InterfaceDirection.OUTPUT,
+        "type": InterfaceType.ALGORITHM_APPLICATION,
+        "failure_mode": {
+            "category": FailureMode.TIMEOUT,
+            "name": "时间窗越界",
+            "description": "时间窗外数据被消费",
+            "rate": 2.9e-5,
+        },
+    },
+    {
+        "id": 19,
+        "name": "规划-OS",
+        "description": "路径规划算法 ↔ 嵌入式OS",
+        "source": "路径规划算法",
+        "target": "嵌入式OS",
+        "direction": InterfaceDirection.BIDIRECTIONAL,
+        "type": InterfaceType.ALGORITHM_OS,
+        "failure_mode": {
+            "category": FailureMode.TIMEOUT,
+            "name": "定时器漂移",
+            "description": "定时器漂移导致重规划窗口漂移",
+            "rate": 2.2e-5,
+        },
+    },
+    {
+        "id": 20,
+        "name": "规划-通信",
+        "description": "路径规划算法 ↔ 通信模块",
+        "source": "路径规划算法",
+        "target": "通信模块",
+        "direction": InterfaceDirection.BIDIRECTIONAL,
+        "type": InterfaceType.ALGORITHM_HARDWARE,
+        "failure_mode": {
+            "category": FailureMode.COMMUNICATION_FAILURE,
+            "name": "报文分片丢失",
+            "description": "报文分片丢失导致下行指令缺失",
+            "rate": 2.0e-5,
+        },
+    },
+    {
+        "id": 21,
+        "name": "规划-避障",
+        "description": "路径规划算法 ↔ 避障算法",
+        "source": "路径规划算法",
+        "target": "避障算法",
+        "direction": InterfaceDirection.BIDIRECTIONAL,
+        "type": InterfaceType.ALGORITHM_APPLICATION,
+        "failure_mode": {
+            "category": FailureMode.TIMEOUT,
+            "name": "交互死锁",
+            "description": "规划与避障交互死锁",
+            "rate": 2.8e-5,
+        },
+    },
+    {
+        "id": 22,
+        "name": "避障-ML",
+        "description": "避障算法 ↔ 机器学习框架",
+        "source": "避障算法",
+        "target": "机器学习框架",
+        "direction": InterfaceDirection.BIDIRECTIONAL,
+        "type": InterfaceType.ALGORITHM_FRAMEWORK,
+        "failure_mode": {
+            "category": FailureMode.HARDWARE_FAULT,
+            "name": "GPU内核异常",
+            "description": "GPU内核异常导致避障推理失败",
+            "rate": 2.1e-5,
+        },
+    },
+    {
+        "id": 23,
+        "name": "避障-OS",
+        "description": "避障算法 ↔ 嵌入式OS",
+        "source": "避障算法",
+        "target": "嵌入式OS",
+        "direction": InterfaceDirection.BIDIRECTIONAL,
+        "type": InterfaceType.ALGORITHM_OS,
+        "failure_mode": {
+            "category": FailureMode.TIMEOUT,
+            "name": "周期漂移",
+            "description": "周期漂移导致控制空洞",
+            "rate": 2.3e-5,
+        },
+    },
+    {
+        "id": 24,
+        "name": "航迹指令",
+        "description": "避障算法 → 飞控控制算法",
+        "source": "避障算法",
+        "target": "飞控控制算法",
+        "direction": InterfaceDirection.OUTPUT,
+        "type": InterfaceType.ALGORITHM_APPLICATION,
+        "failure_mode": {
+            "category": FailureMode.DATA_CORRUPTION,
+            "name": "指令NaN/Inf",
+            "description": "航迹指令包含NaN/Inf",
+            "rate": 3.0e-5,
+        },
+    },
+    {
+        "id": 25,
+        "name": "飞控-通信",
+        "description": "飞控控制算法 ↔ 通信模块",
+        "source": "飞控控制算法",
+        "target": "通信模块",
+        "direction": InterfaceDirection.BIDIRECTIONAL,
+        "type": InterfaceType.ALGORITHM_HARDWARE,
+        "failure_mode": {
+            "category": FailureMode.TIMEOUT,
+            "name": "心跳中断",
+            "description": "飞控-通信心跳中断触发保护",
+            "rate": 2.4e-5,
+        },
+    },
+    {
+        "id": 26,
+        "name": "飞控指令",
+        "description": "飞控控制算法 → 自驾仪",
+        "source": "飞控控制算法",
+        "target": "自驾仪",
+        "direction": InterfaceDirection.OUTPUT,
+        "type": InterfaceType.ALGORITHM_HARDWARE,
+        "failure_mode": {
+            "category": FailureMode.TIMEOUT,
+            "name": "串口黏包",
+            "description": "串口黏包/超时导致指令失效",
+            "rate": 2.5e-5,
+        },
+    },
+    {
+        "id": 27,
+        "name": "自驾仪状态反馈",
+        "description": "自驾仪 → 飞控控制算法",
+        "source": "自驾仪",
+        "target": "飞控控制算法",
+        "direction": InterfaceDirection.OUTPUT,
+        "type": InterfaceType.HARDWARE_HARDWARE,
+        "failure_mode": {
+            "category": FailureMode.DATA_CORRUPTION,
+            "name": "状态未更新",
+            "description": "状态值未正确更新",
+            "rate": 2.7e-5,
+        },
+    },
+    {
+        "id": 28,
+        "name": "飞控算法-OS",
+        "description": "飞控控制算法 ↔ 嵌入式OS",
+        "source": "飞控控制算法",
+        "target": "嵌入式OS",
+        "direction": InterfaceDirection.BIDIRECTIONAL,
+        "type": InterfaceType.ALGORITHM_OS,
+        "failure_mode": {
+            "category": FailureMode.TIMEOUT,
+            "name": "看门狗漏触",
+            "description": "抖动下看门狗漏触/误触",
+            "rate": 1.9e-5,
+        },
+    },
+    {
+        "id": 29,
+        "name": "位姿反馈",
+        "description": "自驾仪 → 空间配准算法",
+        "source": "自驾仪",
+        "target": "空间配准算法",
+        "direction": InterfaceDirection.OUTPUT,
+        "type": InterfaceType.HARDWARE_HARDWARE,
+        "failure_mode": {
+            "category": FailureMode.DATA_CORRUPTION,
+            "name": "姿态突变",
+            "description": "姿态突变（跳变）",
+            "rate": 2.6e-5,
+        },
+    },
+    {
+        "id": 30,
+        "name": "自驾仪-执行器",
+        "description": "自驾仪 ↔ 执行器",
+        "source": "自驾仪",
+        "target": "执行器",
+        "direction": InterfaceDirection.BIDIRECTIONAL,
+        "type": InterfaceType.HARDWARE_HARDWARE,
+        "subtype": HardwareInterfaceSubtype.ACTUATOR,
+        "failure_mode": {
+            "category": FailureMode.TIMEOUT,
+            "name": "总线饱和",
+            "description": "总线饱和导致回授丢失",
+            "rate": 3.1e-5,
+        },
+    },
+    {
+        "id": 31,
+        "name": "无人机-地面站链路",
+        "description": "通信模块 ↔ 地面站",
+        "source": "通信模块",
+        "target": "地面站",
+        "direction": InterfaceDirection.BIDIRECTIONAL,
+        "type": InterfaceType.ALGORITHM_DATA_PLATFORM,
+        "failure_mode": {
+            "category": FailureMode.COMMUNICATION_FAILURE,
+            "name": "链路干扰",
+            "description": "干扰致BER升高与丢包",
+            "rate": 2.8e-5,
+        },
+    },
+    {
+        "id": 32,
+        "name": "冗余感知仲裁",
+        "description": "空间配准算法 → 多模态感知冗余管理",
+        "source": "空间配准算法",
+        "target": "多模态感知冗余管理",
+        "direction": InterfaceDirection.OUTPUT,
+        "type": InterfaceType.ALGORITHM_APPLICATION,
+        "failure_mode": {
+            "category": FailureMode.CONFIGURATION_ERROR,
+            "name": "冗余策略失效",
+            "description": "冗余仲裁逻辑配置错误",
+            "rate": 1.2e-5,
+        },
+    },
+    {
+        "id": 33,
+        "name": "冗余输出-检测",
+        "description": "多模态感知冗余管理 → 目标检测算法",
+        "source": "多模态感知冗余管理",
+        "target": "目标检测算法",
+        "direction": InterfaceDirection.OUTPUT,
+        "type": InterfaceType.ALGORITHM_APPLICATION,
+        "failure_mode": {
+            "category": FailureMode.DATA_CORRUPTION,
+            "name": "冗余输出漂移",
+            "description": "冗余仲裁输出漂移导致检测输入异常",
+            "rate": 1.1e-5,
+        },
+    },
+    {
+        "id": 34,
+        "name": "冗余输出-感知",
+        "description": "多模态感知冗余管理 → 环境感知算法",
+        "source": "多模态感知冗余管理",
+        "target": "环境感知算法",
+        "direction": InterfaceDirection.OUTPUT,
+        "type": InterfaceType.ALGORITHM_APPLICATION,
+        "failure_mode": {
+            "category": FailureMode.DATA_CORRUPTION,
+            "name": "冗余输出不一致",
+            "description": "冗余输出不一致导致环境感知失效",
+            "rate": 1.15e-5,
+        },
+    },
+    {
+        "id": 35,
+        "name": "通信心跳监测",
+        "description": "通信模块 ↔ 通信链路健康管理",
+        "source": "通信模块",
+        "target": "通信链路健康管理",
+        "direction": InterfaceDirection.BIDIRECTIONAL,
+        "type": InterfaceType.SOFTWARE_HARDWARE,
+        "failure_mode": {
+            "category": FailureMode.TIMEOUT,
+            "name": "心跳判决失效",
+            "description": "链路健康监测错判导致切换失败",
+            "rate": 1.6e-5,
+        },
+    },
+]
+
 
 # ---------------------------------------------------------------------------
 # 系统结构创建
@@ -865,6 +1624,64 @@ def build_interfaces(system: SystemStructure, module_map: Dict[str, Module]) -> 
     return interface_map
 
 
+def _extract_xy(position) -> Tuple[float, float]:
+    """统一提取模块坐标。"""
+
+    if isinstance(position, dict):
+        return float(position.get("x", 0.0)), float(position.get("y", 0.0))
+    return float(getattr(position, "x", 0.0)), float(getattr(position, "y", 0.0))
+
+
+def _module_center(module: Module) -> Tuple[float, float]:
+    """估算模块的中心点，便于生成折线路径。"""
+
+    x, y = _extract_xy(module.position)
+    return x + MODULE_WIDTH / 2.0, y + MODULE_HEIGHT / 2.0
+
+
+def _route_connection(
+    source_module: Module,
+    target_module: Module,
+) -> List[Tuple[float, float]]:
+    """生成带有避让的折线控制点，避免连线穿过模块。"""
+
+    sx, sy = _module_center(source_module)
+    tx, ty = _module_center(target_module)
+
+    points: List[Tuple[float, float]] = [(sx, sy)]
+
+    if abs(sx - tx) < 1e-3:
+        # 同列：向上/下偏移，再对齐
+        vertical_dir = 1.0 if ty >= sy else -1.0
+        offset_y = sy + vertical_dir * (MODULE_HEIGHT / 2.0 + VERTICAL_MARGIN)
+        points.append((sx, offset_y))
+        points.append((tx, offset_y))
+    else:
+        horizontal_dir = 1.0 if tx >= sx else -1.0
+        exit_x = sx + horizontal_dir * (MODULE_WIDTH / 2.0 + HORIZONTAL_MARGIN)
+        entry_x = tx - horizontal_dir * (MODULE_WIDTH / 2.0 + HORIZONTAL_MARGIN)
+
+        # 如果存在交叉，采用中间列绕行
+        if (horizontal_dir > 0 and exit_x > entry_x) or (
+            horizontal_dir < 0 and exit_x < entry_x
+        ):
+            mid_x = (sx + tx) / 2.0
+            exit_x = entry_x = mid_x
+
+        points.append((exit_x, sy))
+        points.append((exit_x, ty))
+
+    points.append((tx, ty))
+
+    # 去除重复点
+    simplified: List[Tuple[float, float]] = []
+    for px, py in points:
+        if not simplified or (px, py) != simplified[-1]:
+            simplified.append((px, py))
+
+    return simplified
+
+
 def build_connections(
     system: SystemStructure,
     module_map: Dict[str, Module],
@@ -887,6 +1704,13 @@ def build_connections(
         connection.interface_id = interface.id
         connection.name = f"{source_module.name}→{target_module.name}({interface.name})"
 
+        routed_points = _route_connection(source_module, target_module)
+        if len(routed_points) > 2:
+            intermediates = routed_points[1:-1]
+        else:
+            intermediates = routed_points[1:]
+
+        connection.connection_points = [Point(x, y) for x, y in intermediates]
         source_position = source_module.position
         target_position = target_module.position
 
@@ -919,6 +1743,14 @@ def _create_phase(
     phase = TaskPhase(name)
     phase.description = description
     phase.duration = duration_min * 60.0
+    critical_interfaces = [
+        interface_map[idx].id for idx in interface_ids if idx in interface_map
+    ]
+    phase.parameters["critical_interfaces"] = critical_interfaces
+    phase.parameters["critical_interface_names"] = [
+        interface_map[idx].name for idx in interface_ids if idx in interface_map
+    ]
+    phase.parameters["duration_minutes"] = duration_min
     phase.critical_interfaces = [
         interface_map[idx].id for idx in interface_ids if idx in interface_map
     ]
@@ -1274,6 +2106,9 @@ def create_task_profiles(
     system.add_task_profile(delivery_task)
     task_profiles[delivery_task.name] = delivery_task
 
+    if not system.current_task_profile_id:
+        system.current_task_profile_id = recon_task.id
+
     print(f"✓ 已创建 {len(task_profiles)} 个任务剖面")
     return task_profiles
 
@@ -1450,6 +2285,31 @@ def run_fault_tree_analyses(system: SystemStructure) -> Dict[str, object]:
         cut_sets = fault_tree.find_minimal_cut_sets()
         system_prob = fault_tree.calculate_system_probability()
         fault_tree.calculate_importance_measures()
+
+        print(
+            f"✓ {task.name} 故障树生成成功: 事件{len(fault_tree.events)}个, 逻辑门{len(fault_tree.gates)}个, "
+            f"最小割集{len(cut_sets)}个, 系统失效概率≈{system_prob:.2e}"
+        )
+
+        if cut_sets:
+            print("  Top 5 最小割集:")
+            for idx, cut_set in enumerate(cut_sets[:5], start=1):
+                event_labels = [
+                    fault_tree.events[eid].name
+                    for eid in cut_set.events
+                    if eid in fault_tree.events
+                ]
+                print(f"    {idx}. {', '.join(event_labels)} (P≈{cut_set.probability:.2e})")
+
+        fault_trees[task.name] = fault_tree
+
+    return fault_trees
+
+
+# ---------------------------------------------------------------------------
+# 项目保存与报告
+# ---------------------------------------------------------------------------
+
 
         print(
             f"✓ {task.name} 故障树生成成功: 事件{len(fault_tree.events)}个, 逻辑门{len(fault_tree.gates)}个, "
