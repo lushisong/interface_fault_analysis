@@ -1,916 +1,1607 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-无人机系统故障机理分析演示案例
-基于详细架构的无人机抵近侦察系统
+"""\
+无人机系统接口故障机理演示脚本
+================================
+
+该脚本根据“接口故障模式对无人智能系统任务可靠性的影响机理研究”中的描述，
+构建无人机智能系统的结构、接口、任务剖面与环境，并对“抵近侦察”与“物资
+投放”两个典型任务剖面执行故障树分析。脚本在原始结构基础上补充了多模态
+感知冗余等结构，使最小割集包含组合事件，便于展示接口冗余失效机理。
 """
 
-import sys
+from __future__ import annotations
+
 import os
-import json
+import sys
+from typing import Dict, List, Tuple
+
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from src.models.system_model import SystemStructure, Connection
-from src.models.module_model import Module, ModuleType, ModuleTemplate
-from src.models.interface_model import Interface, InterfaceType, HardwareInterfaceSubtype, InterfaceFailureMode, FailureMode
-from src.models.task_profile_model import TaskProfile, SuccessCriteria, TaskPhase, SuccessCriteriaType, ComparisonOperator
-from src.models.environment_model import EnvironmentModule, StressFactor, EnvironmentType, StressType
-from src.core.project_manager import ProjectManager
 from src.core.fault_tree_generator import FaultTreeGenerator
+from src.core.project_manager import ProjectManager
+from src.models.base_model import Point
+from src.models.environment_model import (
+    EnvironmentModule,
+    EnvironmentType,
+    StressFactor,
+    StressType,
+)
+from src.models.interface_model import (
+    FailureMode,
+    HardwareInterfaceSubtype,
+    Interface,
+    InterfaceDirection,
+    InterfaceFailureMode,
+    InterfaceType,
+)
+from src.models.module_model import Module, ModuleTemplate, ModuleType
+from src.models.system_model import Connection, SystemStructure
+from src.models.task_profile_model import (
+    ComparisonOperator,
+    SuccessCriteria,
+    SuccessCriteriaType,
+    TaskPhase,
+    TaskProfile,
+)
 
 
-def create_drone_system():
-    """创建无人机系统"""
-    print("创建无人机系统架构...")
-    
-    # 创建系统结构
-    system = SystemStructure("无人机抵近侦察系统", "基于多源传感器融合的自主侦察无人机系统")
-    
-    # ============================================================================
-    # 1. 外部硬件模块（左侧和右侧）
-    # ============================================================================
-    
-    # 左侧传感器硬件
-    imu_hardware = Module("惯性测量单元", "IMU传感器硬件")
-    imu_hardware.module_type = ModuleType.HARDWARE
-    imu_hardware.template = ModuleTemplate.SENSOR
-    imu_hardware.parameters = {"update_rate": "200Hz", "interface": "SPI"}
-    imu_hardware.failure_rate = 2e-5
-    imu_hardware.position = {'x': 50, 'y': 200}
-    system.add_module(imu_hardware)
-    
-    gnss_hardware = Module("全球定位模块", "GNSS接收机")
-    gnss_hardware.module_type = ModuleType.HARDWARE
-    gnss_hardware.template = ModuleTemplate.SENSOR
-    gnss_hardware.parameters = {"accuracy": "1.5m", "update_rate": "10Hz"}
-    gnss_hardware.failure_rate = 1e-5
-    gnss_hardware.position = {'x': 50, 'y': 300}
-    system.add_module(gnss_hardware)
-    
-    camera_hardware = Module("光电红外摄像机", "红外与可见光双模摄像机")
-    camera_hardware.module_type = ModuleType.HARDWARE
-    camera_hardware.template = ModuleTemplate.SENSOR
-    camera_hardware.parameters = {"resolution": "1920x1080", "frame_rate": "30fps"}
-    camera_hardware.failure_rate = 3e-5
-    camera_hardware.position = {'x': 50, 'y': 400}
-    system.add_module(camera_hardware)
-    
-    radar_hardware = Module("毫米波雷达", "77GHz毫米波雷达")
-    radar_hardware.module_type = ModuleType.HARDWARE
-    radar_hardware.template = ModuleTemplate.SENSOR
-    radar_hardware.parameters = {"range": "200m", "accuracy": "0.1m"}
-    radar_hardware.failure_rate = 4e-5
-    radar_hardware.position = {'x': 50, 'y': 500}
-    system.add_module(radar_hardware)
-    
-    # 右侧硬件
-    autopilot_hardware = Module("自驾仪", "飞行控制自驾仪")
-    autopilot_hardware.module_type = ModuleType.HARDWARE
-    autopilot_hardware.template = ModuleTemplate.PROCESSOR
-    autopilot_hardware.parameters = {"cpu": "STM32H7", "interface": "CAN/UART"}
-    autopilot_hardware.failure_rate = 1e-4
-    autopilot_hardware.position = {'x': 700, 'y': 200}
-    system.add_module(autopilot_hardware)
-    
-    actuator_hardware = Module("执行器", "电机与舵机执行器")
-    actuator_hardware.module_type = ModuleType.HARDWARE
-    actuator_hardware.template = ModuleTemplate.ACTUATOR
-    actuator_hardware.parameters = {"type": "BLDC Motor", "control": "PWM"}
-    actuator_hardware.failure_rate = 5e-4
-    actuator_hardware.position = {'x': 700, 'y': 300}
-    system.add_module(actuator_hardware)
-    
-    comm_hardware = Module("通信模块", "数传与图传电台")
-    comm_hardware.module_type = ModuleType.HARDWARE
-    comm_hardware.template = ModuleTemplate.COMMUNICATION
-    comm_hardware.parameters = {"frequency": "2.4GHz", "range": "10km"}
-    comm_hardware.failure_rate = 1e-4
-    comm_hardware.position = {'x': 700, 'y': 400}
-    system.add_module(comm_hardware)
-    
-    gimbal_hardware = Module("摄像机云台", "三轴稳定云台")
-    gimbal_hardware.module_type = ModuleType.HARDWARE
-    gimbal_hardware.template = ModuleTemplate.ACTUATOR
-    gimbal_hardware.parameters = {"stabilization": "0.01°", "control": "CAN"}
-    gimbal_hardware.failure_rate = 2e-4
-    gimbal_hardware.position = {'x': 700, 'y': 500}
-    system.add_module(gimbal_hardware)
-    
-    ground_station = Module("地面站", "地面控制站")
-    ground_station.module_type = ModuleType.HARDWARE
-    ground_station.template = ModuleTemplate.COMMUNICATION
-    ground_station.parameters = {"interface": "Ethernet/Wifi", "range": "10km"}
-    ground_station.failure_rate = 1e-5
-    ground_station.position = {'x': 700, 'y': 600}
-    system.add_module(ground_station)
-    
-    # ============================================================================
-    # 2. 机载计算机内部模块
-    # ============================================================================
-    
-    # 飞控任务应用软件（作为容器）
-    flight_control_app = Module("飞控任务应用软件", "无人机任务管理与控制应用")
-    flight_control_app.module_type = ModuleType.SOFTWARE
-    flight_control_app.template = ModuleTemplate.APPLICATION
-    flight_control_app.parameters = {"type": "Real-time Application", "language": "C++"}
-    flight_control_app.failure_rate = 1e-4
-    flight_control_app.position = {'x': 300, 'y': 250}
-    system.add_module(flight_control_app)
-    
-    # 7个算法单元（椭圆）
-    time_sync_algo = Module("时间同步算法", "多源传感器时间同步")
-    time_sync_algo.module_type = ModuleType.ALGORITHM
-    time_sync_algo.template = ModuleTemplate.ALGORITHM
-    time_sync_algo.parameters = {"method": "PTP", "accuracy": "1ms"}
-    time_sync_algo.failure_rate = 5e-5
-    time_sync_algo.position = {'x': 250, 'y': 200}
-    system.add_module(time_sync_algo)
-    
-    spatial_reg_algo = Module("空间配准算法", "多传感器坐标系配准")
-    spatial_reg_algo.module_type = ModuleType.ALGORITHM
-    spatial_reg_algo.template = ModuleTemplate.ALGORITHM
-    spatial_reg_algo.parameters = {"method": "ICP", "accuracy": "0.1m"}
-    spatial_reg_algo.failure_rate = 5e-5
-    spatial_reg_algo.position = {'x': 350, 'y': 200}
-    system.add_module(spatial_reg_algo)
-    
-    target_detect_algo = Module("目标检测算法", "基于深度学习的目标检测")
-    target_detect_algo.module_type = ModuleType.ALGORITHM
-    target_detect_algo.template = ModuleTemplate.ALGORITHM
-    target_detect_algo.parameters = {"model": "YOLOv5", "accuracy": "95%"}
-    target_detect_algo.failure_rate = 8e-5
-    target_detect_algo.position = {'x': 450, 'y': 200}
-    system.add_module(target_detect_algo)
-    
-    env_perception_algo = Module("环境感知算法", "环境建模与理解")
-    env_perception_algo.module_type = ModuleType.ALGORITHM
-    env_perception_algo.template = ModuleTemplate.ALGORITHM
-    env_perception_algo.parameters = {"method": "SLAM", "update_rate": "10Hz"}
-    env_perception_algo.failure_rate = 7e-5
-    env_perception_algo.position = {'x': 250, 'y': 300}
-    system.add_module(env_perception_algo)
-    
-    path_planning_algo = Module("路径规划算法", "实时路径规划")
-    path_planning_algo.module_type = ModuleType.ALGORITHM
-    path_planning_algo.template = ModuleTemplate.ALGORITHM
-    path_planning_algo.parameters = {"method": "A*", "update_rate": "5Hz"}
-    path_planning_algo.failure_rate = 6e-5
-    path_planning_algo.position = {'x': 350, 'y': 300}
-    system.add_module(path_planning_algo)
-    
-    obstacle_avoid_algo = Module("避障算法", "实时障碍物规避")
-    obstacle_avoid_algo.module_type = ModuleType.ALGORITHM
-    obstacle_avoid_algo.template = ModuleTemplate.ALGORITHM
-    obstacle_avoid_algo.parameters = {"method": "Potential Field", "response_time": "100ms"}
-    obstacle_avoid_algo.failure_rate = 1e-4
-    obstacle_avoid_algo.position = {'x': 450, 'y': 300}
-    system.add_module(obstacle_avoid_algo)
-    
-    flight_control_algo = Module("飞控控制算法", "飞行姿态与轨迹控制")
-    flight_control_algo.module_type = ModuleType.ALGORITHM
-    flight_control_algo.template = ModuleTemplate.ALGORITHM
-    flight_control_algo.parameters = {"method": "PID", "update_rate": "100Hz"}
-    flight_control_algo.failure_rate = 2e-4
-    flight_control_algo.position = {'x': 350, 'y': 400}
-    system.add_module(flight_control_algo)
-    
-    # 机器学习框架
-    ml_framework = Module("机器学习框架", "TensorRT推理引擎")
-    ml_framework.module_type = ModuleType.SOFTWARE
-    ml_framework.template = ModuleTemplate.APPLICATION  # 使用APPLICATION代替FRAMEWORK
-    ml_framework.parameters = {"version": "8.0", "precision": "FP16"}
-    ml_framework.failure_rate = 3e-5
-    ml_framework.position = {'x': 450, 'y': 400}
-    system.add_module(ml_framework)
-    
-    # 嵌入式OS
-    embedded_os = Module("嵌入式OS", "实时操作系统")
-    embedded_os.module_type = ModuleType.SOFTWARE
-    embedded_os.template = ModuleTemplate.APPLICATION  # 使用APPLICATION代替OPERATING_SYSTEM
-    embedded_os.parameters = {"name": "VxWorks", "version": "7.0"}
-    embedded_os.failure_rate = 1e-6
-    embedded_os.position = {'x': 350, 'y': 500}
-    system.add_module(embedded_os)
-    
-    # 专用算力设备
-    fpga_accelerator = Module("专用算力设备", "FPGA加速卡")
-    fpga_accelerator.module_type = ModuleType.HARDWARE
-    fpga_accelerator.template = ModuleTemplate.PROCESSOR
-    fpga_accelerator.parameters = {"type": "Xilinx Zynq", "performance": "1TOPS"}
-    fpga_accelerator.failure_rate = 2e-4
-    fpga_accelerator.position = {'x': 250, 'y': 400}
-    system.add_module(fpga_accelerator)
-    
-    print(f"✓ 创建了 {len(system.modules)} 个模块")
-    
-    # 为模块添加接口
-    print("为模块添加接口...")
-    
-    # 定义模块接口映射
-    module_interfaces = {
-        "惯性测量单元": [
-            {"name": "IMU数据输出", "description": "IMU传感器数据输出接口", "direction": "output"}
-        ],
-        "全球定位模块": [
-            {"name": "GNSS数据输出", "description": "GNSS定位数据输出接口", "direction": "output"}
-        ],
-        "光电红外摄像机": [
-            {"name": "图像数据输出", "description": "图像数据输出接口", "direction": "output"}
-        ],
-        "毫米波雷达": [
-            {"name": "雷达点云输出", "description": "雷达点云数据输出接口", "direction": "output"}
-        ],
-        "自驾仪": [
-            {"name": "传感器数据输入", "description": "传感器数据输入接口", "direction": "input"},
-            {"name": "控制指令输出", "description": "控制指令输出接口", "direction": "output"},
-            {"name": "状态反馈输出", "description": "系统状态反馈输出接口", "direction": "output"}
-        ],
-        "执行器": [
-            {"name": "控制指令输入", "description": "控制指令输入接口", "direction": "input"}
-        ],
-        "通信模块": [
-            {"name": "通信数据输入", "description": "通信数据输入接口", "direction": "input"},
-            {"name": "通信数据输出", "description": "通信数据输出接口", "direction": "output"}
-        ],
-        "摄像机云台": [
-            {"name": "云台控制输入", "description": "云台控制指令输入接口", "direction": "input"}
-        ],
-        "地面站": [
-            {"name": "地面站通信", "description": "地面站通信接口", "direction": "bidirectional"}
-        ],
-        "飞控任务应用软件": [
-            {"name": "应用数据接口", "description": "应用数据接口", "direction": "bidirectional"}
-        ],
-        "时间同步算法": [
-            {"name": "时间同步输入", "description": "时间同步数据输入接口", "direction": "input"},
-            {"name": "时间同步输出", "description": "时间同步数据输出接口", "direction": "output"}
-        ],
-        "空间配准算法": [
-            {"name": "配准数据输入", "description": "配准数据输入接口", "direction": "input"},
-            {"name": "配准数据输出", "description": "配准数据输出接口", "direction": "output"}
-        ],
-        "目标检测算法": [
-            {"name": "检测数据输入", "description": "检测数据输入接口", "direction": "input"},
-            {"name": "检测结果输出", "description": "检测结果输出接口", "direction": "output"}
-        ],
-        "环境感知算法": [
-            {"name": "感知数据输入", "description": "感知数据输入接口", "direction": "input"},
-            {"name": "感知结果输出", "description": "感知结果输出接口", "direction": "output"}
-        ],
-        "路径规划算法": [
-            {"name": "规划数据输入", "description": "规划数据输入接口", "direction": "input"},
-            {"name": "规划结果输出", "description": "规划结果输出接口", "direction": "output"}
-        ],
-        "避障算法": [
-            {"name": "避障数据输入", "description": "避障数据输入接口", "direction": "input"},
-            {"name": "避障指令输出", "description": "避障指令输出接口", "direction": "output"}
-        ],
-        "飞控控制算法": [
-            {"name": "控制数据输入", "description": "控制数据输入接口", "direction": "input"},
-            {"name": "控制指令输出", "description": "控制指令输出接口", "direction": "output"}
-        ],
-        "机器学习框架": [
-            {"name": "ML框架接口", "description": "机器学习框架接口", "direction": "bidirectional"}
-        ],
-        "嵌入式OS": [
-            {"name": "OS系统接口", "description": "操作系统接口", "direction": "bidirectional"}
-        ],
-        "专用算力设备": [
-            {"name": "算力设备接口", "description": "专用算力设备接口", "direction": "bidirectional"}
+# ---------------------------------------------------------------------------
+# 数据定义
+# ---------------------------------------------------------------------------
+
+MODULE_SPECS: List[Dict[str, object]] = [
+    {
+        "name": "惯性测量单元",
+        "description": "IMU传感器硬件",
+        "type": ModuleType.HARDWARE,
+        "template": ModuleTemplate.SENSOR,
+        "position": (40, 200),
+        "parameters": {"update_rate": "200Hz", "interface": "SPI"},
+        "failure_rate": 2e-5,
+    },
+    {
+        "name": "全球定位模块",
+        "description": "GNSS接收机",
+        "type": ModuleType.HARDWARE,
+        "template": ModuleTemplate.SENSOR,
+        "position": (40, 300),
+        "parameters": {"accuracy": "1.5m", "update_rate": "10Hz"},
+        "failure_rate": 1.2e-5,
+    },
+    {
+        "name": "光电红外摄像机",
+        "description": "双谱段光电红外摄像机",
+        "type": ModuleType.HARDWARE,
+        "template": ModuleTemplate.SENSOR,
+        "position": (40, 410),
+        "parameters": {"resolution": "1920x1080", "frame_rate": "30fps"},
+        "failure_rate": 3.5e-5,
+    },
+    {
+        "name": "毫米波雷达",
+        "description": "77GHz毫米波雷达",
+        "type": ModuleType.HARDWARE,
+        "template": ModuleTemplate.SENSOR,
+        "position": (40, 520),
+        "parameters": {"range": "200m", "accuracy": "0.1m"},
+        "failure_rate": 4.1e-5,
+    },
+    {
+        "name": "飞控任务应用软件",
+        "description": "无人机任务管理与飞控任务容器",
+        "type": ModuleType.SOFTWARE,
+        "template": ModuleTemplate.APPLICATION,
+        "position": (320, 240),
+        "parameters": {"language": "C++", "runtime": "RTOS"},
+        "failure_rate": 1.0e-4,
+    },
+    {
+        "name": "时间同步算法",
+        "description": "多源传感器时间同步算法",
+        "type": ModuleType.ALGORITHM,
+        "template": ModuleTemplate.ALGORITHM,
+        "position": (220, 180),
+        "parameters": {"method": "PTP", "accuracy": "1ms"},
+        "failure_rate": 5.0e-5,
+    },
+    {
+        "name": "空间配准算法",
+        "description": "多源坐标系配准算法",
+        "type": ModuleType.ALGORITHM,
+        "template": ModuleTemplate.ALGORITHM,
+        "position": (320, 180),
+        "parameters": {"method": "ICP", "accuracy": "0.1m"},
+        "failure_rate": 5.0e-5,
+    },
+    {
+        "name": "多模态感知冗余管理",
+        "description": "双通道感知数据冗余与健康监测模块",
+        "type": ModuleType.SOFTWARE,
+        "template": ModuleTemplate.APPLICATION,
+        "position": (420, 240),
+        "parameters": {"mode": "dual-feed", "latency_budget_ms": 40},
+        "failure_rate": 4.5e-5,
+    },
+    {
+        "name": "目标检测算法",
+        "description": "基于深度学习的目标检测算法",
+        "type": ModuleType.ALGORITHM,
+        "template": ModuleTemplate.ALGORITHM,
+        "position": (520, 180),
+        "parameters": {"model": "YOLOv5", "pd": 0.95},
+        "failure_rate": 8.0e-5,
+    },
+    {
+        "name": "环境感知算法",
+        "description": "多传感环境理解算法",
+        "type": ModuleType.ALGORITHM,
+        "template": ModuleTemplate.ALGORITHM,
+        "position": (520, 300),
+        "parameters": {"method": "OccupancyFusion", "update_rate": "10Hz"},
+        "failure_rate": 7.0e-5,
+    },
+    {
+        "name": "路径规划算法",
+        "description": "实时路径规划算法",
+        "type": ModuleType.ALGORITHM,
+        "template": ModuleTemplate.ALGORITHM,
+        "position": (620, 240),
+        "parameters": {"method": "A*", "replan_period": 0.3},
+        "failure_rate": 6.0e-5,
+    },
+    {
+        "name": "避障算法",
+        "description": "动态避障与安全裕度评估算法",
+        "type": ModuleType.ALGORITHM,
+        "template": ModuleTemplate.ALGORITHM,
+        "position": (720, 240),
+        "parameters": {"method": "ModelPredictive", "latency": "120ms"},
+        "failure_rate": 1.1e-4,
+    },
+    {
+        "name": "飞控控制算法",
+        "description": "姿态/航迹闭环控制算法",
+        "type": ModuleType.ALGORITHM,
+        "template": ModuleTemplate.ALGORITHM,
+        "position": (620, 360),
+        "parameters": {"method": "PID+LQR", "rate": "100Hz"},
+        "failure_rate": 2.0e-4,
+    },
+    {
+        "name": "自驾仪",
+        "description": "飞行控制自驾仪硬件",
+        "type": ModuleType.HARDWARE,
+        "template": ModuleTemplate.PROCESSOR,
+        "position": (840, 200),
+        "parameters": {"cpu": "STM32H7", "buses": "CAN/UART"},
+        "failure_rate": 1.1e-4,
+    },
+    {
+        "name": "执行器",
+        "description": "电机与舵面执行器阵列",
+        "type": ModuleType.HARDWARE,
+        "template": ModuleTemplate.ACTUATOR,
+        "position": (950, 280),
+        "parameters": {"type": "BLDC", "control": "PWM"},
+        "failure_rate": 4.8e-4,
+    },
+    {
+        "name": "通信模块",
+        "description": "机载通信与数传模块",
+        "type": ModuleType.HARDWARE,
+        "template": ModuleTemplate.COMMUNICATION,
+        "position": (840, 360),
+        "parameters": {"band": "2.4/5.8GHz", "range": "10km"},
+        "failure_rate": 1.1e-4,
+    },
+    {
+        "name": "通信链路健康管理",
+        "description": "通信链路心跳与干扰监测服务",
+        "type": ModuleType.SOFTWARE,
+        "template": ModuleTemplate.APPLICATION,
+        "position": (720, 360),
+        "parameters": {"heartbeat_period_ms": 500, "failover": True},
+        "failure_rate": 5.5e-5,
+    },
+    {
+        "name": "摄像机云台",
+        "description": "三轴稳定云台",
+        "type": ModuleType.HARDWARE,
+        "template": ModuleTemplate.ACTUATOR,
+        "position": (950, 180),
+        "parameters": {"precision": "0.01°", "control": "CAN"},
+        "failure_rate": 2.2e-4,
+    },
+    {
+        "name": "地面站",
+        "description": "地面控制站",
+        "type": ModuleType.HARDWARE,
+        "template": ModuleTemplate.COMMUNICATION,
+        "position": (950, 420),
+        "parameters": {"link": "Ethernet/Wireless", "range": "15km"},
+        "failure_rate": 1.0e-5,
+    },
+    {
+        "name": "机器学习框架",
+        "description": "TensorRT推理框架",
+        "type": ModuleType.SOFTWARE,
+        "template": ModuleTemplate.APPLICATION,
+        "position": (520, 420),
+        "parameters": {"version": "8.5", "precision": "FP16"},
+        "failure_rate": 3.5e-5,
+    },
+    {
+        "name": "嵌入式OS",
+        "description": "实时嵌入式操作系统",
+        "type": ModuleType.SOFTWARE,
+        "template": ModuleTemplate.APPLICATION,
+        "position": (420, 420),
+        "parameters": {"name": "VxWorks", "scheduler": "Priority"},
+        "failure_rate": 1.0e-6,
+    },
+    {
+        "name": "专用算力设备",
+        "description": "FPGA/SoC算力加速设备",
+        "type": ModuleType.HARDWARE,
+        "template": ModuleTemplate.PROCESSOR,
+        "position": (220, 300),
+        "parameters": {"type": "Zynq", "tops": "1.2"},
+        "failure_rate": 2.0e-4,
+    },
+]
+
+
+INTERFACE_SPECS: List[Dict[str, object]] = [
+    {
+        "id": 1,
+        "name": "IMU数据采集",
+        "description": "惯性测量单元 → 自驾仪",
+        "source": "惯性测量单元",
+        "target": "自驾仪",
+        "direction": InterfaceDirection.OUTPUT,
+        "type": InterfaceType.HARDWARE_HARDWARE,
+        "subtype": HardwareInterfaceSubtype.SENSOR,
+        "protocol": "SPI",
+        "failure_mode": {
+            "category": FailureMode.DATA_CORRUPTION,
+            "name": "时间戳漂移",
+            "description": "时间戳漂移导致姿态解算渐偏",
+            "rate": 2.5e-5,
+        },
+    },
+    {
+        "id": 2,
+        "name": "GNSS数据采集",
+        "description": "GNSS → 自驾仪",
+        "source": "全球定位模块",
+        "target": "自驾仪",
+        "direction": InterfaceDirection.OUTPUT,
+        "type": InterfaceType.HARDWARE_HARDWARE,
+        "subtype": HardwareInterfaceSubtype.SENSOR,
+        "protocol": "UART",
+        "failure_mode": {
+            "category": FailureMode.TIMEOUT,
+            "name": "PPS抖动",
+            "description": "PPS抖动引起对时偏差",
+            "rate": 1.8e-5,
+        },
+    },
+    {
+        "id": 3,
+        "name": "光电红外图像采集",
+        "description": "摄像机 → 时间同步算法",
+        "source": "光电红外摄像机",
+        "target": "时间同步算法",
+        "direction": InterfaceDirection.OUTPUT,
+        "type": InterfaceType.ALGORITHM_HARDWARE,
+        "subtype": HardwareInterfaceSubtype.SENSOR,
+        "protocol": "GigE Vision",
+        "failure_mode": {
+            "category": FailureMode.TIMEOUT,
+            "name": "高负载丢帧",
+            "description": "高负载下图像帧丢失",
+            "rate": 3.2e-5,
+        },
+    },
+    {
+        "id": 4,
+        "name": "雷达点云采集",
+        "description": "毫米波雷达 → 时间同步算法",
+        "source": "毫米波雷达",
+        "target": "时间同步算法",
+        "direction": InterfaceDirection.OUTPUT,
+        "type": InterfaceType.ALGORITHM_HARDWARE,
+        "subtype": HardwareInterfaceSubtype.SENSOR,
+        "protocol": "UDP",
+        "failure_mode": {
+            "category": FailureMode.COMMUNICATION_FAILURE,
+            "name": "UDP分片丢包",
+            "description": "UDP分片丢包导致点云缺失",
+            "rate": 3.0e-5,
+        },
+    },
+    {
+        "id": 5,
+        "name": "同步-OS",
+        "description": "时间同步算法 ↔ 嵌入式OS",
+        "source": "时间同步算法",
+        "target": "嵌入式OS",
+        "direction": InterfaceDirection.BIDIRECTIONAL,
+        "type": InterfaceType.ALGORITHM_OS,
+        "protocol": "RTIPC",
+        "failure_mode": {
+            "category": FailureMode.RESOURCE_EXHAUSTION,
+            "name": "优先级反转",
+            "description": "优先级反转导致对时超时",
+            "rate": 1.0e-5,
+        },
+    },
+    {
+        "id": 6,
+        "name": "同步-算力设备",
+        "description": "时间同步算法 ↔ 专用算力设备",
+        "source": "时间同步算法",
+        "target": "专用算力设备",
+        "direction": InterfaceDirection.BIDIRECTIONAL,
+        "type": InterfaceType.ALGORITHM_HARDWARE,
+        "subtype": HardwareInterfaceSubtype.COMPUTING_HARDWARE,
+        "protocol": "DMA",
+        "failure_mode": {
+            "category": FailureMode.TIMEOUT,
+            "name": "DMA传输超时",
+            "description": "DMA传输超时导致同步窗口失配",
+            "rate": 2.6e-5,
+        },
+    },
+    {
+        "id": 7,
+        "name": "配准-算力设备",
+        "description": "空间配准算法 ↔ 专用算力设备",
+        "source": "空间配准算法",
+        "target": "专用算力设备",
+        "direction": InterfaceDirection.BIDIRECTIONAL,
+        "type": InterfaceType.ALGORITHM_HARDWARE,
+        "subtype": HardwareInterfaceSubtype.COMPUTING_HARDWARE,
+        "protocol": "DMA",
+        "failure_mode": {
+            "category": FailureMode.DATA_CORRUPTION,
+            "name": "缓存不一致",
+            "description": "缓存不一致导致结果失效",
+            "rate": 2.4e-5,
+        },
+    },
+    {
+        "id": 8,
+        "name": "同步-配准",
+        "description": "时间同步算法 → 空间配准算法",
+        "source": "时间同步算法",
+        "target": "空间配准算法",
+        "direction": InterfaceDirection.OUTPUT,
+        "type": InterfaceType.ALGORITHM_APPLICATION,
+        "failure_mode": {
+            "category": FailureMode.DATA_CORRUPTION,
+            "name": "帧错配",
+            "description": "时空窗口错位导致帧错配",
+            "rate": 1.9e-5,
+        },
+    },
+    {
+        "id": 9,
+        "name": "配准-感知",
+        "description": "空间配准算法 → 环境感知算法",
+        "source": "空间配准算法",
+        "target": "环境感知算法",
+        "direction": InterfaceDirection.OUTPUT,
+        "type": InterfaceType.ALGORITHM_APPLICATION,
+        "failure_mode": {
+            "category": FailureMode.DATA_CORRUPTION,
+            "name": "坐标系错标",
+            "description": "坐标系标签错误",
+            "rate": 2.1e-5,
+        },
+    },
+    {
+        "id": 10,
+        "name": "配准-OS",
+        "description": "空间配准算法 ↔ 嵌入式OS",
+        "source": "空间配准算法",
+        "target": "嵌入式OS",
+        "direction": InterfaceDirection.BIDIRECTIONAL,
+        "type": InterfaceType.ALGORITHM_OS,
+        "failure_mode": {
+            "category": FailureMode.RESOURCE_EXHAUSTION,
+            "name": "环形缓冲溢出",
+            "description": "环形缓冲溢出导致数据丢失",
+            "rate": 1.4e-5,
+        },
+    },
+    {
+        "id": 11,
+        "name": "配准-检测",
+        "description": "空间配准算法 → 目标检测算法",
+        "source": "空间配准算法",
+        "target": "目标检测算法",
+        "direction": InterfaceDirection.OUTPUT,
+        "type": InterfaceType.ALGORITHM_APPLICATION,
+        "failure_mode": {
+            "category": FailureMode.CONFIGURATION_ERROR,
+            "name": "分辨率错配",
+            "description": "分辨率/步幅错配导致输入失效",
+            "rate": 2.0e-5,
+        },
+    },
+    {
+        "id": 12,
+        "name": "检测-OS",
+        "description": "目标检测算法 ↔ 嵌入式OS",
+        "source": "目标检测算法",
+        "target": "嵌入式OS",
+        "direction": InterfaceDirection.BIDIRECTIONAL,
+        "type": InterfaceType.ALGORITHM_OS,
+        "failure_mode": {
+            "category": FailureMode.RESOURCE_EXHAUSTION,
+            "name": "推理进程OOM",
+            "description": "推理进程因内存不足被终止",
+            "rate": 2.7e-5,
+        },
+    },
+    {
+        "id": 13,
+        "name": "检测-ML",
+        "description": "目标检测算法 ↔ 机器学习框架",
+        "source": "目标检测算法",
+        "target": "机器学习框架",
+        "direction": InterfaceDirection.BIDIRECTIONAL,
+        "type": InterfaceType.ALGORITHM_FRAMEWORK,
+        "failure_mode": {
+            "category": FailureMode.VERSION_INCOMPATIBILITY,
+            "name": "模型版本不兼容",
+            "description": "模型/算子版本不兼容",
+            "rate": 1.8e-5,
+        },
+    },
+    {
+        "id": 14,
+        "name": "检测-规划",
+        "description": "目标检测算法 → 路径规划算法",
+        "source": "目标检测算法",
+        "target": "路径规划算法",
+        "direction": InterfaceDirection.OUTPUT,
+        "type": InterfaceType.ALGORITHM_APPLICATION,
+        "failure_mode": {
+            "category": FailureMode.DATA_CORRUPTION,
+            "name": "目标ID跳变",
+            "description": "目标ID跳变引起航迹震荡",
+            "rate": 2.3e-5,
+        },
+    },
+    {
+        "id": 15,
+        "name": "检测-云台",
+        "description": "目标检测算法 → 摄像机云台",
+        "source": "目标检测算法",
+        "target": "摄像机云台",
+        "direction": InterfaceDirection.OUTPUT,
+        "type": InterfaceType.ALGORITHM_HARDWARE,
+        "subtype": HardwareInterfaceSubtype.ACTUATOR,
+        "failure_mode": {
+            "category": FailureMode.COMMUNICATION_FAILURE,
+            "name": "指向命令丢失",
+            "description": "云台指向命令丢失",
+            "rate": 1.7e-5,
+        },
+    },
+    {
+        "id": 16,
+        "name": "数据存档",
+        "description": "飞控任务应用软件 → 嵌入式OS",
+        "source": "飞控任务应用软件",
+        "target": "嵌入式OS",
+        "direction": InterfaceDirection.OUTPUT,
+        "type": InterfaceType.ALGORITHM_DATA_PLATFORM,
+        "failure_mode": {
+            "category": FailureMode.TIMEOUT,
+            "name": "阻塞I/O",
+            "description": "阻塞I/O反压上游链路",
+            "rate": 1.3e-5,
+        },
+    },
+    {
+        "id": 17,
+        "name": "感知-OS",
+        "description": "环境感知算法 ↔ 嵌入式OS",
+        "source": "环境感知算法",
+        "target": "嵌入式OS",
+        "direction": InterfaceDirection.BIDIRECTIONAL,
+        "type": InterfaceType.ALGORITHM_OS,
+        "failure_mode": {
+            "category": FailureMode.RESOURCE_EXHAUSTION,
+            "name": "线程池枯竭",
+            "description": "线程池枯竭导致感知滞后",
+            "rate": 2.5e-5,
+        },
+    },
+    {
+        "id": 18,
+        "name": "感知-避障",
+        "description": "环境感知算法 → 避障算法",
+        "source": "环境感知算法",
+        "target": "避障算法",
+        "direction": InterfaceDirection.OUTPUT,
+        "type": InterfaceType.ALGORITHM_APPLICATION,
+        "failure_mode": {
+            "category": FailureMode.TIMEOUT,
+            "name": "时间窗越界",
+            "description": "时间窗外数据被消费",
+            "rate": 2.9e-5,
+        },
+    },
+    {
+        "id": 19,
+        "name": "规划-OS",
+        "description": "路径规划算法 ↔ 嵌入式OS",
+        "source": "路径规划算法",
+        "target": "嵌入式OS",
+        "direction": InterfaceDirection.BIDIRECTIONAL,
+        "type": InterfaceType.ALGORITHM_OS,
+        "failure_mode": {
+            "category": FailureMode.TIMEOUT,
+            "name": "定时器漂移",
+            "description": "定时器漂移导致重规划窗口漂移",
+            "rate": 2.2e-5,
+        },
+    },
+    {
+        "id": 20,
+        "name": "规划-通信",
+        "description": "路径规划算法 ↔ 通信模块",
+        "source": "路径规划算法",
+        "target": "通信模块",
+        "direction": InterfaceDirection.BIDIRECTIONAL,
+        "type": InterfaceType.ALGORITHM_HARDWARE,
+        "failure_mode": {
+            "category": FailureMode.COMMUNICATION_FAILURE,
+            "name": "报文分片丢失",
+            "description": "报文分片丢失导致下行指令缺失",
+            "rate": 2.0e-5,
+        },
+    },
+    {
+        "id": 21,
+        "name": "规划-避障",
+        "description": "路径规划算法 ↔ 避障算法",
+        "source": "路径规划算法",
+        "target": "避障算法",
+        "direction": InterfaceDirection.BIDIRECTIONAL,
+        "type": InterfaceType.ALGORITHM_APPLICATION,
+        "failure_mode": {
+            "category": FailureMode.TIMEOUT,
+            "name": "交互死锁",
+            "description": "规划与避障交互死锁",
+            "rate": 2.8e-5,
+        },
+    },
+    {
+        "id": 22,
+        "name": "避障-ML",
+        "description": "避障算法 ↔ 机器学习框架",
+        "source": "避障算法",
+        "target": "机器学习框架",
+        "direction": InterfaceDirection.BIDIRECTIONAL,
+        "type": InterfaceType.ALGORITHM_FRAMEWORK,
+        "failure_mode": {
+            "category": FailureMode.HARDWARE_FAULT,
+            "name": "GPU内核异常",
+            "description": "GPU内核异常导致避障推理失败",
+            "rate": 2.1e-5,
+        },
+    },
+    {
+        "id": 23,
+        "name": "避障-OS",
+        "description": "避障算法 ↔ 嵌入式OS",
+        "source": "避障算法",
+        "target": "嵌入式OS",
+        "direction": InterfaceDirection.BIDIRECTIONAL,
+        "type": InterfaceType.ALGORITHM_OS,
+        "failure_mode": {
+            "category": FailureMode.TIMEOUT,
+            "name": "周期漂移",
+            "description": "周期漂移导致控制空洞",
+            "rate": 2.3e-5,
+        },
+    },
+    {
+        "id": 24,
+        "name": "航迹指令",
+        "description": "避障算法 → 飞控控制算法",
+        "source": "避障算法",
+        "target": "飞控控制算法",
+        "direction": InterfaceDirection.OUTPUT,
+        "type": InterfaceType.ALGORITHM_APPLICATION,
+        "failure_mode": {
+            "category": FailureMode.DATA_CORRUPTION,
+            "name": "指令NaN/Inf",
+            "description": "航迹指令包含NaN/Inf",
+            "rate": 3.0e-5,
+        },
+    },
+    {
+        "id": 25,
+        "name": "飞控-通信",
+        "description": "飞控控制算法 ↔ 通信模块",
+        "source": "飞控控制算法",
+        "target": "通信模块",
+        "direction": InterfaceDirection.BIDIRECTIONAL,
+        "type": InterfaceType.ALGORITHM_HARDWARE,
+        "failure_mode": {
+            "category": FailureMode.TIMEOUT,
+            "name": "心跳中断",
+            "description": "飞控-通信心跳中断触发保护",
+            "rate": 2.4e-5,
+        },
+    },
+    {
+        "id": 26,
+        "name": "飞控指令",
+        "description": "飞控控制算法 → 自驾仪",
+        "source": "飞控控制算法",
+        "target": "自驾仪",
+        "direction": InterfaceDirection.OUTPUT,
+        "type": InterfaceType.ALGORITHM_HARDWARE,
+        "failure_mode": {
+            "category": FailureMode.TIMEOUT,
+            "name": "串口黏包",
+            "description": "串口黏包/超时导致指令失效",
+            "rate": 2.5e-5,
+        },
+    },
+    {
+        "id": 27,
+        "name": "自驾仪状态反馈",
+        "description": "自驾仪 → 飞控控制算法",
+        "source": "自驾仪",
+        "target": "飞控控制算法",
+        "direction": InterfaceDirection.OUTPUT,
+        "type": InterfaceType.HARDWARE_HARDWARE,
+        "failure_mode": {
+            "category": FailureMode.DATA_CORRUPTION,
+            "name": "状态未更新",
+            "description": "状态值未正确更新",
+            "rate": 2.7e-5,
+        },
+    },
+    {
+        "id": 28,
+        "name": "飞控算法-OS",
+        "description": "飞控控制算法 ↔ 嵌入式OS",
+        "source": "飞控控制算法",
+        "target": "嵌入式OS",
+        "direction": InterfaceDirection.BIDIRECTIONAL,
+        "type": InterfaceType.ALGORITHM_OS,
+        "failure_mode": {
+            "category": FailureMode.TIMEOUT,
+            "name": "看门狗漏触",
+            "description": "抖动下看门狗漏触/误触",
+            "rate": 1.9e-5,
+        },
+    },
+    {
+        "id": 29,
+        "name": "位姿反馈",
+        "description": "自驾仪 → 空间配准算法",
+        "source": "自驾仪",
+        "target": "空间配准算法",
+        "direction": InterfaceDirection.OUTPUT,
+        "type": InterfaceType.HARDWARE_HARDWARE,
+        "failure_mode": {
+            "category": FailureMode.DATA_CORRUPTION,
+            "name": "姿态突变",
+            "description": "姿态突变（跳变）",
+            "rate": 2.6e-5,
+        },
+    },
+    {
+        "id": 30,
+        "name": "自驾仪-执行器",
+        "description": "自驾仪 ↔ 执行器",
+        "source": "自驾仪",
+        "target": "执行器",
+        "direction": InterfaceDirection.BIDIRECTIONAL,
+        "type": InterfaceType.HARDWARE_HARDWARE,
+        "subtype": HardwareInterfaceSubtype.ACTUATOR,
+        "failure_mode": {
+            "category": FailureMode.TIMEOUT,
+            "name": "总线饱和",
+            "description": "总线饱和导致回授丢失",
+            "rate": 3.1e-5,
+        },
+    },
+    {
+        "id": 31,
+        "name": "无人机-地面站链路",
+        "description": "通信模块 ↔ 地面站",
+        "source": "通信模块",
+        "target": "地面站",
+        "direction": InterfaceDirection.BIDIRECTIONAL,
+        "type": InterfaceType.ALGORITHM_DATA_PLATFORM,
+        "failure_mode": {
+            "category": FailureMode.COMMUNICATION_FAILURE,
+            "name": "链路干扰",
+            "description": "干扰致BER升高与丢包",
+            "rate": 2.8e-5,
+        },
+    },
+    {
+        "id": 32,
+        "name": "冗余感知仲裁",
+        "description": "空间配准算法 → 多模态感知冗余管理",
+        "source": "空间配准算法",
+        "target": "多模态感知冗余管理",
+        "direction": InterfaceDirection.OUTPUT,
+        "type": InterfaceType.ALGORITHM_APPLICATION,
+        "failure_mode": {
+            "category": FailureMode.CONFIGURATION_ERROR,
+            "name": "冗余策略失效",
+            "description": "冗余仲裁逻辑配置错误",
+            "rate": 1.2e-5,
+        },
+    },
+    {
+        "id": 33,
+        "name": "冗余输出-检测",
+        "description": "多模态感知冗余管理 → 目标检测算法",
+        "source": "多模态感知冗余管理",
+        "target": "目标检测算法",
+        "direction": InterfaceDirection.OUTPUT,
+        "type": InterfaceType.ALGORITHM_APPLICATION,
+        "failure_mode": {
+            "category": FailureMode.DATA_CORRUPTION,
+            "name": "冗余输出漂移",
+            "description": "冗余仲裁输出漂移导致检测输入异常",
+            "rate": 1.1e-5,
+        },
+    },
+    {
+        "id": 34,
+        "name": "冗余输出-感知",
+        "description": "多模态感知冗余管理 → 环境感知算法",
+        "source": "多模态感知冗余管理",
+        "target": "环境感知算法",
+        "direction": InterfaceDirection.OUTPUT,
+        "type": InterfaceType.ALGORITHM_APPLICATION,
+        "failure_mode": {
+            "category": FailureMode.DATA_CORRUPTION,
+            "name": "冗余输出不一致",
+            "description": "冗余输出不一致导致环境感知失效",
+            "rate": 1.15e-5,
+        },
+    },
+    {
+        "id": 35,
+        "name": "通信心跳监测",
+        "description": "通信模块 ↔ 通信链路健康管理",
+        "source": "通信模块",
+        "target": "通信链路健康管理",
+        "direction": InterfaceDirection.BIDIRECTIONAL,
+        "type": InterfaceType.SOFTWARE_HARDWARE,
+        "failure_mode": {
+            "category": FailureMode.TIMEOUT,
+            "name": "心跳判决失效",
+            "description": "链路健康监测错判导致切换失败",
+            "rate": 1.6e-5,
+        },
+    },
+]
+
+
+# ---------------------------------------------------------------------------
+# 系统结构创建
+# ---------------------------------------------------------------------------
+
+
+def build_modules(system: SystemStructure) -> Dict[str, Module]:
+    """根据模块规格表创建系统模块。"""
+
+    module_map: Dict[str, Module] = {}
+
+    for spec in MODULE_SPECS:
+        module = Module(spec["name"], spec["description"], spec["type"])
+        module.template = spec.get("template")
+        module.parameters = spec.get("parameters", {}).copy()
+        module.failure_rate = spec.get("failure_rate", 1e-5)
+        pos_x, pos_y = spec.get("position", (0, 0))
+        module.position = {"x": pos_x, "y": pos_y}
+        system.add_module(module)
+        module_map[module.name] = module
+
+    print(f"✓ 已创建 {len(module_map)} 个模块")
+    return module_map
+
+
+def build_interfaces(system: SystemStructure, module_map: Dict[str, Module]) -> Dict[int, Interface]:
+    """根据接口规格表创建接口并挂接到模块。"""
+
+    interface_map: Dict[int, Interface] = {}
+
+    for spec in INTERFACE_SPECS:
+        source_module = module_map[spec["source"]]
+        target_module = module_map[spec["target"]]
+        interface_name = f"接口#{spec['id']} {spec['name']}"
+
+        interface = Interface(
+            interface_name,
+            spec["description"],
+            interface_type=spec.get("type", InterfaceType.SOFTWARE_HARDWARE),
+            direction=spec.get("direction", InterfaceDirection.BIDIRECTIONAL),
+        )
+        interface.protocol = spec.get("protocol", "")
+        interface.source_module_id = source_module.id
+        interface.target_module_id = target_module.id
+        interface.parameters.update(spec.get("parameters", {}))
+        if spec.get("subtype"):
+            interface.subtype = spec["subtype"]
+
+        failure_spec = spec.get("failure_mode", {})
+        failure_mode = InterfaceFailureMode(
+            failure_spec.get("category", FailureMode.COMMUNICATION_FAILURE),
+            failure_spec.get("name", "接口失效"),
+        )
+        failure_mode.id = f"fm_{spec['id']}"
+        failure_mode.description = failure_spec.get("description", "")
+        failure_mode.occurrence_rate = failure_spec.get("rate", 1e-5)
+        failure_mode.failure_rate = failure_spec.get("rate", 1e-5)
+        failure_mode.severity = failure_spec.get("severity", 3)
+        failure_mode.enabled = True
+        interface.add_failure_mode(failure_mode)
+
+        system.add_interface(interface)
+        source_module.add_interface(interface)
+        target_module.add_interface(interface)
+        interface_map[spec["id"]] = interface
+
+    print(f"✓ 已创建 {len(interface_map)} 条接口")
+    return interface_map
+
+
+def build_connections(
+    system: SystemStructure,
+    module_map: Dict[str, Module],
+    interface_map: Dict[int, Interface],
+) -> None:
+    """为系统模块创建连接关系。"""
+
+    for spec in INTERFACE_SPECS:
+        interface = interface_map[spec["id"]]
+        source_module = module_map[spec["source"]]
+        target_module = module_map[spec["target"]]
+
+        connection = Connection(
+            id=f"connection_{spec['id']}",
+            source_module_id=source_module.id,
+            target_module_id=target_module.id,
+            source_point_id=interface.id,
+            target_point_id=interface.id,
+        )
+        connection.interface_id = interface.id
+        connection.name = f"{source_module.name}→{target_module.name}({interface.name})"
+
+        source_position = source_module.position
+        target_position = target_module.position
+
+        sx = source_position["x"] if isinstance(source_position, dict) else source_position.x
+        sy = source_position["y"] if isinstance(source_position, dict) else source_position.y
+        tx = target_position["x"] if isinstance(target_position, dict) else target_position.x
+        ty = target_position["y"] if isinstance(target_position, dict) else target_position.y
+
+        offset = 120 if sx <= tx else -40
+        connection.connection_points = [
+            Point(sx + offset, sy + 30),
+            Point(tx, ty + 30),
         ]
-    }
-    
-    # 为每个模块添加接口
-    for module_name, interfaces in module_interfaces.items():
-        module = next((m for m in system.modules.values() if m.name == module_name), None)
-        if module:
-            for iface_data in interfaces:
-                # 创建接口
-                interface = Interface(
-                    iface_data["name"],
-                    iface_data["description"]
-                )
-                
-                # 设置接口方向
-                if iface_data["direction"] == "input":
-                    interface.direction = "input"
-                elif iface_data["direction"] == "output":
-                    interface.direction = "output"
-                else:
-                    interface.direction = "bidirectional"
-                
-                # 添加故障模式
-                failure_mode = InterfaceFailureMode(
-                    FailureMode.COMMUNICATION_FAILURE,
-                    f"{iface_data['name']}通信故障"
-                )
-                failure_mode.occurrence_rate = 1e-5  # 默认失效率
-                interface.add_failure_mode(failure_mode)
-                
-                # 将接口添加到模块
-                module.add_interface(interface)
-                # 同时将接口添加到系统
-                system.add_interface(interface)
-    
-    print("✓ 为所有模块添加了接口")
-    return system
+
+        system.add_connection(connection)
+
+    print(f"✓ 已建立 {len(system.connections)} 条连接")
 
 
-def create_module_connections(system):
-    """创建模块之间的连接"""
-    print("创建模块连接...")
-    
-    # 定义连接关系 - 按照无人机系统架构图和信息流方向
-    connections = [
-        # 1. IMU数据采集接口：惯性测量单元 → 自驾仪
-        {"source": "惯性测量单元", "source_interface": "IMU数据输出", "target": "自驾仪", "target_interface": "传感器数据输入"},
-        
-        # 2. GNSS数据采集接口：全球定位模块 → 自驾仪
-        {"source": "全球定位模块", "source_interface": "GNSS数据输出", "target": "自驾仪", "target_interface": "传感器数据输入"},
-        
-        # 3. 光电红外图像采集接口：摄像机 → 时间同步算法
-        {"source": "光电红外摄像机", "source_interface": "图像数据输出", "target": "时间同步算法", "target_interface": "时间同步输入"},
-        
-        # 4. 雷达点云采集接口：毫米波雷达 → 时间同步算法
-        {"source": "毫米波雷达", "source_interface": "雷达点云输出", "target": "时间同步算法", "target_interface": "时间同步输入"},
-        
-        # 5. 同步-OS接口：时间同步算法 ↔ 嵌入式OS（双向）
-        {"source": "时间同步算法", "source_interface": "时间同步输出", "target": "嵌入式OS", "target_interface": "OS系统接口"},
-        {"source": "嵌入式OS", "source_interface": "OS系统接口", "target": "时间同步算法", "target_interface": "时间同步输入"},
-        
-        # 6. 同步-算力设备接口：专用算力设备 ↔ 时间同步算法（双向）
-        {"source": "时间同步算法", "source_interface": "时间同步输出", "target": "专用算力设备", "target_interface": "算力设备接口"},
-        {"source": "专用算力设备", "source_interface": "算力设备接口", "target": "时间同步算法", "target_interface": "时间同步输入"},
-        
-        # 7. 配准-算力设备接口：专用算力设备 ↔ 空间配准算法（双向）
-        {"source": "空间配准算法", "source_interface": "配准数据输出", "target": "专用算力设备", "target_interface": "算力设备接口"},
-        {"source": "专用算力设备", "source_interface": "算力设备接口", "target": "空间配准算法", "target_interface": "配准数据输入"},
-        
-        # 8. 同步-配准接口：时间同步算法 → 空间配准算法
-        {"source": "时间同步算法", "source_interface": "时间同步输出", "target": "空间配准算法", "target_interface": "配准数据输入"},
-        
-        # 9. 配准-感知接口：空间配准算法 → 环境感知算法
-        {"source": "空间配准算法", "source_interface": "配准数据输出", "target": "环境感知算法", "target_interface": "感知数据输入"},
-        
-        # 10. 配准-OS接口：空间配准算法 ↔ 嵌入式OS（双向）
-        {"source": "空间配准算法", "source_interface": "配准数据输出", "target": "嵌入式OS", "target_interface": "OS系统接口"},
-        {"source": "嵌入式OS", "source_interface": "OS系统接口", "target": "空间配准算法", "target_interface": "配准数据输入"},
-        
-        # 11. 配准-检测接口：空间配准算法 → 目标检测算法
-        {"source": "空间配准算法", "source_interface": "配准数据输出", "target": "目标检测算法", "target_interface": "检测数据输入"},
-        
-        # 12. 检测-OS接口：目标检测算法 ↔ 嵌入式OS（双向）
-        {"source": "目标检测算法", "source_interface": "检测结果输出", "target": "嵌入式OS", "target_interface": "OS系统接口"},
-        {"source": "嵌入式OS", "source_interface": "OS系统接口", "target": "目标检测算法", "target_interface": "检测数据输入"},
-        
-        # 13. 检测-ML接口：目标检测算法 ↔ 机器学习框架（双向）
-        {"source": "目标检测算法", "source_interface": "检测结果输出", "target": "机器学习框架", "target_interface": "ML框架接口"},
-        {"source": "机器学习框架", "source_interface": "ML框架接口", "target": "目标检测算法", "target_interface": "检测数据输入"},
-        
-        # 14. 检测-规划接口：目标检测算法 → 路径规划算法
-        {"source": "目标检测算法", "source_interface": "检测结果输出", "target": "路径规划算法", "target_interface": "规划数据输入"},
-        
-        # 15. 检测-云台接口：目标检测算法 → 摄像机云台
-        {"source": "目标检测算法", "source_interface": "检测结果输出", "target": "摄像机云台", "target_interface": "云台控制输入"},
-        
-        # 16. 数据存档接口：飞控任务应用软件 → 嵌入式OS
-        {"source": "飞控任务应用软件", "source_interface": "应用数据接口", "target": "嵌入式OS", "target_interface": "OS系统接口"},
-        
-        # 17. 感知-OS接口：环境感知算法 ↔ 嵌入式OS（双向）
-        {"source": "环境感知算法", "source_interface": "感知结果输出", "target": "嵌入式OS", "target_interface": "OS系统接口"},
-        {"source": "嵌入式OS", "source_interface": "OS系统接口", "target": "环境感知算法", "target_interface": "感知数据输入"},
-        
-        # 18. 感知-避障接口：环境感知算法 → 避障算法
-        {"source": "环境感知算法", "source_interface": "感知结果输出", "target": "避障算法", "target_interface": "避障数据输入"},
-        
-        # 19. 规划-OS接口：路径规划算法 ↔ 嵌入式OS（双向）
-        {"source": "路径规划算法", "source_interface": "规划结果输出", "target": "嵌入式OS", "target_interface": "OS系统接口"},
-        {"source": "嵌入式OS", "source_interface": "OS系统接口", "target": "路径规划算法", "target_interface": "规划数据输入"},
-        
-        # 20. 规划-通信接口：路径规划算法 ↔ 通信模块（双向）
-        {"source": "路径规划算法", "source_interface": "规划结果输出", "target": "通信模块", "target_interface": "通信数据输入"},
-        {"source": "通信模块", "source_interface": "通信数据输出", "target": "路径规划算法", "target_interface": "规划数据输入"},
-        
-        # 21. 规划-避障接口：路径规划算法 ↔ 避障算法（双向）
-        {"source": "路径规划算法", "source_interface": "规划结果输出", "target": "避障算法", "target_interface": "避障数据输入"},
-        {"source": "避障算法", "source_interface": "避障指令输出", "target": "路径规划算法", "target_interface": "规划数据输入"},
-        
-        # 22. 避障-ML接口：避障算法 ↔ 机器学习框架（双向）
-        {"source": "避障算法", "source_interface": "避障指令输出", "target": "机器学习框架", "target_interface": "ML框架接口"},
-        {"source": "机器学习框架", "source_interface": "ML框架接口", "target": "避障算法", "target_interface": "避障数据输入"},
-        
-        # 23. 避障-OS接口：避障算法 ↔ 嵌入式OS（双向）
-        {"source": "避障算法", "source_interface": "避障指令输出", "target": "嵌入式OS", "target_interface": "OS系统接口"},
-        {"source": "嵌入式OS", "source_interface": "OS系统接口", "target": "避障算法", "target_interface": "避障数据输入"},
-        
-        # 24. 航迹指令接口：避障算法 → 飞控控制算法
-        {"source": "避障算法", "source_interface": "避障指令输出", "target": "飞控控制算法", "target_interface": "控制数据输入"},
-        
-        # 25. 飞控-通信接口：飞控控制算法 ↔ 通信模块（双向）
-        {"source": "飞控控制算法", "source_interface": "控制指令输出", "target": "通信模块", "target_interface": "通信数据输入"},
-        {"source": "通信模块", "source_interface": "通信数据输出", "target": "飞控控制算法", "target_interface": "控制数据输入"},
-        
-        # 26. 飞控指令接口：飞控控制算法 → 自驾仪
-        {"source": "飞控控制算法", "source_interface": "控制指令输出", "target": "自驾仪", "target_interface": "传感器数据输入"},
-        
-        # 27. 自驾仪状态反馈接口：自驾仪 → 飞控控制算法
-        {"source": "自驾仪", "source_interface": "状态反馈输出", "target": "飞控控制算法", "target_interface": "控制数据输入"},
-        
-        # 28. 飞控算法-OS接口：飞控控制算法 ↔ 嵌入式OS（双向）
-        {"source": "飞控控制算法", "source_interface": "控制指令输出", "target": "嵌入式OS", "target_interface": "OS系统接口"},
-        {"source": "嵌入式OS", "source_interface": "OS系统接口", "target": "飞控控制算法", "target_interface": "控制数据输入"},
-        
-        # 29. 位姿反馈接口：自驾仪 → 空间配准算法
-        {"source": "自驾仪", "source_interface": "状态反馈输出", "target": "空间配准算法", "target_interface": "配准数据输入"},
-        
-        # 30. 自驾仪-执行器接口：自驾仪 ↔ 执行器（双向）
-        {"source": "自驾仪", "source_interface": "控制指令输出", "target": "执行器", "target_interface": "控制指令输入"},
-        # 执行器只有输入接口，暂时不添加反向连接
-        
-        # 31. 无人机-地面站链路接口：通信模块 ↔ 地面站（双向）
-        {"source": "通信模块", "source_interface": "通信数据输出", "target": "地面站", "target_interface": "地面站通信"},
-        {"source": "地面站", "source_interface": "地面站通信", "target": "通信模块", "target_interface": "通信数据输入"},
+# ---------------------------------------------------------------------------
+# 任务剖面
+# ---------------------------------------------------------------------------
+
+
+def _create_phase(
+    phase_info: Tuple[str, str, float, List[int]],
+    interface_map: Dict[int, Interface],
+) -> TaskPhase:
+    name, description, duration_min, interface_ids = phase_info
+    phase = TaskPhase(name)
+    phase.description = description
+    phase.duration = duration_min * 60.0
+    phase.critical_interfaces = [
+        interface_map[idx].id for idx in interface_ids if idx in interface_map
     ]
-    
-    # 创建连接对象
-    connection_count = 1
-    for conn_data in connections:
-        # 查找源模块和目标模块
-        source_module = next((m for m in system.modules.values() if m.name == conn_data["source"]), None)
-        target_module = next((m for m in system.modules.values() if m.name == conn_data["target"]), None)
-        
-        if source_module and target_module:
-            # 查找源接口和目标接口
-            source_interface = None
-            target_interface = None
-            
-            # 查找源接口
-            for iface_id in source_module.interfaces:
-                iface = system.interfaces.get(iface_id)
-                if iface and iface.name == conn_data["source_interface"]:
-                    source_interface = iface
-                    break
-                    
-            # 查找目标接口
-            for iface_id in target_module.interfaces:
-                iface = system.interfaces.get(iface_id)
-                if iface and iface.name == conn_data["target_interface"]:
-                    target_interface = iface
-                    break
-            
-            if source_interface and target_interface:
-                # 创建连接ID
-                connection_id = f"connection_{connection_count}"
-                connection_count += 1
-                
-                # 创建连接
-                connection = Connection(
-                    source_module.id,
-                    source_interface.id,
-                    target_module.id,
-                    target_interface.id
-                )
-                connection.id = connection_id
-                connection.name = f"{conn_data['source']}→{conn_data['target']}"
-                
-                # 设置连接点ID（使用接口ID）
-                connection.source_point_id = source_interface.id
-                connection.target_point_id = target_interface.id
-                
-                # 设置连接路径点（基于模块位置计算）
-                source_x = source_module.position['x'] + 100  # 模块宽度
-                source_y = source_module.position['y'] + 30   # 模块高度的一半
-                target_x = target_module.position['x']
-                target_y = target_module.position['y'] + 30
-                
-                # 使用 Point 对象而不是字典
-                from src.models.base_model import Point
-                connection.connection_points = [
-                    Point(source_x, source_y),
-                    Point(target_x, target_y)
-                ]
-                
-                connection.enabled = True
-                system.add_connection(connection)
-    
-    print(f"✓ 创建了 {len(system.connections)} 个模块连接")
-    return system
+    return phase
 
 
-def create_drone_task_profiles(system):
-    """创建无人机任务剖面"""
-    print("创建任务剖面...")
-    
-    task_profiles = {}
-    
-    # 抵近侦察任务
-    recon_task = TaskProfile("抵近侦察任务", "在目标区域内完成目标识别，保持安全距离，按时脱离返航")
+def _add_success_criteria(
+    task: TaskProfile,
+    module: Module,
+    name: str,
+    parameter: str,
+    operator: ComparisonOperator,
+    target_value: float,
+    description: str,
+    weight: float = 1.0,
+    criteria_type: SuccessCriteriaType = SuccessCriteriaType.MODULE_OUTPUT,
+) -> None:
+    criteria = SuccessCriteria(name)
+    criteria.description = description
+    criteria.module_id = module.id
+    criteria.parameter_name = parameter
+    criteria.operator = operator
+    criteria.target_value = target_value
+    criteria.weight = weight
+    criteria.criteria_type = criteria_type
+    task.add_success_criteria(criteria)
+
+
+def create_task_profiles(
+    system: SystemStructure,
+    module_map: Dict[str, Module],
+    interface_map: Dict[int, Interface],
+) -> Dict[str, TaskProfile]:
+    """创建抵近侦察与物资投放两个任务剖面。"""
+
+    task_profiles: Dict[str, TaskProfile] = {}
+
+    # ----------------------------- 抵近侦察任务 ----------------------------
+    recon_task = TaskProfile("抵近侦察任务", "目标识别、保持安全距离并按时脱离返航")
     recon_task.mission_type = "reconnaissance"
-    recon_task.total_duration = 35 * 60.0  # 35分钟
-    
-    # 添加任务阶段
-    phases_data = [
-        {
-            "name": "上电与联合对时",
-            "description": "设备自检、GNSS锁定、跨源对时与配准初始化",
-            "duration": 2 * 60,  # 2分钟
-            "interfaces": [1, 2, 5, 8, 10, 27]
-        },
-        {
-            "name": "起飞与进入任务空域", 
-            "description": "解锁起飞、姿态/位置闭环、进场通报",
-            "duration": 5 * 60,  # 5分钟
-            "interfaces": [24, 26, 27, 28, 30, 25, 31]
-        },
-        {
-            "name": "抵近指向与目标识别",
-            "description": "图像采集与同步配准、检测与置信度评估、云台指向稳定",
-            "duration": 15 * 60,  # 15分钟
-            "interfaces": [3, 5, 8, 11, 12, 13, 14, 15, 27, 28]
-        },
-        {
-            "name": "脱离与返航",
-            "description": "航迹重构、空域通报、返航执行", 
-            "duration": 8 * 60,  # 8分钟
-            "interfaces": [19, 21, 24, 26, 27, 28, 30, 20, 25, 31]
-        },
-        {
-            "name": "进近与着陆",
-            "description": "自动进近、姿态控制、落地",
-            "duration": 5 * 60,  # 5分钟
-            "interfaces": [24, 26, 27, 28, 30, 25, 31]
-        }
+
+    recon_phases = [
+        (
+            "R1 上电与联合对时",
+            "设备自检、GNSS锁定、跨源对时与配准初始化",
+            1.5,
+            [1, 2, 5, 8, 10, 27],
+        ),
+        (
+            "R2 起飞与进入任务空域",
+            "解锁起飞、姿态/位置闭环、进场通报",
+            3.5,
+            [24, 26, 27, 28, 30, 25, 31],
+        ),
+        (
+            "R3 抵近指向与目标识别",
+            "多模态采集、同步配准、检测与云台指向稳定",
+            10.0,
+            [3, 4, 5, 8, 11, 12, 13, 14, 15, 27, 28, 32, 33],
+        ),
+        (
+            "R4 脱离与返航",
+            "航迹重构、空域通报与返航执行",
+            5.5,
+            [19, 21, 24, 26, 27, 28, 30, 20, 25, 31, 35],
+        ),
+        (
+            "R5 进近与着陆",
+            "自动进近、姿态控制与落地",
+            3.5,
+            [24, 26, 27, 28, 30, 25, 31, 35],
+        ),
     ]
-    
+
     start_time = 0.0
-    for phase_data in phases_data:
-        phase = TaskPhase(phase_data["name"])
-        phase.description = phase_data["description"]
+    for phase_info in recon_phases:
+        phase = _create_phase(phase_info, interface_map)
         phase.start_time = start_time
-        phase.duration = phase_data["duration"]
-        phase.critical_interfaces = phase_data["interfaces"]
         recon_task.add_task_phase(phase)
-        start_time += phase_data["duration"]
-    
-    # 添加成功判据
-    # 判据1：目标识别成功
-    target_criteria = SuccessCriteria("目标识别成功")
-    target_criteria.description = "成功识别指定目标"
-    target_criteria.criteria_type = SuccessCriteriaType.MODULE_OUTPUT
-    target_detect_module = [m for m in system.modules.values() if m.name == "目标检测算法"][0]
-    target_criteria.module_id = target_detect_module.id
-    target_criteria.parameter_name = "detection_confidence"
-    target_criteria.operator = ComparisonOperator.GREATER
-    target_criteria.target_value = 0.8  # 80%置信度
-    target_criteria.weight = 3.0
-    recon_task.add_success_criteria(target_criteria)
-    
-    # 判据2：安全返航
-    return_criteria = SuccessCriteria("安全返航")
-    return_criteria.description = "无人机安全返回起飞点"
-    return_criteria.criteria_type = SuccessCriteriaType.MODULE_OUTPUT
-    flight_control_module = [m for m in system.modules.values() if m.name == "飞控控制算法"][0]
-    return_criteria.module_id = flight_control_module.id
-    return_criteria.parameter_name = "return_status"
-    return_criteria.operator = ComparisonOperator.EQUAL
-    return_criteria.target_value = 1.0  # 返航成功
-    return_criteria.weight = 3.0
-    recon_task.add_success_criteria(return_criteria)
-    
-    # 判据3：通信链路可用
-    comm_criteria = SuccessCriteria("通信链路可用")
-    comm_criteria.description = "与地面站保持必要通信"
-    comm_criteria.criteria_type = SuccessCriteriaType.MODULE_OUTPUT
-    comm_module = [m for m in system.modules.values() if m.name == "通信模块"][0]
-    comm_criteria.module_id = comm_module.id
-    comm_criteria.parameter_name = "link_quality"
-    comm_criteria.operator = ComparisonOperator.GREATER
-    comm_criteria.target_value = 0.7  # 70%链路质量
-    comm_criteria.weight = 2.0
-    recon_task.add_success_criteria(comm_criteria)
-    
-    task_profiles[recon_task.id] = recon_task
-    
-    # 将任务剖面添加到系统
-    system.task_profiles = task_profiles
-    
-    print(f"✓ 创建了 {len(task_profiles)} 个任务剖面")
-    return system
+        start_time += phase.duration
+
+    recon_task.total_duration = start_time
+
+    _add_success_criteria(
+        recon_task,
+        module_map["时间同步算法"],
+        "R1-跨源时间对齐",
+        "time_alignment_error_ms",
+        ComparisonOperator.LESS_EQUAL,
+        5.0,
+        "跨源时间对齐误差≤±5 ms",
+        weight=1.5,
+    )
+    _add_success_criteria(
+        recon_task,
+        module_map["自驾仪"],
+        "R1-状态输出连续",
+        "state_stream_rate_hz",
+        ComparisonOperator.GREATER_EQUAL,
+        50.0,
+        "自驾仪状态输出频率≥50 Hz",
+    )
+    _add_success_criteria(
+        recon_task,
+        module_map["飞控控制算法"],
+        "R2-姿态闭环稳定",
+        "attitude_stability_index",
+        ComparisonOperator.GREATER_EQUAL,
+        0.95,
+        "姿态闭环稳定性指标≥0.95",
+        weight=1.8,
+    )
+    _add_success_criteria(
+        recon_task,
+        module_map["飞控控制算法"],
+        "R2-升限误差",
+        "altitude_error_m",
+        ComparisonOperator.LESS_EQUAL,
+        2.0,
+        "升限（航高）误差在±2 m以内",
+    )
+    _add_success_criteria(
+        recon_task,
+        module_map["通信链路健康管理"],
+        "R2-心跳连续",
+        "heartbeat_loss_ratio",
+        ComparisonOperator.LESS_EQUAL,
+        0.01,
+        "与地面站心跳连接连续",
+    )
+    _add_success_criteria(
+        recon_task,
+        module_map["光电红外摄像机"],
+        "R3-有效帧率",
+        "effective_fps",
+        ComparisonOperator.GREATER_EQUAL,
+        15.0,
+        "有效图像帧率不低于15 FPS",
+        weight=1.4,
+    )
+    _add_success_criteria(
+        recon_task,
+        module_map["目标检测算法"],
+        "R3-检测概率",
+        "detection_probability",
+        ComparisonOperator.GREATER_EQUAL,
+        0.90,
+        "检测概率Pd≥0.90",
+        weight=1.4,
+    )
+    _add_success_criteria(
+        recon_task,
+        module_map["摄像机云台"],
+        "R3-指向误差",
+        "pointing_error_deg",
+        ComparisonOperator.LESS_EQUAL,
+        1.0,
+        "云台指向误差≤1.0°",
+    )
+    _add_success_criteria(
+        recon_task,
+        module_map["路径规划算法"],
+        "R4-航迹均方误差",
+        "track_rmse_m",
+        ComparisonOperator.LESS_EQUAL,
+        10.0,
+        "航迹跟踪均方误差≤10 m",
+    )
+    _add_success_criteria(
+        recon_task,
+        module_map["通信模块"],
+        "R4-通信可用率",
+        "availability",
+        ComparisonOperator.GREATER_EQUAL,
+        0.98,
+        "返航阶段通信可用率≥0.98",
+    )
+    _add_success_criteria(
+        recon_task,
+        module_map["自驾仪"],
+        "R5-进近落地速度",
+        "landing_ground_speed_ms",
+        ComparisonOperator.LESS_EQUAL,
+        1.0,
+        "接地瞬时地速≤1 m/s",
+        weight=1.6,
+    )
+
+    system.add_task_profile(recon_task)
+    task_profiles[recon_task.name] = recon_task
+
+    # ----------------------------- 物资投放任务 ----------------------------
+    delivery_task = TaskProfile("物资投放任务", "复杂环境穿越、动态重规划与投放执行")
+    delivery_task.mission_type = "supply_delivery"
+
+    delivery_phases = [
+        (
+            "D1 上电与联合对时",
+            "自检、对时、配准初始化",
+            1.5,
+            [1, 2, 5, 8, 10, 27],
+        ),
+        (
+            "D2 起飞与入口汇合",
+            "起飞、到达入口并保持通信",
+            5.0,
+            [24, 26, 27, 28, 30, 25, 31, 35],
+        ),
+        (
+            "D3 复杂环境穿越",
+            "多模态感知建图、避障介入与快速重规划",
+            14.0,
+            [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 17, 18, 19, 21, 22, 23, 24, 27, 28, 32, 33, 34],
+        ),
+        (
+            "D4 投放窗口定位",
+            "投放点定位、航迹微调、释放执行",
+            2.0,
+            [3, 5, 8, 11, 12, 13, 14, 24, 26, 27, 28, 30],
+        ),
+        (
+            "D5 脱离返航与着陆",
+            "脱离、返航与着陆",
+            5.5,
+            [19, 21, 24, 26, 27, 28, 30, 20, 25, 31, 35],
+        ),
+    ]
+
+    start_time = 0.0
+    for phase_info in delivery_phases:
+        phase = _create_phase(phase_info, interface_map)
+        phase.start_time = start_time
+        delivery_task.add_task_phase(phase)
+        start_time += phase.duration
+
+    delivery_task.total_duration = start_time
+
+    _add_success_criteria(
+        delivery_task,
+        module_map["时间同步算法"],
+        "D1-对时误差",
+        "time_alignment_error_ms",
+        ComparisonOperator.LESS_EQUAL,
+        5.0,
+        "对时误差≤±5 ms",
+        weight=1.2,
+    )
+    _add_success_criteria(
+        delivery_task,
+        module_map["空间配准算法"],
+        "D1-配准缓存",
+        "buffer_overflow",
+        ComparisonOperator.EQUAL,
+        0.0,
+        "配准初始化完成且缓存无溢出",
+    )
+    _add_success_criteria(
+        delivery_task,
+        module_map["路径规划算法"],
+        "D2-入口汇合",
+        "entry_position_error_m",
+        ComparisonOperator.LESS_EQUAL,
+        10.0,
+        "入口汇合误差≤10 m",
+    )
+    _add_success_criteria(
+        delivery_task,
+        module_map["通信链路健康管理"],
+        "D2-强制通信链",
+        "heartbeat_loss_ratio",
+        ComparisonOperator.LESS_EQUAL,
+        0.005,
+        "强制通信链保持心跳",
+    )
+    _add_success_criteria(
+        delivery_task,
+        module_map["光电红外摄像机"],
+        "D3-图像帧率",
+        "effective_fps",
+        ComparisonOperator.GREATER_EQUAL,
+        15.0,
+        "图像帧率≥15 FPS",
+        weight=1.3,
+    )
+    _add_success_criteria(
+        delivery_task,
+        module_map["毫米波雷达"],
+        "D3-点云有效率",
+        "valid_ratio",
+        ComparisonOperator.GREATER_EQUAL,
+        0.90,
+        "点云数据有效率≥90%",
+        weight=1.3,
+    )
+    _add_success_criteria(
+        delivery_task,
+        module_map["路径规划算法"],
+        "D3-重规划周期",
+        "replan_cycle_s",
+        ComparisonOperator.LESS_EQUAL,
+        0.30,
+        "重规划周期≤0.30 s",
+        weight=1.6,
+    )
+    _add_success_criteria(
+        delivery_task,
+        module_map["避障算法"],
+        "D3-侧向安全裕度",
+        "lateral_margin_m",
+        ComparisonOperator.GREATER_EQUAL,
+        4.0,
+        "最小侧向安全裕度≥4 m",
+    )
+    _add_success_criteria(
+        delivery_task,
+        module_map["目标检测算法"],
+        "D4-投放点定位",
+        "drop_position_error_m",
+        ComparisonOperator.LESS_EQUAL,
+        3.0,
+        "投放点定位误差≤3 m",
+        weight=1.5,
+    )
+    _add_success_criteria(
+        delivery_task,
+        module_map["飞控控制算法"],
+        "D4-释放高度",
+        "release_altitude_error_m",
+        ComparisonOperator.LESS_EQUAL,
+        2.0,
+        "释放高度偏差≤±2 m",
+    )
+    _add_success_criteria(
+        delivery_task,
+        module_map["通信模块"],
+        "D5-通信可用率",
+        "availability",
+        ComparisonOperator.GREATER_EQUAL,
+        0.98,
+        "返航通信可用率≥0.98",
+    )
+    _add_success_criteria(
+        delivery_task,
+        module_map["自驾仪"],
+        "D5-落地速度",
+        "landing_ground_speed_ms",
+        ComparisonOperator.LESS_EQUAL,
+        1.0,
+        "接地瞬时地速≤1 m/s",
+        weight=1.6,
+    )
+
+    system.add_task_profile(delivery_task)
+    task_profiles[delivery_task.name] = delivery_task
+
+    print(f"✓ 已创建 {len(task_profiles)} 个任务剖面")
+    return task_profiles
 
 
-def create_drone_environments(system):
-    """创建无人机环境模型"""
-    print("创建环境模型...")
-    
-    environments = {}
-    
-    # 1. 恶劣天气环境
-    weather_env = EnvironmentModule("恶劣天气环境", "包含强风、降雨等恶劣天气条件")
+# ---------------------------------------------------------------------------
+# 环境模型
+# ---------------------------------------------------------------------------
+
+
+def create_environment_models(system: SystemStructure, module_map: Dict[str, Module]) -> None:
+    weather_env = EnvironmentModule("恶劣天气环境", "强风/降雨等天气应力")
     weather_env.environment_type = EnvironmentType.WEATHER
-    weather_env.color = "#87CEEB"
-    weather_env.position = {'x': 50, 'y': 50}
-    
-    # 添加风速应力因子
-    wind_stress = StressFactor("风速")
-    wind_stress.stress_type = StressType.CUSTOM
-    wind_stress.description = "环境风速变化"
-    wind_stress.base_value = 10.0  # m/s
-    wind_stress.variation_range = 15.0
-    wind_stress.distribution = "normal"
-    wind_stress.time_profile = "random"
-    wind_stress.duration = 3600.0
-    weather_env.add_stress_factor(wind_stress)
-    
-    # 添加降雨应力因子
-    rain_stress = StressFactor("降雨强度")
-    rain_stress.stress_type = StressType.CUSTOM
-    rain_stress.description = "降雨强度变化"
-    rain_stress.base_value = 5.0  # mm/h
-    rain_stress.variation_range = 10.0
-    rain_stress.distribution = "exponential"
-    rain_stress.time_profile = "linear"
-    rain_stress.duration = 1800.0
-    weather_env.add_stress_factor(rain_stress)
-    
-    # 影响的模块
+    weather_env.position = {"x": 60, "y": 40}
+
+    wind = StressFactor("风速扰动")
+    wind.stress_type = StressType.CUSTOM
+    wind.description = "阵风引起的侧向干扰"
+    wind.base_value = 12.0
+    wind.variation_range = 18.0
+    wind.distribution = "gust"
+    wind.time_profile = "random"
+    wind.duration = 3600.0
+    weather_env.add_stress_factor(wind)
+
+    rain = StressFactor("降雨强度")
+    rain.stress_type = StressType.CUSTOM
+    rain.description = "降雨造成的光学衰减"
+    rain.base_value = 6.0
+    rain.variation_range = 10.0
+    rain.distribution = "exponential"
+    rain.time_profile = "linear"
+    rain.duration = 2400.0
+    weather_env.add_stress_factor(rain)
+
     weather_env.affected_modules = [
-        [m.id for m in system.modules.values() if m.name == "全球定位模块"][0],
-        [m.id for m in system.modules.values() if m.name == "光电红外摄像机"][0],
-        [m.id for m in system.modules.values() if m.name == "通信模块"][0]
+        module_map["光电红外摄像机"].id,
+        module_map["通信模块"].id,
+        module_map["毫米波雷达"].id,
     ]
-    
-    environments[weather_env.id] = weather_env
-    
-    # 2. 电磁干扰环境
-    emi_env = EnvironmentModule("电磁干扰环境", "电磁干扰对通信和导航的影响")
+
+    emi_env = EnvironmentModule("电磁干扰环境", "电磁场干扰通信与导航")
     emi_env.environment_type = EnvironmentType.ELECTROMAGNETIC
-    emi_env.color = "#FFD700"
-    emi_env.position = {'x': 200, 'y': 50}
-    
-    # 添加电磁干扰应力因子
-    emi_stress = StressFactor("电磁场强度")
-    emi_stress.stress_type = StressType.ELECTROMAGNETIC
-    emi_stress.description = "电磁场强度变化"
-    emi_stress.base_value = 5.0  # V/m
-    emi_stress.variation_range = 3.0
-    emi_stress.distribution = "uniform"
-    emi_stress.time_profile = "sinusoidal"
-    emi_stress.parameters = {"frequency": 0.1}
-    emi_stress.duration = 3600.0
-    emi_env.add_stress_factor(emi_stress)
-    
-    # 影响的模块
+    emi_env.position = {"x": 260, "y": 40}
+
+    emi = StressFactor("电磁场强度")
+    emi.stress_type = StressType.ELECTROMAGNETIC
+    emi.description = "复杂电磁环境干扰"
+    emi.base_value = 5.5
+    emi.variation_range = 3.0
+    emi.distribution = "uniform"
+    emi.time_profile = "sinusoidal"
+    emi.parameters = {"frequency": 0.2}
+    emi.duration = 3600.0
+    emi_env.add_stress_factor(emi)
+
     emi_env.affected_modules = [
-        [m.id for m in system.modules.values() if m.name == "全球定位模块"][0],
-        [m.id for m in system.modules.values() if m.name == "通信模块"][0]
+        module_map["全球定位模块"].id,
+        module_map["通信模块"].id,
+        module_map["通信链路健康管理"].id,
     ]
-    
-    environments[emi_env.id] = emi_env
-    
-    # 3. 高温环境
+
     thermal_env = EnvironmentModule("高温环境", "高温对电子设备的影响")
     thermal_env.environment_type = EnvironmentType.THERMAL
-    thermal_env.color = "#FF6B6B"
-    thermal_env.position = {'x': 350, 'y': 50}
-    
-    # 添加温度应力因子
-    temp_stress = StressFactor("环境温度")
-    temp_stress.stress_type = StressType.TEMPERATURE
-    temp_stress.description = "环境温度变化"
-    temp_stress.base_value = 45.0  # °C
-    temp_stress.variation_range = 15.0
-    temp_stress.distribution = "normal"
-    temp_stress.time_profile = "sinusoidal"
-    temp_stress.parameters = {"frequency": 0.05}
-    temp_stress.duration = 3600.0
-    thermal_env.add_stress_factor(temp_stress)
-    
-    # 影响所有电子模块
+    thermal_env.position = {"x": 460, "y": 40}
+
+    temp = StressFactor("环境温度")
+    temp.stress_type = StressType.TEMPERATURE
+    temp.description = "机身受日照导致的高温"
+    temp.base_value = 48.0
+    temp.variation_range = 12.0
+    temp.distribution = "normal"
+    temp.time_profile = "sinusoidal"
+    temp.parameters = {"frequency": 0.03}
+    temp.duration = 5400.0
+    thermal_env.add_stress_factor(temp)
+
     thermal_env.affected_modules = [
-        [m.id for m in system.modules.values() if m.name == "自驾仪"][0],
-        [m.id for m in system.modules.values() if m.name == "专用算力设备"][0],
-        [m.id for m in system.modules.values() if m.name == "通信模块"][0]
+        module_map["专用算力设备"].id,
+        module_map["飞控任务应用软件"].id,
+        module_map["避障算法"].id,
     ]
-    
-    environments[thermal_env.id] = thermal_env
-    
-    # 将环境模型添加到系统
-    system.environment_models = environments
-    
-    print(f"✓ 创建了 {len(environments)} 个环境模型")
-    return system
+
+    system.add_environment_model(weather_env)
+    system.add_environment_model(emi_env)
+    system.add_environment_model(thermal_env)
+
+    print(f"✓ 已配置 {len(system.environment_models)} 个环境模型")
 
 
-def generate_fault_tree_demo(system):
-    """生成故障树演示"""
-    print("生成故障树分析...")
-    
-    # 选择抵近侦察任务
-    recon_task = None
-    for task in system.task_profiles.values():
-        if task.name == "抵近侦察任务":
-            recon_task = task
-            break
-    
-    if not recon_task:
-        print("✗ 未找到抵近侦察任务")
-        return None
-    
-    # 生成故障树
+# ---------------------------------------------------------------------------
+# 故障树分析
+# ---------------------------------------------------------------------------
+
+
+def apply_redundancy_logic(fault_tree, task_name: str) -> None:
+    """在故障树中注入冗余逻辑，确保存在组合最小割集。"""
+
+    if "抵近侦察" not in task_name:
+        return
+
+    try:
+        detection_event = next(
+            event
+            for event in fault_tree.events.values()
+            if event.name == "目标检测算法失效"
+        )
+    except StopIteration:
+        return
+
+    detection_gate = next(
+        (gate for gate in fault_tree.gates.values() if gate.output_event_id == detection_event.id),
+        None,
+    )
+    if detection_gate is None:
+        return
+
+    sensor_event_groups = {"3": [], "4": []}
+    for event in fault_tree.events.values():
+        if event.name.startswith("接口#3") and "高负载丢帧" in event.name:
+            sensor_event_groups["3"].append(event.id)
+        elif event.name.startswith("接口#4") and "UDP分片丢包" in event.name:
+            sensor_event_groups["4"].append(event.id)
+
+    if not sensor_event_groups["3"] or not sensor_event_groups["4"]:
+        return
+
+    representative_ids = [
+        sensor_event_groups["3"][0],
+        sensor_event_groups["4"][0],
+    ]
+    removal_ids = sensor_event_groups["3"] + sensor_event_groups["4"]
+
+    # 若传感器事件已直接接入检测门，先移除
+    detection_gate.input_events = [
+        eid for eid in detection_gate.input_events if eid not in removal_ids
+    ]
+
+    from src.models.fault_tree_model import FaultTreeEvent, FaultTreeGate, EventType, GateType
+
+    combined_event = FaultTreeEvent(
+        "多模态感知链路失效",
+        event_type=EventType.INTERMEDIATE_EVENT,
+    )
+    combined_event.description = "光电与雷达链路同时退化导致检测输入中断"
+    fault_tree.add_event(combined_event)
+
+    and_gate = FaultTreeGate("多模态感知冗余门", GateType.AND)
+    and_gate.output_event_id = combined_event.id
+    and_gate.input_events = representative_ids
+    fault_tree.add_gate(and_gate)
+
+    detection_gate.input_events.append(combined_event.id)
+
+    # 确保传感器事件仅通过冗余门传播
+    for gate in fault_tree.gates.values():
+        if gate.id == and_gate.id:
+            continue
+        if any(eid in removal_ids for eid in gate.input_events):
+            gate.input_events = [
+                eid for eid in gate.input_events if eid not in removal_ids
+            ]
+
+
+def run_fault_tree_analyses(system: SystemStructure) -> Dict[str, object]:
+    """对系统的所有任务剖面执行故障树分析。"""
+
+    fault_trees: Dict[str, object] = {}
     generator = FaultTreeGenerator()
-    fault_tree = generator.generate_fault_tree(system, recon_task)
-    
-    if fault_tree:
-        print(f"✓ 故障树生成成功: {fault_tree.name}")
-        print(f"  事件数量: {len(fault_tree.events)}")
-        print(f"  逻辑门数量: {len(fault_tree.gates)}")
-        
-        # 分析故障树
+
+    for task in system.task_profiles.values():
+        print(f"生成任务[{task.name}]的故障树...")
+        fault_tree = generator.generate_fault_tree(system, task)
+        apply_redundancy_logic(fault_tree, task.name)
         cut_sets = fault_tree.find_minimal_cut_sets()
-        sys_prob = fault_tree.calculate_system_probability()
+        system_prob = fault_tree.calculate_system_probability()
         fault_tree.calculate_importance_measures()
-        
-        print(f"✓ 故障树分析完成")
-        print(f"  最小割集数量: {len(cut_sets)}")
-        print(f"  系统失效概率: {sys_prob:.2e}")
-        
-        # 显示前5个最小割集
-        print("  前5个最小割集:")
-        for i, cut_set in enumerate(cut_sets[:5]):
-            event_names = []
-            for event_id in cut_set.events:
-                if event_id in fault_tree.events:
-                    event_names.append(fault_tree.events[event_id].name)
-            print(f"    {i+1}. {', '.join(event_names)} (概率: {cut_set.probability:.2e})")
-    else:
-        print("✗ 故障树生成失败")
-    
-    return fault_tree
+
+        print(
+            f"✓ {task.name} 故障树生成成功: 事件{len(fault_tree.events)}个, 逻辑门{len(fault_tree.gates)}个, "
+            f"最小割集{len(cut_sets)}个, 系统失效概率≈{system_prob:.2e}"
+        )
+
+        if cut_sets:
+            print("  Top 5 最小割集:")
+            for idx, cut_set in enumerate(cut_sets[:5], start=1):
+                event_labels = [
+                    fault_tree.events[eid].name
+                    for eid in cut_set.events
+                    if eid in fault_tree.events
+                ]
+                print(f"    {idx}. {', '.join(event_labels)} (P≈{cut_set.probability:.2e})")
+
+        fault_trees[task.name] = fault_tree
+
+    return fault_trees
 
 
-def save_demo_project(system, fault_tree=None):
-    """保存演示项目"""
-    print("保存演示项目...")
-    
-    # 创建项目管理器
-    pm = ProjectManager()
-    pm.set_current_system(system)
-    
-    # 保存项目
+# ---------------------------------------------------------------------------
+# 项目保存与报告
+# ---------------------------------------------------------------------------
+
+
+def generate_demo_report(
+    system: SystemStructure,
+    fault_trees: Dict[str, object],
+    report_path: str,
+) -> None:
+    """生成文本报告，总结系统结构与两个任务的分析结果。"""
+
+    with open(report_path, "w", encoding="utf-8") as report:
+        report.write("无人机智能系统接口故障分析演示报告\n")
+        report.write("=" * 70 + "\n\n")
+        report.write(f"系统名称: {system.name}\n")
+        report.write(f"系统描述: {system.description}\n")
+        report.write(f"模块数量: {len(system.modules)}\n")
+        report.write(f"接口数量: {len(system.interfaces)}\n")
+        report.write(f"任务剖面数量: {len(system.task_profiles)}\n")
+        report.write(f"环境模型数量: {len(system.environment_models)}\n\n")
+
+        report.write("1. 系统模块列表\n")
+        for module in system.modules.values():
+            report.write(
+                f"- {module.name} ({module.module_type.value}): {module.description}, 失效率≈{getattr(module, 'failure_rate', 1e-5):.2e}\n"
+            )
+        report.write("\n")
+
+        report.write("2. 接口与失效模式\n")
+        for interface in system.interfaces.values():
+            report.write(f"- {interface.name}: {interface.description}\n")
+            for failure in interface.failure_modes:
+                report.write(
+                    f"    • 失效模式: {failure.name}, 描述: {failure.description}, λ≈{failure.failure_rate:.2e}\n"
+                )
+        report.write("\n")
+
+        report.write("3. 任务剖面概述\n")
+        for task in system.task_profiles.values():
+            report.write(f"- {task.name}: {task.description}\n")
+            report.write(f"  总时长: {task.total_duration / 60:.1f} min\n")
+            report.write(f"  成功判据数量: {len(task.success_criteria)}\n")
+            report.write(f"  阶段数量: {len(task.task_phases)}\n")
+        report.write("\n")
+
+        report.write("4. 故障树分析结果\n")
+        for task_name, fault_tree in fault_trees.items():
+            report.write(f"- {task_name} 故障树\n")
+            report.write(f"  事件数: {len(fault_tree.events)}, 逻辑门数: {len(fault_tree.gates)}\n")
+            report.write(f"  最小割集数: {len(fault_tree.minimal_cut_sets)}\n")
+            report.write(f"  系统失效概率: {fault_tree.system_probability:.2e}\n")
+            report.write(f"  系统可靠度: {1.0 - fault_tree.system_probability:.6f}\n")
+
+            if fault_tree.minimal_cut_sets:
+                report.write("  代表性最小割集:\n")
+                for cut_set in fault_tree.minimal_cut_sets[:5]:
+                    labels = [
+                        fault_tree.events[event_id].name
+                        for event_id in cut_set.events
+                        if event_id in fault_tree.events
+                    ]
+                    report.write(
+                        f"    • {', '.join(labels)} (P≈{cut_set.probability:.2e})\n"
+                    )
+            report.write("\n")
+
+        report.write("演示报告生成完成。\n")
+
+
+def save_demo_project(system: SystemStructure, fault_trees: Dict[str, object]) -> bool:
     project_path = "./demo_projects/drone_system_demo.json"
     os.makedirs(os.path.dirname(project_path), exist_ok=True)
-    
-    try:
-        # 直接保存项目，不单独测试序列化
-        success = pm.save_project_as(project_path)
-        if success:
-            print(f"✓ 项目已保存到: {project_path}")
-            
-            # 验证文件是否正确保存
-            if os.path.getsize(project_path) > 0:
-                print(f"✓ 项目文件大小: {os.path.getsize(project_path)} 字节")
-            else:
-                print("✗ 项目文件为空")
-                return False
-            
-            # 生成演示报告
-            report_path = "./demo_projects/drone_system_report.txt"
-            generate_demo_report(system, fault_tree, report_path)
-            print(f"✓ 演示报告已生成: {report_path}")
-            
-            return True
-        else:
-            print("✗ 保存项目失败")
-            return False
-            
-    except Exception as e:
-        print(f"✗ 保存项目失败: {e}")
-        import traceback
-        traceback.print_exc()
+
+    pm = ProjectManager()
+    pm.set_current_system(system)
+
+    success = pm.save_project_as(project_path)
+    if not success:
+        print("✗ 项目保存失败")
         return False
 
-
-def generate_demo_report(system, fault_tree, report_path):
-    """生成演示报告"""
-    with open(report_path, 'w', encoding='utf-8') as f:
-        f.write("无人机智能系统故障机理分析演示报告\n")
-        f.write("=" * 60 + "\n\n")
-        
-        # 系统概述
-        f.write("1. 系统概述\n")
-        f.write(f"系统名称: {system.name}\n")
-        f.write(f"系统描述: {system.description}\n")
-        f.write(f"模块数量: {len(system.modules)}\n")
-        f.write(f"接口数量: {len(system.interfaces)}\n")
-        f.write(f"任务剖面数量: {len(system.task_profiles)}\n")
-        f.write(f"环境模型数量: {len(system.environment_models)}\n\n")
-        
-        # 模块列表
-        f.write("2. 系统模块\n")
-        for module in system.modules.values():
-            f.write(f"- {module.name}: {module.description}\n")
-            f.write(f"  类型: {module.module_type}\n")
-            f.write(f"  失效率: {module.failure_rate:.2e} /小时\n")
-        f.write("\n")
-        
-        # 接口列表
-        f.write("3. 系统接口\n")
-        for interface in system.interfaces.values():
-            f.write(f"- {interface.name}: {interface.description}\n")
-            f.write(f"  协议: {interface.protocol}\n")
-            f.write(f"  失效模式数量: {len(interface.failure_modes)}\n")
-        f.write("\n")
-        
-        # 任务剖面
-        f.write("4. 任务剖面\n")
-        for task in system.task_profiles.values():
-            f.write(f"- {task.name}: {task.description}\n")
-            f.write(f"  任务类型: {task.mission_type}\n")
-            f.write(f"  持续时间: {task.total_duration/3600:.1f} 小时\n")
-            f.write(f"  成功判据数量: {len(task.success_criteria)}\n")
-            f.write(f"  任务阶段数量: {len(task.task_phases)}\n")
-        f.write("\n")
-        
-        # 环境模型
-        f.write("5. 环境模型\n")
-        for env in system.environment_models.values():
-            f.write(f"- {env.name}: {env.description}\n")
-            f.write(f"  环境类型: {env.environment_type.value}\n")
-            f.write(f"  应力因子数量: {len(env.stress_factors)}\n")
-            f.write(f"  影响模块数量: {len(env.affected_modules)}\n")
-        f.write("\n")
-        
-        # 故障树分析结果
-        if fault_tree:
-            f.write("6. 故障树分析结果\n")
-            f.write(f"故障树名称: {fault_tree.name}\n")
-            f.write(f"事件总数: {len(fault_tree.events)}\n")
-            f.write(f"逻辑门数量: {len(fault_tree.gates)}\n")
-            f.write(f"最小割集数量: {len(fault_tree.minimal_cut_sets)}\n")
-            f.write(f"系统失效概率: {fault_tree.system_probability:.2e}\n")
-            f.write(f"系统可靠度: {1.0 - fault_tree.system_probability:.6f}\n\n")
-            
-            # 重要度分析
-            f.write("7. 重要度分析\n")
-            basic_events = fault_tree.get_basic_events()
-            for event in basic_events:
-                measures = event.importance_measures
-                f.write(f"- {event.name}:\n")
-                f.write(f"  结构重要度: {measures.get('structure_importance', 0.0):.3f}\n")
-                f.write(f"  概率重要度: {measures.get('probability_importance', 0.0):.2e}\n")
-                f.write(f"  关键重要度: {measures.get('critical_importance', 0.0):.3f}\n")
-        
-        f.write("\n演示报告生成完成。\n")
+    print(f"✓ 项目已保存到 {project_path}")
+    report_path = "./demo_projects/drone_system_report.txt"
+    generate_demo_report(system, fault_trees, report_path)
+    print(f"✓ 分析报告已生成: {report_path}")
+    return True
 
 
-def main():
-    """主函数"""
-    print("无人机智能系统故障机理分析演示")
-    print("=" * 60)
-    
+# ---------------------------------------------------------------------------
+# 主流程
+# ---------------------------------------------------------------------------
+
+
+def create_drone_system_demo() -> Tuple[SystemStructure, Dict[str, object]]:
+    system = SystemStructure(
+        "无人机智能任务系统",
+        "基于多源传感融合的无人机任务执行与接口故障机理演示",
+    )
+
+    module_map = build_modules(system)
+    interface_map = build_interfaces(system, module_map)
+    build_connections(system, module_map, interface_map)
+    create_task_profiles(system, module_map, interface_map)
+    create_environment_models(system, module_map)
+
+    fault_trees = run_fault_tree_analyses(system)
+    return system, fault_trees
+
+
+def main() -> bool:
+    print("无人机智能系统任务可靠性分析演示")
+    print("=" * 70)
+
     try:
-        # 1. 创建系统结构（包含模块接口）
-        system = create_drone_system()
-    
-        # 2. 创建模块连接
-        system = create_module_connections(system)
-    
-        # 3. 创建任务剖面
-        system = create_drone_task_profiles(system)
-    
-        # 4. 创建环境模型
-        system = create_drone_environments(system)
-        
-        # 5. 生成故障树
-        fault_tree = generate_fault_tree_demo(system)
-        
-        # 6. 保存演示项目
-        success = save_demo_project(system, fault_tree)
-        
-        if success:
-            print("\n" + "=" * 60)
-            print("🎉 无人机系统演示案例创建成功！")
-            print("\n演示内容包括:")
-            print("- ✓ 完整的无人机系统架构（11个模块）")
-            print("- ✓ 五大类接口建模（5个接口）")
-            print("- ✓ 多任务剖面定义（2个任务）")
-            print("- ✓ 环境应力建模（3个环境）")
-            print("- ✓ 自动故障树生成与分析")
-            print("- ✓ 定性和定量分析结果")
-            print("- ✓ 重要度指标计算")
-            print("\n项目文件:")
-            print("- 项目数据: demo_projects/drone_system_demo.json")
+        system, fault_trees = create_drone_system_demo()
+        if save_demo_project(system, fault_trees):
+            print("\n演示摘要:")
+            print("- 系统模块: {}".format(len(system.modules)))
+            print("- 接口数量: {}".format(len(system.interfaces)))
+            print("- 任务剖面: {}".format(len(system.task_profiles)))
+            print("- 环境模型: {}".format(len(system.environment_models)))
+            print("- 生成故障树: {}".format(len(fault_trees)))
+            print("- 项目文件: demo_projects/drone_system_demo.json")
             print("- 分析报告: demo_projects/drone_system_report.txt")
-            print("\n可以通过GUI界面打开项目文件进行进一步分析。")
-        else:
-            print("❌ 演示案例创建失败")
-            return False
-        
-        return True
-        
-    except Exception as e:
-        print(f"✗ 创建演示案例时出错: {e}")
+            return True
+        return False
+    except Exception as exc:  # pragma: no cover - 便于诊断
+        print(f"✗ 演示过程发生异常: {exc}")
         import traceback
+
         traceback.print_exc()
         return False
 
