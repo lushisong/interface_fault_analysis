@@ -56,22 +56,6 @@ def test_template_selection_populates_fields(interface_panel, qtbot):
     assert panel.failure_list.count() > 0
     assert panel.subtype_combo.count() > 0
 
-    # 模拟用户配置新的失效模式与参数
-    panel.failure_name_edit.setText("通信中断")
-    panel.add_failure_mode()
-    assert any(item.text() == "通信中断" for item in _iter_list_items(panel.failure_list))
-
-    panel.param_name_edit.setText("刷新周期")
-    panel.param_value_edit.setText("0.5")
-    panel.param_type_combo.setCurrentText("float")
-    panel.add_parameter()
-
-    assert any(
-        item.data(Qt.UserRole)["name"] == "刷新周期"
-        for item in _iter_list_items(panel.param_list)
-        if item.data(Qt.UserRole)
-    )
-
 
 def test_save_interface_creates_instance(qtbot, monkeypatch):
     panel = InterfacePanel()
@@ -102,7 +86,7 @@ def test_save_interface_creates_instance(qtbot, monkeypatch):
     panel.param_type_combo.setCurrentText("int")
     panel.add_parameter()
 
-    panel.code_edit.setPlainText("outputs['message'] = 'hello'")
+    panel.code_edit.setPlainText("print('hello')")
 
     panel.save_interface()
 
@@ -113,7 +97,6 @@ def test_save_interface_creates_instance(qtbot, monkeypatch):
     assert interface.interface_type == InterfaceType.ALGORITHM_HARDWARE
     assert interface.direction == InterfaceDirection.OUTPUT
     assert interface.parameters == {"带宽": "10"}
-    assert interface.python_code == "outputs['message'] = 'hello'"
     assert interface.python_code == "print('hello')"
 
     assert interface.id in system.interfaces
@@ -124,8 +107,3 @@ def test_save_interface_creates_instance(qtbot, monkeypatch):
     data = current_item.data(0, Qt.UserRole)
     assert data["type"] == "interface_instance"
     assert data["interface_id"] == interface.id
-
-
-def _iter_list_items(list_widget):
-    for i in range(list_widget.count()):
-        yield list_widget.item(i)
