@@ -6,13 +6,14 @@ Module Data Model
 定义硬件模块、软件模块、算法模块的数据结构
 """
 
+import copy
 from typing import Dict, Any, List, Optional
 from enum import Enum
 try:
-    from .base_model import BaseModel, Point
+    from .base_model import BaseModel, Point, ConnectionPoint
     from .interface_model import Interface, InterfaceDirection
 except ImportError:
-    from base_model import BaseModel, Point
+    from base_model import BaseModel, Point, ConnectionPoint
     from interface_model import Interface, InterfaceDirection
 
 
@@ -83,13 +84,47 @@ class Module(BaseModel):
             # 映射direction到connection_type
             if interface.direction == InterfaceDirection.INPUT:
                 cp.connection_type = 'input'
+                cp.direction = 'input'
             elif interface.direction == InterfaceDirection.OUTPUT:
                 cp.connection_type = 'output'
+                cp.direction = 'output'
             else:
                 cp.connection_type = 'bidirectional'
+                cp.direction = 'bidirectional'
             cp.data_type = interface.data_format or 'signal'
+            cp.variables = interface.parameters.get('linked_variables', [])
             points.append(cp)
         return points
+
+    def add_connection_point(self, connection_point: ConnectionPoint) -> Interface:
+        """兼容旧接口：根据连接点创建接口并添加到模块"""
+        direction_value = getattr(connection_point, 'direction', connection_point.connection_type)
+        direction_mapping = {
+            'input': InterfaceDirection.INPUT,
+            'output': InterfaceDirection.OUTPUT,
+            'bidirectional': InterfaceDirection.BIDIRECTIONAL,
+            None: InterfaceDirection.BIDIRECTIONAL
+        }
+        direction = direction_mapping.get(direction_value, InterfaceDirection.BIDIRECTIONAL)
+
+        interface = Interface(connection_point.name, f"由连接点 {connection_point.name} 实例化", direction=direction)
+        interface.data_format = connection_point.data_type
+        interface.parameters = copy.deepcopy(getattr(connection_point, 'parameters', {}))
+        interface.parameters['legacy_connection_point'] = connection_point.to_dict()
+        interface.parameters.setdefault('linked_variables', connection_point.variables)
+
+        # 设置位置映射信息，便于在界面中恢复
+        interface.parameters.setdefault('position', {
+            'x': getattr(connection_point.position, 'x', 0.0),
+            'y': getattr(connection_point.position, 'y', 0.0)
+        })
+
+        self.add_interface(interface)
+        return interface
+
+    def remove_connection_point(self, connection_point_id: str):
+        """兼容旧接口：通过连接点ID移除接口"""
+        self.remove_interface(connection_point_id)
         
     def add_interface(self, interface: Interface):
         """添加接口"""
