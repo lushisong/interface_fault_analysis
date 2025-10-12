@@ -836,27 +836,14 @@ class ModulePanel(QWidget):
             if dialog.exec_() == QDialog.Accepted:
                 template_interface = dialog.get_selected_interface()
                 if template_interface:
-                    # 创建接口的副本（实例化）
-                    new_interface = Interface()
-                    if hasattr(template_interface, 'interface_type'):
-                        # 从模板复制属性
-                        new_interface.name = f"{template_interface.name}_实例"
-                        new_interface.interface_type = template_interface.interface_type
-                        new_interface.direction = template_interface.direction
-                        new_interface.description = template_interface.description
-                        new_interface.protocol = template_interface.protocol
-                        new_interface.data_format = template_interface.data_format
-                        new_interface.bandwidth = template_interface.bandwidth
-                        new_interface.latency = template_interface.latency
-                        new_interface.reliability = template_interface.reliability
-                        new_interface.parameters = template_interface.parameters.copy()
-                        new_interface.failure_modes = template_interface.failure_modes.copy()
-                        new_interface.python_code = template_interface.python_code
+                    if isinstance(template_interface, Interface):
+                        # 使用模板创建全新的实例，确保状态机与失效模式独立
+                        new_interface = template_interface.instantiate_from_template(
+                            f"{template_interface.name}_实例")
                     else:
-                        # 创建新接口
-                        new_interface.name = "新接口"
-                        new_interface.description = "新创建的接口"
-                    
+                        # 创建空接口供用户自定义
+                        new_interface = Interface("新接口", "新创建的接口")
+
                     # 添加到模块
                     self.current_module.add_interface(new_interface)
                     self.save_modules_to_system()
