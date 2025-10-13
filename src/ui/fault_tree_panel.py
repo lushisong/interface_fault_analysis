@@ -15,8 +15,8 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QSplitter,
                              QGraphicsView, QGraphicsScene, QGraphicsItem,
                              QGraphicsRectItem, QGraphicsEllipseItem, QGraphicsTextItem,
                              QGraphicsLineItem)
-from PyQt5.QtCore import Qt, pyqtSignal, QThread, QTimer
-from PyQt5.QtGui import QIcon, QFont, QColor, QPen, QBrush, QPainter
+from PyQt5.QtCore import Qt, pyqtSignal, QThread, QTimer, QPoint
+from PyQt5.QtGui import QIcon, QFont, QColor, QPen, QBrush, QPainter, QCursor
 
 from ..models.fault_tree_model import FaultTree, FaultTreeEvent, FaultTreeGate, EventType, GateType
 from ..core.fault_tree_generator import FaultTreeGenerator
@@ -72,10 +72,16 @@ class FaultTreeGraphicsView(QGraphicsView):
         self.fault_tree = None
         
         # 设置视图属性
-        self.setDragMode(QGraphicsView.RubberBandDrag)
+        self.setDragMode(QGraphicsView.NoDrag)
         self.setRenderHint(QPainter.Antialiasing)
         self.setViewportUpdateMode(QGraphicsView.FullViewportUpdate)
-    
+        self.setTransformationAnchor(QGraphicsView.AnchorUnderMouse)
+        self.setResizeAnchor(QGraphicsView.AnchorUnderMouse)
+
+        # 交互状态
+        self._is_panning = False
+        self._pan_start = QPoint()
+
     def set_fault_tree(self, fault_tree: FaultTree):
         """设置故障树"""
         self.fault_tree = fault_tree
@@ -98,9 +104,75 @@ class FaultTreeGraphicsView(QGraphicsView):
         
         # 绘制连线
         self._draw_connections()
-        
+
         # 调整视图
         self.scene.setSceneRect(self.scene.itemsBoundingRect())
+        self.resetTransform()
+        if not self.scene.sceneRect().isNull():
+            self.fitInView(self.scene.sceneRect(), Qt.KeepAspectRatio)
+
+    def wheelEvent(self, event):
+        """滚轮缩放"""
+        if not self.scene.items():
+            return
+
+        zoom_in_factor = 1.15
+        zoom_out_factor = 1 / zoom_in_factor
+
+        if event.angleDelta().y() > 0:
+            factor = zoom_in_factor
+        else:
+            factor = zoom_out_factor
+
+        self.scale(factor, factor)
+        event.accept()
+
+    def mousePressEvent(self, event):
+        """启用中键平移"""
+        if event.button() == Qt.MiddleButton:
+            self._is_panning = True
+            self._pan_start = event.pos()
+            self.setCursor(QCursor(Qt.ClosedHandCursor))
+            event.accept()
+            return
+
+        super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event):
+        """处理中键拖拽平移"""
+        if self._is_panning:
+            delta = event.pos() - self._pan_start
+            self._pan_start = event.pos()
+            self.horizontalScrollBar().setValue(self.horizontalScrollBar().value() - delta.x())
+            self.verticalScrollBar().setValue(self.verticalScrollBar().value() - delta.y())
+            event.accept()
+            return
+
+        super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        """结束平移"""
+        if event.button() == Qt.MiddleButton and self._is_panning:
+            self._is_panning = False
+            self.setCursor(QCursor(Qt.ArrowCursor))
+            event.accept()
+            return
+
+        super().mouseReleaseEvent(event)
+
+    def zoom_in(self):
+        """放大视图"""
+        self.scale(1.15, 1.15)
+
+    def zoom_out(self):
+        """缩小视图"""
+        self.scale(1 / 1.15, 1 / 1.15)
+
+    def reset_view(self):
+        """重置视图到适应屏幕"""
+        if not self.scene.items():
+            return
+        self.resetTransform()
         self.fitInView(self.scene.sceneRect(), Qt.KeepAspectRatio)
     
     def _draw_event(self, event: FaultTreeEvent):
@@ -334,16 +406,38 @@ class FaultTreePanel(QWidget):
         """创建故障树视图"""
         widget = QWidget()
         layout = QVBoxLayout(widget)
-        
+
         # 标题
         title_label = QLabel("故障树结构")
         title_label.setFont(QFont("Arial", 12, QFont.Bold))
         layout.addWidget(title_label)
-        
+
         # 故障树图形视图
         self.tree_view = FaultTreeGraphicsView()
+
+        # 视图控制按钮
+        controls_layout = QHBoxLayout()
+        self.zoom_in_btn = QPushButton("放大")
+        self.zoom_out_btn = QPushButton("缩小")
+        self.reset_view_btn = QPushButton("适应屏幕")
+
+        self.zoom_in_btn.clicked.connect(self.tree_view.zoom_in)
+        self.zoom_out_btn.clicked.connect(self.tree_view.zoom_out)
+        self.reset_view_btn.clicked.connect(self.tree_view.reset_view)
+
+        controls_layout.addWidget(self.zoom_in_btn)
+        controls_layout.addWidget(self.zoom_out_btn)
+        controls_layout.addWidget(self.reset_view_btn)
+
+        hint_label = QLabel("提示: 滚轮缩放，按住中键拖动可平移")
+        hint_label.setStyleSheet("color: #666666; font-size: 11px;")
+        controls_layout.addStretch()
+        controls_layout.addWidget(hint_label)
+
+        layout.addLayout(controls_layout)
+
         layout.addWidget(self.tree_view)
-        
+
         return widget
     
     def create_analysis_results(self):

@@ -300,6 +300,7 @@ class TaskProfilePanel(QWidget):
         super().__init__(parent)
         self.current_profile = None
         self.project_manager = None
+        self.current_system = None
         self.init_ui()
     
     def init_ui(self):
@@ -670,16 +671,29 @@ class TaskProfilePanel(QWidget):
         """设置项目管理器"""
         self.project_manager = project_manager
         self.refresh_profile_list()
-    
+
+    def set_current_system(self, system):
+        """设置当前系统并刷新显示"""
+        self.current_system = system
+        self.refresh_profile_list()
+        self.current_profile = None
+        self.profile_title_label.setText("请选择任务剖面")
+        self.tab_widget.setEnabled(False)
+        self.save_btn.setEnabled(False)
+        self.delete_profile_btn.setEnabled(False)
+
     def refresh_profile_list(self):
         """刷新任务剖面列表"""
         self.profile_tree.clear()
-        
-        if not self.project_manager or not self.project_manager.current_system:
+
+        system = self.current_system
+        if not system and self.project_manager:
+            system = self.project_manager.current_system
+
+        if not system:
             return
-        
+
         # 添加任务剖面到树中
-        system = self.project_manager.current_system
         if hasattr(system, 'task_profiles'):
             for profile_id, profile in system.task_profiles.items():
                 item = QTreeWidgetItem([profile.name])
