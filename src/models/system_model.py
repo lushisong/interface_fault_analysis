@@ -481,9 +481,12 @@ class SystemStructure(BaseModel):
             else:
                 task_profile = TaskProfile()
             task_profile.from_dict(task_data)
+            task_profile.id = task_id or task_profile.id
             self.task_profiles[task_id] = task_profile
-        
+
         self.current_task_profile_id = data.get('current_task_profile_id', '')
+        if self.current_task_profile_id not in self.task_profiles and self.task_profiles:
+            self.current_task_profile_id = next(iter(self.task_profiles.keys()))
         
         self.canvas_size = Point()
         self.canvas_size.from_dict(data.get('canvas_size', {'x': 1200, 'y': 800}))

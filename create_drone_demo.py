@@ -12,11 +12,15 @@
 
 from __future__ import annotations
 
-import os
 import sys
+from pathlib import Path
 from typing import Dict, List, Tuple
 
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+BASE_DIR = Path(__file__).resolve().parent
+if str(BASE_DIR) not in sys.path:
+    sys.path.append(str(BASE_DIR))
+
+PROJECT_DIR = BASE_DIR / "demo_projects"
 
 from src.core.fault_tree_generator import FaultTreeGenerator
 from src.core.project_manager import ProjectManager
@@ -1612,21 +1616,21 @@ def generate_demo_report(
 
 
 def save_demo_project(system: SystemStructure, fault_trees: Dict[str, object]) -> bool:
-    project_path = "./demo_projects/drone_system_demo.json"
-    os.makedirs(os.path.dirname(project_path), exist_ok=True)
+    project_path = PROJECT_DIR / "drone_system_demo.json"
+    PROJECT_DIR.mkdir(parents=True, exist_ok=True)
 
     pm = ProjectManager()
     pm.set_current_system(system)
 
-    success = pm.save_project_as(project_path)
+    success = pm.save_project_as(str(project_path))
     if not success:
         print("✗ 项目保存失败")
         return False
 
-    print(f"✓ 项目已保存到 {project_path}")
-    report_path = "./demo_projects/drone_system_report.txt"
-    generate_demo_report(system, fault_trees, report_path)
-    print(f"✓ 分析报告已生成: {report_path}")
+    print(f"✓ 项目已保存到 {project_path.relative_to(BASE_DIR)}")
+    report_path = PROJECT_DIR / "drone_system_report.txt"
+    generate_demo_report(system, fault_trees, str(report_path))
+    print(f"✓ 分析报告已生成: {report_path.relative_to(BASE_DIR)}")
     return True
 
 
@@ -1664,8 +1668,10 @@ def main() -> bool:
             print("- 任务剖面: {}".format(len(system.task_profiles)))
             print("- 环境模型: {}".format(len(system.environment_models)))
             print("- 生成故障树: {}".format(len(fault_trees)))
-            print("- 项目文件: demo_projects/drone_system_demo.json")
-            print("- 分析报告: demo_projects/drone_system_report.txt")
+            relative_project = PROJECT_DIR / "drone_system_demo.json"
+            relative_report = PROJECT_DIR / "drone_system_report.txt"
+            print(f"- 项目文件: {relative_project.relative_to(BASE_DIR)}")
+            print(f"- 分析报告: {relative_report.relative_to(BASE_DIR)}")
             return True
         return False
     except Exception as exc:  # pragma: no cover - 便于诊断
