@@ -13,11 +13,21 @@ try:
     from .module_model import Module
     from .interface_model import Interface
     from .task_profile_model import TaskProfile as DetailedTaskProfile
+    from .environment_model import (
+        EnvironmentType as DetailedEnvironmentType,
+        StressFactor as DetailedStressFactor,
+        StressType as DetailedStressType,
+    )
 except ImportError:
     from base_model import BaseModel, Point
     from module_model import Module
     from interface_model import Interface
     from task_profile_model import TaskProfile as DetailedTaskProfile
+    from environment_model import (
+        EnvironmentType as DetailedEnvironmentType,
+        StressFactor as DetailedStressFactor,
+        StressType as DetailedStressType,
+    )
 
 
 class TaskStatus(Enum):
@@ -235,65 +245,177 @@ class Connection:
 
 class EnvironmentModel(BaseModel):
     """环境模型"""
-    
+
     def __init__(self, name: str = "", description: str = ""):
         super().__init__(name, description)
-        self.environment_type = "physical"  # physical, network, user, electromagnetic
-        self.parameters = {}  # 环境参数
-        self.stress_factors = {}  # 应力因子
-        self.python_code = ""  # Python建模代码
-        self.position = Point()  # 在图形界面中的位置
-        self.size = Point(120, 80)  # 环境模块大小
-        self.icon_path = ""  # 图标路径
-    
-    def apply_stress(self, system_state: Dict[str, Any]) -> Dict[str, Any]:
+        self.environment_type: DetailedEnvironmentType = DetailedEnvironmentType.PHYSICAL
+        self.parameters: Dict[str, Any] = {}
+        self.stress_factors: List[DetailedStressFactor] = []
+        self.python_code: str = ""
+        self.position: Dict[str, Any] = {'x': 0, 'y': 0}
+        self.size: Dict[str, Any] = {'width': 120, 'height': 80}
+        self.icon_path: str = ""
+        self.color: str = "#FFE4B5"
+        self.affected_modules: List[str] = []
+        self.enabled: bool = True
+        self.custom_environment_type: Optional[str] = None
+
+    def apply_stress(self, system_state: Dict[str, Any], current_time: float = 0.0) -> Dict[str, Any]:
         """施加环境应力"""
-        if not self.python_code:
+        if not self.enabled:
             return system_state
-        
-        # 准备执行环境
-        local_vars = {
-            'system_state': system_state,
-            'parameters': self.parameters,
-            'stress_factors': self.stress_factors,
-            'modified_state': system_state.copy()
-        }
-        
-        try:
-            # 执行用户定义的Python代码
-            exec(self.python_code, {}, local_vars)
-            return local_vars.get('modified_state', system_state)
-        except Exception as e:
-            print(f"执行环境模型 {self.name} 的Python代码时出错: {e}")
-            return system_state
-    
+
+        modified_state = system_state.copy()
+        stress_values: Dict[str, float] = {}
+
+        for stress_factor in self.stress_factors:
+            if not getattr(stress_factor, 'enabled', True):
+                continue
+
+            try:
+                stress_value = stress_factor.generate_stress_value(current_time)
+            except Exception as exc:
+                print(f"计算环境应力 {stress_factor.name} 时出错: {exc}")
+                continue
+
+            stress_values[stress_factor.name] = stress_value
+
+            # 施加到受影响模块
+            for module_id in self.affected_modules:
+                if module_id not in modified_state:
+                    continue
+
+                module_state = dict(modified_state[module_id])
+
+                stress_type = getattr(stress_factor, 'stress_type', None)
+                if stress_type == DetailedStressType.TEMPERATURE:
+                    module_state['temperature'] = stress_value
+                elif stress_type == DetailedStressType.VIBRATION:
+                    module_state['vibration_level'] = stress_value
+                elif stress_type == DetailedStressType.NETWORK_DELAY:
+                    module_state['network_delay'] = stress_value
+                elif stress_type == DetailedStressType.PACKET_LOSS:
+                    module_state['packet_loss_rate'] = stress_value
+                elif stress_type == DetailedStressType.CUSTOM:
+                    key = stress_factor.parameters.get('metric', stress_factor.name)
+                    module_state[key] = stress_value
+                else:
+                    key = stress_factor.parameters.get('metric', stress_factor.name)
+                    module_state[key] = stress_value
+
+                modified_state[module_id] = module_state
+
+        if self.python_code:
+            local_vars = {
+                'system_state': system_state,
+                'modified_state': modified_state,
+                'current_time': current_time,
+                'parameters': self.parameters,
+                'stress_factors': stress_values,
+                'affected_modules': self.affected_modules,
+            }
+
+            try:
+                exec(self.python_code, {}, local_vars)
+                modified_state = local_vars.get('modified_state', modified_state)
+            except Exception as e:
+                print(f"执行环境模型 {self.name} 的Python代码时出错: {e}")
+
+        return modified_state
+
     def to_dict(self) -> Dict[str, Any]:
         base_dict = super().to_dict()
+
+        stress_factor_dicts: List[Dict[str, Any]] = []
+        for factor in self.stress_factors:
+            if hasattr(factor, 'to_dict'):
+                stress_factor_dicts.append(factor.to_dict())
+            elif isinstance(factor, dict):
+                stress_factor_dicts.append(factor)
+
+        env_type_value = (
+            self.environment_type.value
+            if isinstance(self.environment_type, DetailedEnvironmentType)
+            else self.environment_type
+        )
+
+        if self.custom_environment_type and isinstance(self.environment_type, DetailedEnvironmentType) and self.environment_type == DetailedEnvironmentType.CUSTOM:
+            env_type_value = self.custom_environment_type
+
         base_dict.update({
-            'environment_type': self.environment_type,
+            'environment_type': env_type_value,
             'parameters': self.parameters,
-            'stress_factors': self.stress_factors,
+            'stress_factors': stress_factor_dicts,
             'python_code': self.python_code,
-            'position': self.position.to_dict(),
-            'size': self.size.to_dict(),
-            'icon_path': self.icon_path
+            'position': self.position,
+            'size': self.size,
+            'icon_path': self.icon_path,
+            'color': self.color,
+            'affected_modules': self.affected_modules,
+            'enabled': self.enabled
         })
         return base_dict
-    
+
     def from_dict(self, data: Dict[str, Any]):
         super().from_dict(data)
-        self.environment_type = data.get('environment_type', 'physical')
+
+        env_type_value = data.get('environment_type', DetailedEnvironmentType.PHYSICAL.value)
+        try:
+            self.environment_type = DetailedEnvironmentType(env_type_value)
+            self.custom_environment_type = None
+        except ValueError:
+            self.environment_type = DetailedEnvironmentType.CUSTOM
+            self.custom_environment_type = env_type_value
+
         self.parameters = data.get('parameters', {})
-        self.stress_factors = data.get('stress_factors', {})
+
+        self.stress_factors = []
+        raw_factors = data.get('stress_factors', [])
+        if isinstance(raw_factors, dict):
+            raw_iterable = raw_factors.items()
+        else:
+            raw_iterable = enumerate(raw_factors)
+
+        for key, factor_data in raw_iterable:
+            if isinstance(factor_data, DetailedStressFactor):
+                stress_factor = factor_data
+            elif isinstance(factor_data, dict):
+                stress_factor = DetailedStressFactor()
+                if 'name' not in factor_data:
+                    factor_data = dict(factor_data)
+                    factor_data['name'] = key if isinstance(key, str) else f"stress_{len(self.stress_factors) + 1}"
+                try:
+                    stress_factor.from_dict(factor_data)
+                except Exception as exc:
+                    print(f"加载环境应力因子 {factor_data.get('name', key)} 时出错: {exc}")
+                    continue
+            else:
+                continue
+
+            self.stress_factors.append(stress_factor)
+
         self.python_code = data.get('python_code', '')
-        
-        self.position = Point()
-        self.position.from_dict(data.get('position', {}))
-        
-        self.size = Point()
-        self.size.from_dict(data.get('size', {'x': 120, 'y': 80}))
-        
+        raw_position = data.get('position', {'x': 0, 'y': 0})
+        if isinstance(raw_position, dict):
+            self.position = {
+                'x': raw_position.get('x', raw_position.get('width', 0)),
+                'y': raw_position.get('y', raw_position.get('height', 0))
+            }
+        else:
+            self.position = {'x': 0, 'y': 0}
+
+        raw_size = data.get('size', {'width': 120, 'height': 80})
+        if isinstance(raw_size, dict):
+            self.size = {
+                'width': raw_size.get('width', raw_size.get('x', 120)),
+                'height': raw_size.get('height', raw_size.get('y', 80))
+            }
+        else:
+            self.size = {'width': 120, 'height': 80}
         self.icon_path = data.get('icon_path', '')
+        self.color = data.get('color', '#FFE4B5')
+        self.affected_modules = data.get('affected_modules', [])
+        self.enabled = data.get('enabled', True)
 
 
 class SystemStructure(BaseModel):
@@ -404,8 +526,11 @@ class SystemStructure(BaseModel):
         
         # 应用环境应力
         for env_model in self.environment_models.values():
-            system_state = env_model.apply_stress(system_state)
-        
+            if hasattr(env_model, 'apply_stress'):
+                system_state = env_model.apply_stress(system_state)
+            elif hasattr(env_model, 'apply_environment_stress'):
+                system_state = env_model.apply_environment_stress(system_state)
+
         return system_state
     
     def to_dict(self) -> Dict[str, Any]:

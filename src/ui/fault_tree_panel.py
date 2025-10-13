@@ -12,11 +12,11 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QSplitter,
                              QSpinBox, QDoubleSpinBox, QCheckBox, QPushButton,
                              QFormLayout, QGridLayout, QHeaderView, QMessageBox,
                              QDialog, QDialogButtonBox, QFrame, QProgressBar,
-                             QGraphicsView, QGraphicsScene, QGraphicsItem,
-                             QGraphicsRectItem, QGraphicsEllipseItem, QGraphicsTextItem,
-                             QGraphicsLineItem)
-from PyQt5.QtCore import Qt, pyqtSignal, QThread, QTimer
-from PyQt5.QtGui import QIcon, QFont, QColor, QPen, QBrush, QPainter
+                             QGraphicsView, QGraphicsScene,
+                             QGraphicsEllipseItem, QGraphicsTextItem)
+from PyQt5.QtCore import Qt, pyqtSignal, QThread, QTimer, QPoint
+from PyQt5.QtGui import (QIcon, QFont, QColor, QPen, QBrush, QPainter, QCursor,
+                         QPainterPath, QTextOption)
 
 from ..models.fault_tree_model import FaultTree, FaultTreeEvent, FaultTreeGate, EventType, GateType
 from ..core.fault_tree_generator import FaultTreeGenerator
@@ -72,10 +72,21 @@ class FaultTreeGraphicsView(QGraphicsView):
         self.fault_tree = None
         
         # 设置视图属性
-        self.setDragMode(QGraphicsView.RubberBandDrag)
+        self.setDragMode(QGraphicsView.NoDrag)
         self.setRenderHint(QPainter.Antialiasing)
         self.setViewportUpdateMode(QGraphicsView.FullViewportUpdate)
-    
+        self.setTransformationAnchor(QGraphicsView.AnchorUnderMouse)
+        self.setResizeAnchor(QGraphicsView.AnchorUnderMouse)
+
+        # 视觉配置
+        self.setBackgroundBrush(QColor(246, 248, 252))
+        self._font_family = "Microsoft YaHei"
+        self._connector_color = QColor(120, 124, 130)
+
+        # 交互状态
+        self._is_panning = False
+        self._pan_start = QPoint()
+
     def set_fault_tree(self, fault_tree: FaultTree):
         """设置故障树"""
         self.fault_tree = fault_tree
@@ -98,10 +109,139 @@ class FaultTreeGraphicsView(QGraphicsView):
         
         # 绘制连线
         self._draw_connections()
-        
+
         # 调整视图
         self.scene.setSceneRect(self.scene.itemsBoundingRect())
+        self.resetTransform()
+        if not self.scene.sceneRect().isNull():
+            self.fitInView(self.scene.sceneRect(), Qt.KeepAspectRatio)
+
+    def wheelEvent(self, event):
+        """滚轮缩放"""
+        if not self.scene.items():
+            return
+
+        zoom_in_factor = 1.15
+        zoom_out_factor = 1 / zoom_in_factor
+
+        if event.angleDelta().y() > 0:
+            factor = zoom_in_factor
+        else:
+            factor = zoom_out_factor
+
+        self.scale(factor, factor)
+        event.accept()
+
+    def mousePressEvent(self, event):
+        """启用中键平移"""
+        if event.button() == Qt.MiddleButton:
+            self._is_panning = True
+            self._pan_start = event.pos()
+            self.setCursor(QCursor(Qt.ClosedHandCursor))
+            event.accept()
+            return
+
+        super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event):
+        """处理中键拖拽平移"""
+        if self._is_panning:
+            delta = event.pos() - self._pan_start
+            self._pan_start = event.pos()
+            self.horizontalScrollBar().setValue(self.horizontalScrollBar().value() - delta.x())
+            self.verticalScrollBar().setValue(self.verticalScrollBar().value() - delta.y())
+            event.accept()
+            return
+
+        super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        """结束平移"""
+        if event.button() == Qt.MiddleButton and self._is_panning:
+            self._is_panning = False
+            self.setCursor(QCursor(Qt.ArrowCursor))
+            event.accept()
+            return
+
+        super().mouseReleaseEvent(event)
+
+    def zoom_in(self):
+        """放大视图"""
+        self.scale(1.15, 1.15)
+
+    def zoom_out(self):
+        """缩小视图"""
+        self.scale(1 / 1.15, 1 / 1.15)
+
+    def reset_view(self):
+        """重置视图到适应屏幕"""
+        if not self.scene.items():
+            return
+        self.resetTransform()
         self.fitInView(self.scene.sceneRect(), Qt.KeepAspectRatio)
+
+    def _create_pen(self, color: QColor, width: float = 1.6) -> QPen:
+        pen = QPen(color, width)
+        pen.setJoinStyle(Qt.RoundJoin)
+        pen.setCapStyle(Qt.RoundCap)
+        return pen
+
+    def _add_label(self, x: float, y: float, width: float, height: float, text: str,
+                   font_size: int, weight: int = QFont.Normal,
+                   color: QColor = QColor(45, 55, 72),
+                   alignment: int = Qt.AlignHCenter | Qt.AlignVCenter,
+                   padding: tuple = (6, 6, 6, 6), z_value: float = 2.0):
+        if not text:
+            return None
+
+        left, top, right, bottom = padding
+        available_width = max(0.0, width - (left + right))
+        available_height = max(0.0, height - (top + bottom))
+
+        label = QGraphicsTextItem(text)
+        font = label.font()
+        if self._font_family:
+            font.setFamily(self._font_family)
+        font.setPointSize(font_size)
+        font.setWeight(weight)
+        label.setFont(font)
+        label.setDefaultTextColor(color)
+        label.setTextWidth(available_width)
+
+        option = label.document().defaultTextOption()
+        option.setAlignment(alignment)
+        label.document().setDefaultTextOption(option)
+
+        bounding = label.boundingRect()
+        v_component = alignment & (Qt.AlignTop | Qt.AlignVCenter | Qt.AlignBottom)
+        if v_component == Qt.AlignBottom:
+            offset_y = available_height - bounding.height()
+        elif v_component == Qt.AlignVCenter:
+            offset_y = (available_height - bounding.height()) / 2
+        else:
+            offset_y = 0
+
+        offset_y = max(0.0, offset_y)
+        label.setPos(x + left, y + top + offset_y)
+        label.setZValue(z_value)
+        self.scene.addItem(label)
+        return label
+
+    def _draw_connector(self, start_x: float, start_y: float,
+                        end_x: float, end_y: float) -> None:
+        path = QPainterPath()
+        path.moveTo(start_x, start_y)
+
+        if abs(start_x - end_x) < 1e-3 or abs(start_y - end_y) < 1e-3:
+            path.lineTo(end_x, end_y)
+        else:
+            mid_y = start_y + (end_y - start_y) * 0.5
+            path.lineTo(start_x, mid_y)
+            path.lineTo(end_x, mid_y)
+            path.lineTo(end_x, end_y)
+
+        connector = self.scene.addPath(path, self._create_pen(self._connector_color, 1.6))
+        connector.setZValue(0)
     
     def _draw_event(self, event: FaultTreeEvent):
         """绘制事件"""
@@ -109,49 +249,45 @@ class FaultTreeGraphicsView(QGraphicsView):
         y = event.position['y']
         width = event.size['width']
         height = event.size['height']
-        
-        # 根据事件类型选择形状和颜色
+
+        pen_color = QColor(99, 102, 241)
+        fill_color = QColor(226, 232, 240)
+
         if event.event_type == EventType.TOP_EVENT:
-            # 顶事件 - 矩形，红色
-            rect = QGraphicsRectItem(x, y, width, height)
-            rect.setBrush(QBrush(QColor(255, 200, 200)))
-            rect.setPen(QPen(QColor(255, 0, 0), 2))
+            pen_color = QColor(185, 28, 28)
+            fill_color = QColor(254, 226, 226)
         elif event.event_type == EventType.INTERMEDIATE_EVENT:
-            # 中间事件 - 矩形，黄色
-            rect = QGraphicsRectItem(x, y, width, height)
-            rect.setBrush(QBrush(QColor(255, 255, 200)))
-            rect.setPen(QPen(QColor(200, 200, 0), 2))
+            pen_color = QColor(217, 119, 6)
+            fill_color = QColor(254, 243, 199)
         elif event.event_type == EventType.BASIC_EVENT:
-            # 基本事件 - 圆形，绿色
-            rect = QGraphicsEllipseItem(x, y, width, height)
-            rect.setBrush(QBrush(QColor(200, 255, 200)))
-            rect.setPen(QPen(QColor(0, 150, 0), 2))
+            pen_color = QColor(34, 197, 94)
+            fill_color = QColor(220, 252, 231)
+
+        if event.event_type == EventType.BASIC_EVENT:
+            shape_item = QGraphicsEllipseItem(x, y, width, height)
+            shape_item.setBrush(QBrush(fill_color))
+            shape_item.setPen(self._create_pen(pen_color, 2.0))
         else:
-            # 其他事件 - 矩形，灰色
-            rect = QGraphicsRectItem(x, y, width, height)
-            rect.setBrush(QBrush(QColor(220, 220, 220)))
-            rect.setPen(QPen(QColor(100, 100, 100), 2))
-        
-        self.scene.addItem(rect)
-        
-        # 添加文本
-        text = QGraphicsTextItem(event.name)
-        text.setPos(x + 5, y + 5)
-        text.setTextWidth(width - 10)
-        font = text.font()
-        font.setPointSize(8)
-        text.setFont(font)
-        self.scene.addItem(text)
-        
-        # 添加概率信息
-        if event.probability > 0:
-            prob_text = QGraphicsTextItem(f"P={event.probability:.2e}")
-            prob_text.setPos(x + 5, y + height - 20)
-            font = prob_text.font()
-            font.setPointSize(6)
-            prob_text.setFont(font)
-            prob_text.setDefaultTextColor(QColor(100, 100, 100))
-            self.scene.addItem(prob_text)
+            path = QPainterPath()
+            path.addRoundedRect(x, y, width, height, 10, 10)
+            shape_item = self.scene.addPath(path, self._create_pen(pen_color, 2.2), QBrush(fill_color))
+
+        shape_item.setZValue(1)
+        if isinstance(shape_item, QGraphicsEllipseItem):
+            self.scene.addItem(shape_item)
+
+        title_size = 10 if event.event_type == EventType.TOP_EVENT else 9
+        self._add_label(x, y, width, height, event.name, title_size,
+                        weight=QFont.DemiBold,
+                        color=QColor(30, 41, 59),
+                        alignment=Qt.AlignHCenter | Qt.AlignVCenter)
+
+        if event.probability and event.probability > 0:
+            self._add_label(x, y, width, height, f"P={event.probability:.2e}",
+                            font_size=7, weight=QFont.Medium,
+                            color=QColor(71, 85, 105),
+                            alignment=Qt.AlignHCenter | Qt.AlignBottom,
+                            padding=(6, 6, 6, 6))
     
     def _draw_gate(self, gate: FaultTreeGate):
         """绘制逻辑门"""
@@ -159,65 +295,46 @@ class FaultTreeGraphicsView(QGraphicsView):
         y = gate.position['y']
         width = gate.size['width']
         height = gate.size['height']
-        
-        # 根据门类型选择形状
+
         if gate.gate_type == GateType.AND:
-            # 与门 - 弧形顶部
-            rect = QGraphicsRectItem(x, y + height//2, width, height//2)
-            rect.setBrush(QBrush(QColor(200, 200, 255)))
-            rect.setPen(QPen(QColor(0, 0, 200), 2))
-            self.scene.addItem(rect)
-            
-            # 弧形顶部
-            arc = QGraphicsEllipseItem(x, y, width, height)
-            arc.setBrush(QBrush(QColor(200, 200, 255)))
-            arc.setPen(QPen(QColor(0, 0, 200), 2))
-            arc.setStartAngle(0)
-            arc.setSpanAngle(180 * 16)  # 180度
-            self.scene.addItem(arc)
-            
-            # 文本
-            text = QGraphicsTextItem("&")
-            text.setPos(x + width//2 - 5, y + height//2 - 10)
-            font = text.font()
-            font.setPointSize(12)
-            font.setBold(True)
-            text.setFont(font)
-            self.scene.addItem(text)
-        
+            brush = QBrush(QColor(219, 234, 254))
+            pen = self._create_pen(QColor(37, 99, 235), 2.0)
+            path = QPainterPath()
+            path.moveTo(x, y + height)
+            path.lineTo(x, y + height / 2)
+            path.arcTo(x, y, width, height, 180, -180)
+            path.lineTo(x + width, y + height)
+            path.closeSubpath()
+            shape_item = self.scene.addPath(path, pen, brush)
+            label = "AND"
         elif gate.gate_type == GateType.OR:
-            # 或门 - 尖顶
-            rect = QGraphicsRectItem(x, y + height//2, width, height//2)
-            rect.setBrush(QBrush(QColor(255, 200, 255)))
-            rect.setPen(QPen(QColor(200, 0, 200), 2))
-            self.scene.addItem(rect)
-            
-            # 尖顶（简化为三角形）
-            # 这里简化处理，实际应该绘制曲线
-            
-            # 文本
-            text = QGraphicsTextItem("≥1")
-            text.setPos(x + width//2 - 8, y + height//2 - 10)
-            font = text.font()
-            font.setPointSize(10)
-            font.setBold(True)
-            text.setFont(font)
-            self.scene.addItem(text)
-        
+            brush = QBrush(QColor(254, 243, 199))
+            pen = self._create_pen(QColor(217, 119, 6), 2.0)
+            path = QPainterPath()
+            path.moveTo(x, y + height)
+            path.cubicTo(x + width * 0.15, y + height * 0.25,
+                         x + width * 0.35, y,
+                         x + width * 0.5, y)
+            path.cubicTo(x + width * 0.65, y,
+                         x + width * 0.85, y + height * 0.25,
+                         x + width, y + height)
+            path.quadTo(x + width * 0.5, y + height * 1.15, x, y + height)
+            path.closeSubpath()
+            shape_item = self.scene.addPath(path, pen, brush)
+            label = "OR"
         else:
-            # 其他门类型 - 简单矩形
-            rect = QGraphicsRectItem(x, y, width, height)
-            rect.setBrush(QBrush(QColor(240, 240, 240)))
-            rect.setPen(QPen(QColor(100, 100, 100), 2))
-            self.scene.addItem(rect)
-            
-            # 文本
-            text = QGraphicsTextItem(gate.gate_type.value.upper())
-            text.setPos(x + 5, y + height//2 - 10)
-            font = text.font()
-            font.setPointSize(8)
-            text.setFont(font)
-            self.scene.addItem(text)
+            brush = QBrush(QColor(226, 232, 240))
+            pen = self._create_pen(QColor(71, 85, 105), 1.8)
+            path = QPainterPath()
+            path.addRoundedRect(x, y, width, height, 8, 8)
+            shape_item = self.scene.addPath(path, pen, brush)
+            label = gate.gate_type.value.upper()
+
+        shape_item.setZValue(1)
+        self._add_label(x, y, width, height, label, 9,
+                        weight=QFont.Bold,
+                        color=QColor(30, 41, 59),
+                        alignment=Qt.AlignHCenter | Qt.AlignVCenter)
     
     def _draw_connections(self):
         """绘制连线"""
@@ -225,38 +342,22 @@ class FaultTreeGraphicsView(QGraphicsView):
             return
         
         for gate in self.fault_tree.gates.values():
-            # 从逻辑门到输出事件的连线
             if gate.output_event_id in self.fault_tree.events:
                 output_event = self.fault_tree.events[gate.output_event_id]
-                
-                # 连线起点（逻辑门底部中心）
-                start_x = gate.position['x'] + gate.size['width'] // 2
+                start_x = gate.position['x'] + gate.size['width'] / 2
                 start_y = gate.position['y'] + gate.size['height']
-                
-                # 连线终点（事件顶部中心）
-                end_x = output_event.position['x'] + output_event.size['width'] // 2
+                end_x = output_event.position['x'] + output_event.size['width'] / 2
                 end_y = output_event.position['y']
-                
-                line = QGraphicsLineItem(start_x, start_y, end_x, end_y)
-                line.setPen(QPen(QColor(0, 0, 0), 2))
-                self.scene.addItem(line)
-            
-            # 从输入事件到逻辑门的连线
+                self._draw_connector(start_x, start_y, end_x, end_y)
+
             for input_event_id in gate.input_events:
                 if input_event_id in self.fault_tree.events:
                     input_event = self.fault_tree.events[input_event_id]
-                    
-                    # 连线起点（事件底部中心）
-                    start_x = input_event.position['x'] + input_event.size['width'] // 2
+                    start_x = input_event.position['x'] + input_event.size['width'] / 2
                     start_y = input_event.position['y'] + input_event.size['height']
-                    
-                    # 连线终点（逻辑门顶部中心）
-                    end_x = gate.position['x'] + gate.size['width'] // 2
+                    end_x = gate.position['x'] + gate.size['width'] / 2
                     end_y = gate.position['y']
-                    
-                    line = QGraphicsLineItem(start_x, start_y, end_x, end_y)
-                    line.setPen(QPen(QColor(0, 0, 0), 2))
-                    self.scene.addItem(line)
+                    self._draw_connector(start_x, start_y, end_x, end_y)
 
 
 class FaultTreePanel(QWidget):
@@ -334,16 +435,38 @@ class FaultTreePanel(QWidget):
         """创建故障树视图"""
         widget = QWidget()
         layout = QVBoxLayout(widget)
-        
+
         # 标题
         title_label = QLabel("故障树结构")
         title_label.setFont(QFont("Arial", 12, QFont.Bold))
         layout.addWidget(title_label)
-        
+
         # 故障树图形视图
         self.tree_view = FaultTreeGraphicsView()
+
+        # 视图控制按钮
+        controls_layout = QHBoxLayout()
+        self.zoom_in_btn = QPushButton("放大")
+        self.zoom_out_btn = QPushButton("缩小")
+        self.reset_view_btn = QPushButton("适应屏幕")
+
+        self.zoom_in_btn.clicked.connect(self.tree_view.zoom_in)
+        self.zoom_out_btn.clicked.connect(self.tree_view.zoom_out)
+        self.reset_view_btn.clicked.connect(self.tree_view.reset_view)
+
+        controls_layout.addWidget(self.zoom_in_btn)
+        controls_layout.addWidget(self.zoom_out_btn)
+        controls_layout.addWidget(self.reset_view_btn)
+
+        hint_label = QLabel("提示: 滚轮缩放，按住中键拖动可平移")
+        hint_label.setStyleSheet("color: #666666; font-size: 11px;")
+        controls_layout.addStretch()
+        controls_layout.addWidget(hint_label)
+
+        layout.addLayout(controls_layout)
+
         layout.addWidget(self.tree_view)
-        
+
         return widget
     
     def create_analysis_results(self):
