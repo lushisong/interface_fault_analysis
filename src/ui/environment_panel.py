@@ -497,6 +497,7 @@ class EnvironmentPanel(QWidget):
         super().__init__(parent)
         self.current_environment = None
         self.project_manager = None
+        self.current_system = None
         self.init_ui()
     
     def init_ui(self):
@@ -649,16 +650,30 @@ class EnvironmentPanel(QWidget):
         """设置项目管理器"""
         self.project_manager = project_manager
         self.refresh_environment_list()
-    
+
+    def set_current_system(self, system):
+        """设置当前系统并刷新显示"""
+        self.current_system = system
+        self.refresh_environment_list()
+        self.current_environment = None
+        self.env_title_label.setText("请选择环境模块")
+        self.save_btn.setEnabled(False)
+        self.edit_btn.setEnabled(False)
+        self.delete_env_btn.setEnabled(False)
+        self.clear_info_display()
+
     def refresh_environment_list(self):
         """刷新环境模块列表"""
         self.env_tree.clear()
-        
-        if not self.project_manager or not self.project_manager.current_system:
+
+        system = self.current_system
+        if not system and self.project_manager:
+            system = self.project_manager.current_system
+
+        if not system:
             return
-        
+
         # 添加环境模块到树中
-        system = self.project_manager.current_system
         if hasattr(system, 'environment_models'):
             for env_id, env_module in system.environment_models.items():
                 item = QTreeWidgetItem([env_module.name])

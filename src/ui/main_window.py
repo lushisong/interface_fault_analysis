@@ -348,7 +348,9 @@ class MainWindow(QMainWindow):
             # 设置模块面板和接口面板
             self.module_panel.set_current_system(self.current_system)
             self.interface_panel.set_current_system(self.current_system)
-            
+            self.task_profile_panel.set_current_system(self.current_system)
+            self.environment_panel.set_current_system(self.current_system)
+
             self.update_project_tree()
             self.update_status("已创建新项目")
             self.project_label.setText("新项目")
@@ -371,7 +373,9 @@ class MainWindow(QMainWindow):
                 # 设置模块面板和接口面板
                 self.module_panel.set_current_system(self.current_system)
                 self.interface_panel.set_current_system(self.current_system)
-                
+                self.task_profile_panel.set_current_system(self.current_system)
+                self.environment_panel.set_current_system(self.current_system)
+
                 self.update_project_tree()
                 self.update_status(f"已打开项目：{file_path}")
                 self.project_label.setText(os.path.basename(file_path))
