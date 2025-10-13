@@ -33,6 +33,8 @@ from src.models.task_profile_model import (
     TaskProfile,
 )
 from src.core.fault_tree_generator import FaultTreeGenerator
+from src.core.project_manager import ProjectManager
+from create_drone_demo import create_drone_system_demo
 
 
 @pytest.fixture
@@ -194,3 +196,58 @@ def test_fault_tree_generation_with_interface_failures(interface_with_failure):
     assert "失败" in top_event.name
     assert any(event.interface_id == interface.id for event in fault_tree.events.values())
     assert fault_tree.top_event_id == top_event.id
+
+
+def test_demo_project_persists_task_profiles_and_environments(tmp_path):
+    system, _ = create_drone_system_demo()
+
+    manager = ProjectManager()
+    manager.set_current_system(system)
+    project_path = tmp_path / "drone_demo.json"
+
+    assert manager.save_project_as(str(project_path))
+
+    reloaded = manager.load_project(str(project_path))
+
+    assert len(reloaded.task_profiles) == 2
+    task_names = {profile.name for profile in reloaded.task_profiles.values()}
+    assert {"抵近侦察任务", "物资投放任务"} <= task_names
+    for profile in reloaded.task_profiles.values():
+        assert hasattr(profile, "total_duration")
+        assert profile.total_duration > 0
+
+    assert len(reloaded.environment_models) == 3
+    environment_names = {model.name for model in reloaded.environment_models.values()}
+    expected_env = {"恶劣天气环境", "电磁干扰环境", "高温环境"}
+    assert expected_env <= environment_names
+
+
+def test_fault_tree_generator_handles_duration_only_task_profile():
+    system = SystemStructure("遗留任务剖面系统")
+
+    module = Module("导航模块", "负责航迹导航")
+    module.id = "module_nav"
+    system.add_module(module)
+
+    legacy_profile = SystemTaskProfile("遗留任务", "仅包含持续时间字段")
+    legacy_profile.id = "legacy_task"
+    legacy_profile.duration = 1800.0
+    assert not hasattr(legacy_profile, "total_duration")
+
+    criteria = SystemSuccessCriteria("航迹误差阈值")
+    criteria.target_module_id = module.id
+    criteria.target_parameter = "track_error"
+    criteria.threshold_value = 10.0
+    criteria.comparison_operator = "<="
+    # 模拟旧版任务剖面字段
+    criteria.module_id = module.id
+    criteria.parameter_name = "track_error"
+    criteria.operator = "<="
+    criteria.target_value = 10.0
+    legacy_profile.add_success_criteria(criteria)
+
+    generator = FaultTreeGenerator()
+    fault_tree = generator.generate_fault_tree(system, legacy_profile)
+
+    assert math.isclose(fault_tree.mission_time, legacy_profile.duration / 3600.0)
+    assert fault_tree.get_top_event() is not None
