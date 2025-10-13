@@ -41,10 +41,18 @@ class FaultTreeGenerator:
             name=f"{task_profile.name}_故障树",
             description=f"基于任务剖面 '{task_profile.name}' 生成的故障树"
         )
-        
+
         self.fault_tree.task_profile_id = task_profile.id
         self.fault_tree.system_structure_id = system.id
-        self.fault_tree.mission_time = task_profile.total_duration / 3600.0  # 转换为小时
+        mission_seconds = getattr(task_profile, 'total_duration', None)
+        if mission_seconds is None:
+            mission_seconds = getattr(task_profile, 'duration', 0.0)
+        try:
+            mission_seconds = float(mission_seconds)
+        except (TypeError, ValueError):
+            mission_seconds = 0.0
+
+        self.fault_tree.mission_time = mission_seconds / 3600.0  # 转换为小时
         self.fault_tree.generation_config = self.generation_config.copy()
         
         # 创建顶事件

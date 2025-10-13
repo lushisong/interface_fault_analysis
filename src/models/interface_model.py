@@ -196,17 +196,20 @@ class InterfaceFailureMode:
     """接口失效模式"""
 
     def __init__(self, failure_mode: FailureMode, name: str = ""):
+        self.id = str(uuid.uuid4())
         self.failure_mode = failure_mode
         self.name = name or failure_mode.value
         self.description = ""
         self.severity = 1  # 严重程度 1-10
         self.occurrence_rate = 0.0  # 发生率
         self.detection_rate = 0.0  # 检测率
+        self.failure_rate = 0.0  # 失效率（与发生率兼容）
         self.trigger_conditions = []  # 触发条件列表
         self.effects = []  # 失效影响
         self.mitigation_measures = []  # 缓解措施
         self.python_code = ""  # Python建模代码
         self.associated_state_id: Optional[str] = None  # 关联的状态机状态
+        self.enabled = True  # 是否启用
 
     def add_trigger_condition(self, condition: TriggerCondition):
         """添加触发条件"""
@@ -225,17 +228,20 @@ class InterfaceFailureMode:
     
     def to_dict(self) -> Dict[str, Any]:
         return {
+            'id': self.id,
             'failure_mode': self.failure_mode.value,
             'name': self.name,
             'description': self.description,
             'severity': self.severity,
             'occurrence_rate': self.occurrence_rate,
             'detection_rate': self.detection_rate,
+            'failure_rate': self.failure_rate,
             'trigger_conditions': [tc.to_dict() for tc in self.trigger_conditions],
             'effects': self.effects,
             'mitigation_measures': self.mitigation_measures,
             'python_code': self.python_code,
-            'associated_state_id': self.associated_state_id
+            'associated_state_id': self.associated_state_id,
+            'enabled': self.enabled
         }
 
     def from_dict(self, data: Dict[str, Any]):
@@ -245,18 +251,21 @@ class InterfaceFailureMode:
         self.severity = data.get('severity', 1)
         self.occurrence_rate = data.get('occurrence_rate', 0.0)
         self.detection_rate = data.get('detection_rate', 0.0)
-        
+        self.failure_rate = data.get('failure_rate', data.get('occurrence_rate', 0.0))
+        self.id = data.get('id', self.id)
+
         # 加载触发条件
         self.trigger_conditions = []
         for tc_data in data.get('trigger_conditions', []):
             tc = TriggerCondition()
             tc.from_dict(tc_data)
             self.trigger_conditions.append(tc)
-        
+
         self.effects = data.get('effects', [])
         self.mitigation_measures = data.get('mitigation_measures', [])
         self.python_code = data.get('python_code', '')
         self.associated_state_id = data.get('associated_state_id')
+        self.enabled = data.get('enabled', True)
 
     def clone(self) -> 'InterfaceFailureMode':
         """克隆失效模式，确保触发条件独立"""
