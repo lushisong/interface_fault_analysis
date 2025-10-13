@@ -12,10 +12,12 @@ try:
     from .base_model import BaseModel, Point
     from .module_model import Module
     from .interface_model import Interface
+    from .task_profile_model import TaskProfile as DetailedTaskProfile
 except ImportError:
     from base_model import BaseModel, Point
     from module_model import Module
     from interface_model import Interface
+    from task_profile_model import TaskProfile as DetailedTaskProfile
 
 
 class TaskStatus(Enum):
@@ -474,7 +476,10 @@ class SystemStructure(BaseModel):
         # 加载任务剖面
         self.task_profiles = {}
         for task_id, task_data in data.get('task_profiles', {}).items():
-            task_profile = TaskProfile()
+            if 'mission_type' in task_data or 'task_phases' in task_data or 'total_duration' in task_data:
+                task_profile = DetailedTaskProfile()
+            else:
+                task_profile = TaskProfile()
             task_profile.from_dict(task_data)
             self.task_profiles[task_id] = task_profile
         
