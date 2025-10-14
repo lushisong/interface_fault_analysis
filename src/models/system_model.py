@@ -200,7 +200,8 @@ class Connection:
     """模块间连接"""
     
     def __init__(self, id: str = "", source_module_id: str = "", target_module_id: str = "",
-                 source_point_id: str = "", target_point_id: str = ""):
+                 source_point_id: str = "", target_point_id: str = "",
+                 line_style: str = "curved"):
         if id:
             self.id = id
         else:
@@ -212,6 +213,7 @@ class Connection:
         self.interface_id = ""  # 关联的接口ID
         self.connection_points = []  # 连线的控制点
         self.enabled = True
+        self.line_style = line_style  # curved, straight, orthogonal
     
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -222,7 +224,8 @@ class Connection:
             'target_point_id': self.target_point_id,
             'interface_id': self.interface_id,
             'connection_points': [cp.to_dict() for cp in self.connection_points],
-            'enabled': self.enabled
+            'enabled': self.enabled,
+            'line_style': self.line_style
         }
     
     def from_dict(self, data: Dict[str, Any]):
@@ -239,8 +242,9 @@ class Connection:
             cp = Point()
             cp.from_dict(cp_data)
             self.connection_points.append(cp)
-        
+
         self.enabled = data.get('enabled', True)
+        self.line_style = data.get('line_style', 'curved')
 
 
 class EnvironmentModel(BaseModel):
