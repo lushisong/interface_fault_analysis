@@ -5,9 +5,8 @@
 ================================
 
 该脚本根据“接口故障模式对无人智能系统任务可靠性的影响机理研究”中的描述，
-构建无人机智能系统的结构、接口、任务剖面与环境，并对“抵近侦察”与“物资
-投放”两个典型任务剖面执行故障树分析。脚本在原始结构基础上补充了多模态
-感知冗余等结构，使最小割集包含组合事件，便于展示接口冗余失效机理。
+构建无人机智能系统的层次化结构、31条关键接口、两类任务剖面及其成功判据，
+并对“抵近侦察”与“物资投放”两个典型任务执行故障树分析。
 """
 
 from __future__ import annotations
@@ -102,6 +101,15 @@ MODULE_SPECS: List[Dict[str, object]] = [
         "failure_rate": 4.1e-5,
     },
     {
+        "name": "机载计算机",
+        "description": "无人机机载核心计算平台",
+        "type": ModuleType.HARDWARE,
+        "template": ModuleTemplate.PROCESSOR,
+        "position": (320, 140),
+        "parameters": {"cpu": "x86/ARM", "memory": "16GB"},
+        "failure_rate": 1.5e-4,
+    },
+    {
         "name": "飞控任务应用软件",
         "description": "无人机任务管理与飞控任务容器",
         "type": ModuleType.SOFTWARE,
@@ -115,7 +123,7 @@ MODULE_SPECS: List[Dict[str, object]] = [
         "description": "多源传感器时间同步算法",
         "type": ModuleType.ALGORITHM,
         "template": ModuleTemplate.ALGORITHM,
-        "position": (220, 180),
+        "position": (220, 200),
         "parameters": {"method": "PTP", "accuracy": "1ms"},
         "failure_rate": 5.0e-5,
     },
@@ -124,18 +132,9 @@ MODULE_SPECS: List[Dict[str, object]] = [
         "description": "多源坐标系配准算法",
         "type": ModuleType.ALGORITHM,
         "template": ModuleTemplate.ALGORITHM,
-        "position": (320, 180),
+        "position": (420, 200),
         "parameters": {"method": "ICP", "accuracy": "0.1m"},
         "failure_rate": 5.0e-5,
-    },
-    {
-        "name": "多模态感知冗余管理",
-        "description": "双通道感知数据冗余与健康监测模块",
-        "type": ModuleType.SOFTWARE,
-        "template": ModuleTemplate.APPLICATION,
-        "position": (420, 240),
-        "parameters": {"mode": "dual-feed", "latency_budget_ms": 40},
-        "failure_rate": 4.5e-5,
     },
     {
         "name": "目标检测算法",
@@ -183,6 +182,15 @@ MODULE_SPECS: List[Dict[str, object]] = [
         "failure_rate": 2.0e-4,
     },
     {
+        "name": "专用算力设备",
+        "description": "FPGA/SoC算力加速设备",
+        "type": ModuleType.HARDWARE,
+        "template": ModuleTemplate.PROCESSOR,
+        "position": (220, 320),
+        "parameters": {"type": "Zynq", "tops": "1.2"},
+        "failure_rate": 2.0e-4,
+    },
+    {
         "name": "自驾仪",
         "description": "飞行控制自驾仪硬件",
         "type": ModuleType.HARDWARE,
@@ -210,15 +218,6 @@ MODULE_SPECS: List[Dict[str, object]] = [
         "failure_rate": 1.1e-4,
     },
     {
-        "name": "通信链路健康管理",
-        "description": "通信链路心跳与干扰监测服务",
-        "type": ModuleType.SOFTWARE,
-        "template": ModuleTemplate.APPLICATION,
-        "position": (720, 360),
-        "parameters": {"heartbeat_period_ms": 500, "failover": True},
-        "failure_rate": 5.5e-5,
-    },
-    {
         "name": "摄像机云台",
         "description": "三轴稳定云台",
         "type": ModuleType.HARDWARE,
@@ -238,11 +237,11 @@ MODULE_SPECS: List[Dict[str, object]] = [
     },
     {
         "name": "机器学习框架",
-        "description": "TensorRT推理框架",
+        "description": "机器学习推理框架",
         "type": ModuleType.SOFTWARE,
         "template": ModuleTemplate.APPLICATION,
         "position": (520, 420),
-        "parameters": {"version": "8.5", "precision": "FP16"},
+        "parameters": {"framework": "TensorRT", "precision": "FP16"},
         "failure_rate": 3.5e-5,
     },
     {
@@ -255,13 +254,13 @@ MODULE_SPECS: List[Dict[str, object]] = [
         "failure_rate": 1.0e-6,
     },
     {
-        "name": "专用算力设备",
-        "description": "FPGA/SoC算力加速设备",
-        "type": ModuleType.HARDWARE,
-        "template": ModuleTemplate.PROCESSOR,
-        "position": (220, 300),
-        "parameters": {"type": "Zynq", "tops": "1.2"},
-        "failure_rate": 2.0e-4,
+        "name": "应用容器",
+        "description": "任务应用与日志容器服务",
+        "type": ModuleType.SOFTWARE,
+        "template": ModuleTemplate.APPLICATION,
+        "position": (320, 360),
+        "parameters": {"logging": True, "storage": "NVMe"},
+        "failure_rate": 4.0e-5,
     },
 ]
 
@@ -410,8 +409,8 @@ INTERFACE_SPECS: List[Dict[str, object]] = [
         "type": InterfaceType.ALGORITHM_APPLICATION,
         "failure_mode": {
             "category": FailureMode.DATA_CORRUPTION,
-            "name": "坐标系错标",
-            "description": "坐标系标签错误",
+            "name": "坐标系标签错误",
+            "description": "坐标系标签错误导致环境理解失真",
             "rate": 2.1e-5,
         },
     },
@@ -440,7 +439,7 @@ INTERFACE_SPECS: List[Dict[str, object]] = [
         "type": InterfaceType.ALGORITHM_APPLICATION,
         "failure_mode": {
             "category": FailureMode.CONFIGURATION_ERROR,
-            "name": "分辨率错配",
+            "name": "分辨率/步幅错配",
             "description": "分辨率/步幅错配导致输入失效",
             "rate": 2.0e-5,
         },
@@ -456,7 +455,7 @@ INTERFACE_SPECS: List[Dict[str, object]] = [
         "failure_mode": {
             "category": FailureMode.RESOURCE_EXHAUSTION,
             "name": "推理进程OOM",
-            "description": "推理进程因内存不足被终止",
+            "description": "推理进程被OOM杀死(因内存不足自动关闭)",
             "rate": 2.7e-5,
         },
     },
@@ -546,7 +545,7 @@ INTERFACE_SPECS: List[Dict[str, object]] = [
         "type": InterfaceType.ALGORITHM_APPLICATION,
         "failure_mode": {
             "category": FailureMode.TIMEOUT,
-            "name": "时间窗越界",
+            "name": "时间窗外数据被消费",
             "description": "时间窗外数据被消费",
             "rate": 2.9e-5,
         },
@@ -637,7 +636,7 @@ INTERFACE_SPECS: List[Dict[str, object]] = [
         "failure_mode": {
             "category": FailureMode.DATA_CORRUPTION,
             "name": "指令NaN/Inf",
-            "description": "航迹指令包含NaN/Inf",
+            "description": "指令NaN/Inf被传播",
             "rate": 3.0e-5,
         },
     },
@@ -697,7 +696,7 @@ INTERFACE_SPECS: List[Dict[str, object]] = [
         "failure_mode": {
             "category": FailureMode.TIMEOUT,
             "name": "看门狗漏触",
-            "description": "抖动下看门狗漏触/误触",
+            "description": "在抖动条件下漏触看门狗",
             "rate": 1.9e-5,
         },
     },
@@ -745,66 +744,6 @@ INTERFACE_SPECS: List[Dict[str, object]] = [
             "name": "链路干扰",
             "description": "干扰致BER升高与丢包",
             "rate": 2.8e-5,
-        },
-    },
-    {
-        "id": 32,
-        "name": "冗余感知仲裁",
-        "description": "空间配准算法 → 多模态感知冗余管理",
-        "source": "空间配准算法",
-        "target": "多模态感知冗余管理",
-        "direction": InterfaceDirection.OUTPUT,
-        "type": InterfaceType.ALGORITHM_APPLICATION,
-        "failure_mode": {
-            "category": FailureMode.CONFIGURATION_ERROR,
-            "name": "冗余策略失效",
-            "description": "冗余仲裁逻辑配置错误",
-            "rate": 1.2e-5,
-        },
-    },
-    {
-        "id": 33,
-        "name": "冗余输出-检测",
-        "description": "多模态感知冗余管理 → 目标检测算法",
-        "source": "多模态感知冗余管理",
-        "target": "目标检测算法",
-        "direction": InterfaceDirection.OUTPUT,
-        "type": InterfaceType.ALGORITHM_APPLICATION,
-        "failure_mode": {
-            "category": FailureMode.DATA_CORRUPTION,
-            "name": "冗余输出漂移",
-            "description": "冗余仲裁输出漂移导致检测输入异常",
-            "rate": 1.1e-5,
-        },
-    },
-    {
-        "id": 34,
-        "name": "冗余输出-感知",
-        "description": "多模态感知冗余管理 → 环境感知算法",
-        "source": "多模态感知冗余管理",
-        "target": "环境感知算法",
-        "direction": InterfaceDirection.OUTPUT,
-        "type": InterfaceType.ALGORITHM_APPLICATION,
-        "failure_mode": {
-            "category": FailureMode.DATA_CORRUPTION,
-            "name": "冗余输出不一致",
-            "description": "冗余输出不一致导致环境感知失效",
-            "rate": 1.15e-5,
-        },
-    },
-    {
-        "id": 35,
-        "name": "通信心跳监测",
-        "description": "通信模块 ↔ 通信链路健康管理",
-        "source": "通信模块",
-        "target": "通信链路健康管理",
-        "direction": InterfaceDirection.BIDIRECTIONAL,
-        "type": InterfaceType.SOFTWARE_HARDWARE,
-        "failure_mode": {
-            "category": FailureMode.TIMEOUT,
-            "name": "心跳判决失效",
-            "description": "链路健康监测错判导致切换失败",
-            "rate": 1.6e-5,
         },
     },
 ]
@@ -1048,19 +987,19 @@ def create_task_profiles(
             "R3 抵近指向与目标识别",
             "多模态采集、同步配准、检测与云台指向稳定",
             10.0,
-            [3, 4, 5, 8, 11, 12, 13, 14, 15, 27, 28, 32, 33],
+            [3, 4, 5, 8, 11, 12, 13, 14, 15, 27, 28],
         ),
         (
             "R4 脱离与返航",
             "航迹重构、空域通报与返航执行",
             5.5,
-            [19, 21, 24, 26, 27, 28, 30, 20, 25, 31, 35],
+            [19, 21, 24, 26, 27, 28, 30, 20, 25, 31],
         ),
         (
             "R5 进近与着陆",
             "自动进近、姿态控制与落地",
             3.5,
-            [24, 26, 27, 28, 30, 25, 31, 35],
+            [24, 26, 27, 28, 30, 25, 31],
         ),
     ]
 
@@ -1094,6 +1033,15 @@ def create_task_profiles(
     )
     _add_success_criteria(
         recon_task,
+        module_map["自驾仪"],
+        "R1-导航状态",
+        "navigation_status_ok",
+        ComparisonOperator.EQUAL,
+        1.0,
+        "IMU与GNSS接入稳定，导航状态正常无告警",
+    )
+    _add_success_criteria(
+        recon_task,
         module_map["飞控控制算法"],
         "R2-姿态闭环稳定",
         "attitude_stability_index",
@@ -1113,7 +1061,16 @@ def create_task_profiles(
     )
     _add_success_criteria(
         recon_task,
-        module_map["通信链路健康管理"],
+        module_map["飞控控制算法"],
+        "R2-控制链完整",
+        "command_loss_ratio",
+        ComparisonOperator.LESS_EQUAL,
+        0.0,
+        "控制链无指令丢失或超时",
+    )
+    _add_success_criteria(
+        recon_task,
+        module_map["通信模块"],
         "R2-心跳连续",
         "heartbeat_loss_ratio",
         ComparisonOperator.LESS_EQUAL,
@@ -1132,6 +1089,15 @@ def create_task_profiles(
     )
     _add_success_criteria(
         recon_task,
+        module_map["毫米波雷达"],
+        "R3-点云有效率",
+        "valid_ratio",
+        ComparisonOperator.GREATER_EQUAL,
+        0.90,
+        "点云数据有效率不低于90%",
+    )
+    _add_success_criteria(
+        recon_task,
         module_map["目标检测算法"],
         "R3-检测概率",
         "detection_probability",
@@ -1142,12 +1108,39 @@ def create_task_profiles(
     )
     _add_success_criteria(
         recon_task,
+        module_map["目标检测算法"],
+        "R3-虚警率",
+        "false_alarm_rate_per_min",
+        ComparisonOperator.LESS_EQUAL,
+        0.1,
+        "虚警率FAR≤0.1/分钟",
+    )
+    _add_success_criteria(
+        recon_task,
+        module_map["路径规划算法"],
+        "R3-目标轨迹稳定",
+        "target_id_stability",
+        ComparisonOperator.GREATER_EQUAL,
+        0.98,
+        "检测-规划的目标轨迹ID连续、无震荡",
+    )
+    _add_success_criteria(
+        recon_task,
         module_map["摄像机云台"],
         "R3-指向误差",
         "pointing_error_deg",
         ComparisonOperator.LESS_EQUAL,
         1.0,
         "云台指向误差≤1.0°",
+    )
+    _add_success_criteria(
+        recon_task,
+        module_map["摄像机云台"],
+        "R3-指向稳定时间",
+        "stabilization_time_s",
+        ComparisonOperator.LESS_EQUAL,
+        0.5,
+        "云台指向稳定时间≤0.5 s",
     )
     _add_success_criteria(
         recon_task,
@@ -1177,6 +1170,15 @@ def create_task_profiles(
         "接地瞬时地速≤1 m/s",
         weight=1.6,
     )
+    _add_success_criteria(
+        recon_task,
+        module_map["通信模块"],
+        "R5-落地阶段心跳",
+        "heartbeat_loss_ratio",
+        ComparisonOperator.LESS_EQUAL,
+        0.01,
+        "着陆阶段与地面站心跳连接连续",
+    )
 
     system.add_task_profile(recon_task)
     task_profiles[recon_task.name] = recon_task
@@ -1196,13 +1198,13 @@ def create_task_profiles(
             "D2 起飞与入口汇合",
             "起飞、到达入口并保持通信",
             5.0,
-            [24, 26, 27, 28, 30, 25, 31, 35],
+            [24, 26, 27, 28, 30, 25, 31],
         ),
         (
             "D3 复杂环境穿越",
             "多模态感知建图、避障介入与快速重规划",
             14.0,
-            [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 17, 18, 19, 21, 22, 23, 24, 27, 28, 32, 33, 34],
+            [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 17, 18, 19, 21, 22, 23, 24, 27, 28],
         ),
         (
             "D4 投放窗口定位",
@@ -1214,7 +1216,7 @@ def create_task_profiles(
             "D5 脱离返航与着陆",
             "脱离、返航与着陆",
             5.5,
-            [19, 21, 24, 26, 27, 28, 30, 20, 25, 31, 35],
+            [19, 21, 24, 26, 27, 28, 30, 20, 25, 31],
         ),
     ]
 
@@ -1248,6 +1250,15 @@ def create_task_profiles(
     )
     _add_success_criteria(
         delivery_task,
+        module_map["自驾仪"],
+        "D1-状态输出连续",
+        "state_stream_rate_hz",
+        ComparisonOperator.GREATER_EQUAL,
+        50.0,
+        "状态输出连续",
+    )
+    _add_success_criteria(
+        delivery_task,
         module_map["路径规划算法"],
         "D2-入口汇合",
         "entry_position_error_m",
@@ -1257,7 +1268,16 @@ def create_task_profiles(
     )
     _add_success_criteria(
         delivery_task,
-        module_map["通信链路健康管理"],
+        module_map["飞控控制算法"],
+        "D2-控制链完整",
+        "command_loss_ratio",
+        ComparisonOperator.LESS_EQUAL,
+        0.0,
+        "控制链无超时/丢包",
+    )
+    _add_success_criteria(
+        delivery_task,
+        module_map["通信模块"],
         "D2-强制通信链",
         "heartbeat_loss_ratio",
         ComparisonOperator.LESS_EQUAL,
@@ -1305,6 +1325,15 @@ def create_task_profiles(
     )
     _add_success_criteria(
         delivery_task,
+        module_map["避障算法"],
+        "D3-垂向安全裕度",
+        "vertical_margin_m",
+        ComparisonOperator.GREATER_EQUAL,
+        3.0,
+        "垂直高度安全裕度≥3 m",
+    )
+    _add_success_criteria(
+        delivery_task,
         module_map["目标检测算法"],
         "D4-投放点定位",
         "drop_position_error_m",
@@ -1324,6 +1353,15 @@ def create_task_profiles(
     )
     _add_success_criteria(
         delivery_task,
+        module_map["飞控控制算法"],
+        "D4-释放控制链",
+        "release_control_ok",
+        ComparisonOperator.EQUAL,
+        1.0,
+        "释放过程控制链无异常",
+    )
+    _add_success_criteria(
+        delivery_task,
         module_map["通信模块"],
         "D5-通信可用率",
         "availability",
@@ -1340,6 +1378,15 @@ def create_task_profiles(
         1.0,
         "接地瞬时地速≤1 m/s",
         weight=1.6,
+    )
+    _add_success_criteria(
+        delivery_task,
+        module_map["路径规划算法"],
+        "D5-返航航迹连续",
+        "return_track_continuity",
+        ComparisonOperator.GREATER_EQUAL,
+        0.98,
+        "脱离与返航航迹连续执行",
     )
 
     system.add_task_profile(delivery_task)
@@ -1406,7 +1453,7 @@ def create_environment_models(system: SystemStructure, module_map: Dict[str, Mod
     emi_env.affected_modules = [
         module_map["全球定位模块"].id,
         module_map["通信模块"].id,
-        module_map["通信链路健康管理"].id,
+        module_map["机载计算机"].id,
     ]
 
     thermal_env = EnvironmentModule("高温环境", "高温对电子设备的影响")
