@@ -9,6 +9,7 @@ Interface Data Model
 from datetime import datetime
 import copy
 import random
+import math
 from typing import Dict, Any, List, Optional
 from enum import Enum
 import uuid
@@ -90,6 +91,7 @@ class TriggerCondition:
         inputs = context.get('inputs', {})
         state_variables = context.get('state_variables', {})
         environment = context.get('environment', {})
+        now = context.get('time', context.get('current_time', 0.0))
 
         # 简单阈值判断
         if condition_type == 'threshold':
@@ -152,13 +154,77 @@ class TriggerCondition:
 
         # 概率触发：使用设定概率判断
         elif condition_type == 'probability':
-            probability = float(self.parameters.get('probability', self.probability))
-            if probability <= 0:
+            # 时间窗口（可选）
+            start_time = self.parameters.get('start_time')
+            duration = self.parameters.get('duration')
+            in_window = True
+            try:
+                if start_time is not None:
+                    in_window = in_window and (now >= float(start_time))
+                if duration is not None:
+                    st = float(start_time or 0.0)
+                    in_window = in_window and (now <= st + float(duration))
+            except Exception:
+                in_window = False
+
+            if not in_window:
                 return False
-            rng = context.get('random_generator')
+
+            # 冷却与触发次数限制（可选，依赖运行期上下文）
+            runtime = context.setdefault('runtime', {})
+            stats = runtime.setdefault(f"prob_{self.id}", {})
+            try:
+                cooldown = float(self.parameters.get('cooldown', 0.0) or 0.0)
+            except Exception:
+                cooldown = 0.0
+            last_t = stats.get('last_trigger_time')
+            if last_t is not None and cooldown > 0 and (now - last_t) < cooldown:
+                return False
+            max_activations = self.parameters.get('max_activations')
+            if max_activations is not None:
+                try:
+                    if int(stats.get('activations', 0)) >= int(max_activations):
+                        return False
+                except Exception:
+                    pass
+
+            # 计算单步概率 p：优先 parameters['p'/'probability']，否则由 λ/步长换算
+            p = self.parameters.get('p', self.parameters.get('probability', None))
+            if p is None:
+                lam = self.parameters.get('lambda_per_hour')
+                try:
+                    lam = float(lam) if lam is not None else None
+                except Exception:
+                    lam = None
+                if lam is not None:
+                    try:
+                        dt = float(self.parameters.get('dt', 1.0))
+                    except Exception:
+                        dt = 1.0
+                    try:
+                        p = 1.0 - math.exp(-lam * dt / 3600.0)
+                    except Exception:
+                        p = 0.0
+                else:
+                    p = self.probability or 0.0
+            try:
+                p = float(p)
+            except Exception:
+                p = 0.0
+            p = max(0.0, min(1.0, p))
+
+            # RNG 优先从 context['random'] / 兼容旧字段 'random_generator'
+            rng = context.get('random', None) or context.get('random_generator', None)
             if rng is None:
-                rng = random.Random()
-            return rng.random() < probability
+                rng = random
+            try:
+                hit = rng.random() < p
+            except Exception:
+                hit = False
+            if hit:
+                stats['last_trigger_time'] = now
+                stats['activations'] = int(stats.get('activations', 0)) + 1
+            return hit
 
         return False
 

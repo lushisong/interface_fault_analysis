@@ -113,8 +113,8 @@ def test_save_interface_creates_instance(qtbot, monkeypatch):
     assert interface.interface_type == InterfaceType.ALGORITHM_HARDWARE
     assert interface.direction == InterfaceDirection.OUTPUT
     assert interface.parameters == {"带宽": "10"}
+    # 保存的功能代码应与编辑框内容一致
     assert interface.python_code == "outputs['message'] = 'hello'"
-    assert interface.python_code == "print('hello')"
 
     assert interface.id in system.interfaces
     assert panel.project_manager.modified
