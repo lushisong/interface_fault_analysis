@@ -16,6 +16,10 @@ def test_main_window_initializes_and_creates_project(qtbot, monkeypatch):
     monkeypatch.setattr(
         QtWidgets.QMessageBox, "information", lambda *args, **kwargs: QtWidgets.QMessageBox.Ok
     )
+    # Avoid blocking closeEvent dialog during teardown
+    monkeypatch.setattr(
+        QtWidgets.QMessageBox, "question", lambda *args, **kwargs: QtWidgets.QMessageBox.Discard
+    )
 
     win = MainWindow()
     qtbot.addWidget(win)
@@ -32,4 +36,3 @@ def test_main_window_initializes_and_creates_project(qtbot, monkeypatch):
 
     # Ensure project tree can be updated without errors
     win.update_project_tree()
-
