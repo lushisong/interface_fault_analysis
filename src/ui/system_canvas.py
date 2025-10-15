@@ -412,7 +412,13 @@ class ConnectionGraphicsItem(QGraphicsPathItem):
             if item.scene():
                 item.scene().removeItem(item)
         self.control_point_items.clear()
-        
+
+        style = getattr(self.connection, 'line_style', 'curved')
+        if style != 'curved':
+            # 非曲线样式不使用控制点
+            self.connection.connection_points = []
+            return
+
         # 如果连接没有控制点数据，创建默认控制点
         if not self.connection.connection_points:
             source_item = self.system_canvas.graphics_items.get(self.connection.source_module_id)
@@ -457,23 +463,42 @@ class ConnectionGraphicsItem(QGraphicsPathItem):
         # 创建贝塞尔曲线路径
         path = QPainterPath()
         path.moveTo(source_pos)
-        
-        # 如果有控制点，使用控制点创建曲线
-        if len(self.connection.connection_points) >= 2:
-            cp1 = QPointF(self.connection.connection_points[0].x, self.connection.connection_points[0].y)
-            cp2 = QPointF(self.connection.connection_points[1].x, self.connection.connection_points[1].y)
-            path.cubicTo(cp1, cp2, target_pos)
-        else:
-            # 计算默认控制点，使连线更平滑
+
+        style = getattr(self.connection, 'line_style', 'curved')
+
+        if style == 'straight':
+            path.lineTo(target_pos)
+        elif style == 'orthogonal':
             dx = target_pos.x() - source_pos.x()
             dy = target_pos.y() - source_pos.y()
-            
-            # 使用两个控制点创建三次贝塞尔曲线
-            control1 = QPointF(source_pos.x() + dx * 0.3, source_pos.y())
-            control2 = QPointF(target_pos.x() - dx * 0.3, target_pos.y())
-            
-            path.cubicTo(control1, control2, target_pos)
-        
+
+            if abs(dx) >= abs(dy):
+                mid_x = source_pos.x() + dx / 2
+                path.lineTo(QPointF(mid_x, source_pos.y()))
+                path.lineTo(QPointF(mid_x, target_pos.y()))
+            else:
+                mid_y = source_pos.y() + dy / 2
+                path.lineTo(QPointF(source_pos.x(), mid_y))
+                path.lineTo(QPointF(target_pos.x(), mid_y))
+
+            path.lineTo(target_pos)
+        else:
+            # 如果有控制点，使用控制点创建曲线
+            if len(self.connection.connection_points) >= 2:
+                cp1 = QPointF(self.connection.connection_points[0].x, self.connection.connection_points[0].y)
+                cp2 = QPointF(self.connection.connection_points[1].x, self.connection.connection_points[1].y)
+                path.cubicTo(cp1, cp2, target_pos)
+            else:
+                # 计算默认控制点，使连线更平滑
+                dx = target_pos.x() - source_pos.x()
+                dy = target_pos.y() - source_pos.y()
+
+                # 使用两个控制点创建三次贝塞尔曲线
+                control1 = QPointF(source_pos.x() + dx * 0.3, source_pos.y())
+                control2 = QPointF(target_pos.x() - dx * 0.3, target_pos.y())
+
+                path.cubicTo(control1, control2, target_pos)
+
         self.setPath(path)
     
     def update_path_from_control_points(self):
@@ -578,7 +603,8 @@ class SystemCanvas(QWidget):
         self.temp_line = None  # 临时连线
         self.start_interface = None  # 开始连线的接口
         self.start_interface_id = None  # 开始连线的接口ID
-        
+        self.connection_line_style = "curved"  # 当前连线样式
+
         self.init_ui()
         self.init_scene()
     
@@ -656,15 +682,26 @@ class SystemCanvas(QWidget):
         self.connect_action.setCheckable(True)
         self.connect_action.triggered.connect(self.activate_connection_mode)
         toolbar.addAction(self.connect_action)
-        
+
         # 工具按钮组（使用QActionGroup管理互斥的QAction）
         self.tool_group = QActionGroup(self)
         self.tool_group.addAction(self.select_action)
         self.tool_group.addAction(self.connect_action)
         self.tool_group.setExclusive(True)
-        
+
         toolbar.addSeparator()
-        
+
+        # 连线样式选择
+        toolbar.addWidget(QLabel("连线样式:"))
+        self.connection_style_combo = QComboBox()
+        self.connection_style_combo.addItem("曲线", "curved")
+        self.connection_style_combo.addItem("直线", "straight")
+        self.connection_style_combo.addItem("直角", "orthogonal")
+        self.connection_style_combo.currentIndexChanged.connect(self.on_connection_style_changed)
+        toolbar.addWidget(self.connection_style_combo)
+
+        toolbar.addSeparator()
+
         # 缩放工具
         zoom_in_action = QAction("放大", self)
         zoom_in_action.triggered.connect(self.zoom_in)
@@ -686,8 +723,15 @@ class SystemCanvas(QWidget):
         grid_action.setChecked(True)
         grid_action.triggered.connect(self.toggle_grid)
         toolbar.addAction(grid_action)
-        
+
         return toolbar
+
+    def on_connection_style_changed(self, index):
+        """更新当前连线样式"""
+        if hasattr(self, 'connection_style_combo'):
+            style = self.connection_style_combo.itemData(index)
+            if style:
+                self.connection_line_style = style
     
     def activate_selection_mode(self):
         """激活选择模式"""
@@ -834,9 +878,10 @@ class SystemCanvas(QWidget):
                 source_module_id=start_module_id,
                 target_module_id=end_module_id,
                 source_point_id=self.start_interface_id,
-                target_point_id=end_interface.connection_point.id
+                target_point_id=end_interface.connection_point.id,
+                line_style=self.connection_line_style
             )
-            
+
             # 添加到系统
             self.current_system.connections[connection_id] = connection
             
@@ -985,6 +1030,9 @@ class SystemCanvas(QWidget):
     
     def draw_connection(self, connection):
         """绘制连接线"""
+        if not getattr(connection, 'line_style', None):
+            connection.line_style = 'curved'
+
         # 创建连接图形项
         connection_item = ConnectionGraphicsItem(connection, self)
         self.graphics_scene.addItem(connection_item)
