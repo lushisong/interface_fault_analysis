@@ -773,48 +773,81 @@ def build_modules(system: SystemStructure) -> Dict[str, Module]:
     return module_map
 
 
-def build_interfaces(system: SystemStructure, module_map: Dict[str, Module]) -> Dict[int, Interface]:
-    """根据接口规格表创建接口并挂接到模块。"""
+def build_interfaces(system: SystemStructure, module_map: Dict[str, Module]) -> Dict[int, Dict[str, Interface]]:
+    """根据接口规格表创建端口级接口并挂接到各自模块。
 
-    interface_map: Dict[int, Interface] = {}
+    返回映射：{接口编号: {'src': 源端接口, 'dst': 目标端接口}}
+    """
+
+    interface_map: Dict[int, Dict[str, Interface]] = {}
 
     for spec in INTERFACE_SPECS:
         source_module = module_map[spec["source"]]
         target_module = module_map[spec["target"]]
-        interface_name = f"接口#{spec['id']} {spec['name']}"
 
-        interface = Interface(
-            interface_name,
-            spec["description"],
-            interface_type=spec.get("type", InterfaceType.SOFTWARE_HARDWARE),
-            direction=spec.get("direction", InterfaceDirection.BIDIRECTIONAL),
+        # 方向映射：若总体方向为 OUTPUT，则源端为 OUTPUT、目标端为 INPUT；BIDIRECTIONAL 则两端均为 BIDIRECTIONAL
+        overall_dir = spec.get("direction", InterfaceDirection.BIDIRECTIONAL)
+        if overall_dir == InterfaceDirection.OUTPUT:
+            src_dir = InterfaceDirection.OUTPUT
+            dst_dir = InterfaceDirection.INPUT
+        elif overall_dir == InterfaceDirection.INPUT:
+            src_dir = InterfaceDirection.INPUT
+            dst_dir = InterfaceDirection.OUTPUT
+        else:
+            src_dir = dst_dir = InterfaceDirection.BIDIRECTIONAL
+
+        base_type = spec.get("type", InterfaceType.SOFTWARE_HARDWARE)
+        proto = spec.get("protocol", "")
+        subtype = spec.get("subtype")
+
+        # 源端接口
+        src_iface = Interface(
+            f"接口#{spec['id']} {spec['name']}@{source_module.name}",
+            f"{spec['description']} (源端)",
+            interface_type=base_type,
+            direction=src_dir,
         )
-        interface.protocol = spec.get("protocol", "")
-        interface.source_module_id = source_module.id
-        interface.target_module_id = target_module.id
-        interface.parameters.update(spec.get("parameters", {}))
-        if spec.get("subtype"):
-            interface.subtype = spec["subtype"]
+        src_iface.protocol = proto
+        src_iface.source_module_id = source_module.id
+        src_iface.target_module_id = target_module.id
+        if subtype:
+            src_iface.subtype = subtype
+        # 目标端接口
+        dst_iface = Interface(
+            f"接口#{spec['id']} {spec['name']}@{target_module.name}",
+            f"{spec['description']} (目标端)",
+            interface_type=base_type,
+            direction=dst_dir,
+        )
+        dst_iface.protocol = proto
+        dst_iface.source_module_id = source_module.id
+        dst_iface.target_module_id = target_module.id
+        if subtype:
+            dst_iface.subtype = subtype
 
+        # 失效模式（同一规格附加到两端）
         failure_spec = spec.get("failure_mode", {})
-        failure_mode = InterfaceFailureMode(
-            failure_spec.get("category", FailureMode.COMMUNICATION_FAILURE),
-            failure_spec.get("name", "接口失效"),
-        )
-        failure_mode.id = f"fm_{spec['id']}"
-        failure_mode.description = failure_spec.get("description", "")
-        failure_mode.occurrence_rate = failure_spec.get("rate", 1e-5)
-        failure_mode.failure_rate = failure_spec.get("rate", 1e-5)
-        failure_mode.severity = failure_spec.get("severity", 3)
-        failure_mode.enabled = True
-        interface.add_failure_mode(failure_mode)
+        for iface in (src_iface, dst_iface):
+            fm = InterfaceFailureMode(
+                failure_spec.get("category", FailureMode.COMMUNICATION_FAILURE),
+                failure_spec.get("name", "接口失效"),
+            )
+            fm.description = failure_spec.get("description", "")
+            fm.occurrence_rate = failure_spec.get("rate", 1e-5)
+            fm.failure_rate = failure_spec.get("rate", 1e-5)
+            fm.severity = failure_spec.get("severity", 3)
+            fm.enabled = True
+            iface.add_failure_mode(fm)
 
-        system.add_interface(interface)
-        source_module.add_interface(interface)
-        target_module.add_interface(interface)
-        interface_map[spec["id"]] = interface
+        # 注册到系统与模块
+        system.add_interface(src_iface)
+        system.add_interface(dst_iface)
+        source_module.add_interface(src_iface)
+        target_module.add_interface(dst_iface)
 
-    print(f"✓ 已创建 {len(interface_map)} 条接口")
+        interface_map[spec["id"]] = {"src": src_iface, "dst": dst_iface}
+
+    print(f"✓ 已创建 {len(interface_map)} 条接口（端口级）")
     return interface_map
 
 
@@ -879,12 +912,14 @@ def _route_connection(
 def build_connections(
     system: SystemStructure,
     module_map: Dict[str, Module],
-    interface_map: Dict[int, Interface],
+    interface_map: Dict[int, Dict[str, Interface]],
 ) -> None:
     """为系统模块创建连接关系。"""
 
     for spec in INTERFACE_SPECS:
-        interface = interface_map[spec["id"]]
+        iface_pair = interface_map[spec["id"]]
+        src_iface = iface_pair["src"]
+        dst_iface = iface_pair["dst"]
         source_module = module_map[spec["source"]]
         target_module = module_map[spec["target"]]
 
@@ -892,11 +927,12 @@ def build_connections(
             id=f"connection_{spec['id']}",
             source_module_id=source_module.id,
             target_module_id=target_module.id,
-            source_point_id=interface.id,
-            target_point_id=interface.id,
+            source_point_id=src_iface.id,
+            target_point_id=dst_iface.id,
         )
-        connection.interface_id = interface.id
-        connection.name = f"{source_module.name}→{target_module.name}({interface.name})"
+        # 可选：保持对“代表性接口”的兼容引用（这里用源端接口）
+        connection.interface_id = src_iface.id
+        connection.name = f"{source_module.name}→{target_module.name}({src_iface.name})"
 
         routed_points = _route_connection(source_module, target_module)
         if len(routed_points) > 2:
@@ -918,18 +954,19 @@ def build_connections(
 
 def _create_phase(
     phase_info: Tuple[str, str, float, List[int]],
-    interface_map: Dict[int, Interface],
+    interface_map: Dict[int, Dict[str, Interface]],
 ) -> TaskPhase:
     name, description, duration_min, interface_ids = phase_info
     phase = TaskPhase(name)
     phase.description = description
     phase.duration = duration_min * 60.0
+    # 记入源端接口ID作为关键接口（避免重复计数）
     critical_interfaces = [
-        interface_map[idx].id for idx in interface_ids if idx in interface_map
+        interface_map[idx]["src"].id for idx in interface_ids if idx in interface_map
     ]
     phase.parameters["critical_interfaces"] = critical_interfaces
     phase.parameters["critical_interface_names"] = [
-        interface_map[idx].name for idx in interface_ids if idx in interface_map
+        interface_map[idx]["src"].name for idx in interface_ids if idx in interface_map
     ]
     phase.parameters["duration_minutes"] = duration_min
     return phase
@@ -960,7 +997,7 @@ def _add_success_criteria(
 def create_task_profiles(
     system: SystemStructure,
     module_map: Dict[str, Module],
-    interface_map: Dict[int, Interface],
+    interface_map: Dict[int, Dict[str, Interface]],
 ) -> Dict[str, TaskProfile]:
     """创建抵近侦察与物资投放两个任务剖面。"""
 

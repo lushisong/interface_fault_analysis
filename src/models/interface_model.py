@@ -266,9 +266,9 @@ class InterfaceFailureMode:
         self.failure_mode = failure_mode
         self.name = name or failure_mode.value
         self.description = ""
-        self.severity = 1  # 严重程度 1-10
-        self.occurrence_rate = 0.0  # 发生率
-        self.detection_rate = 0.0  # 检测率
+        self.severity = 1  # 严重程度 1-10（FMEA S）
+        self.occurrence_rate = 0.0  # 发生率（可用作每小时λ或频度的近似，FMEA O 可选）
+        self.detection_rate = 0.0  # 检测率 0~1，对应FMEA D≈(1-检测概率)
         self.failure_rate = 0.0  # 失效率（与发生率兼容）
         self.trigger_conditions = []  # 触发条件列表
         self.effects = []  # 失效影响
@@ -332,6 +332,40 @@ class InterfaceFailureMode:
         self.python_code = data.get('python_code', '')
         self.associated_state_id = data.get('associated_state_id')
         self.enabled = data.get('enabled', True)
+
+    # 风险评估与定量支持
+    def rpn(self) -> float:
+        """计算FMEA风险优先数（RPN）。
+
+        - 严重度 S: 使用 self.severity（1~10）
+        - 发生度 O: 若提供 occurrence_rate (0~10)，否则根据 failure_rate 近似映射（λ→O）
+        - 探测度 D: 由 detection_rate(0~1)映射到 1~10，检测越弱 D 越大
+        """
+        s = max(1, min(10, int(self.severity or 1)))
+        # 映射发生度
+        if 'occurrence_rate' in self.__dict__ and self.occurrence_rate and self.occurrence_rate > 0:
+            try:
+                o = max(1, min(10, int(round(float(self.occurrence_rate)))))
+            except Exception:
+                o = 5
+        elif self.failure_rate and self.failure_rate > 0:
+            # 简单将失效率数量级映射到1~10：例如 1e-6→1，1e-5→2 ... 1e-1→6 等
+            import math
+            try:
+                order = -math.log10(float(self.failure_rate))
+                o = max(1, min(10, int(round(11 - order))))
+            except Exception:
+                o = 5
+        else:
+            o = 5
+
+        # 探测度映射：检测概率 p_d，D≈round(10*(1-p_d))，范围1~10
+        try:
+            pd = float(self.detection_rate)
+            d = max(1, min(10, int(round(10.0 * (1.0 - max(0.0, min(1.0, pd)))))))
+        except Exception:
+            d = 5
+        return float(s * o * d)
 
     def clone(self) -> 'InterfaceFailureMode':
         """克隆失效模式，确保触发条件独立"""
@@ -766,6 +800,10 @@ class Interface(BaseModel):
                 outputs = local_vars.get('outputs', outputs)
             except Exception as e:
                 print(f"执行接口 {self.name} 的Python代码时出错: {e}")
+
+        outputs.setdefault('__state__', state_result)
+        active_failures = [fm.name for fm in self.get_active_failure_modes()]
+        outputs.setdefault('__failures__', active_failures)
 
         return outputs
 

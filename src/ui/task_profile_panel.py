@@ -684,6 +684,8 @@ class TaskProfilePanel(QWidget):
 
     def refresh_profile_list(self):
         """刷新任务剖面列表"""
+        selected_id = self.current_profile.id if self.current_profile else None
+
         self.profile_tree.clear()
 
         system = self.current_system
@@ -693,12 +695,17 @@ class TaskProfilePanel(QWidget):
         if not system:
             return
 
-        # 添加任务剖面到树中
+        last_item = None
         if hasattr(system, 'task_profiles'):
             for profile_id, profile in system.task_profiles.items():
                 item = QTreeWidgetItem([profile.name])
                 item.setData(0, Qt.UserRole, profile_id)
                 self.profile_tree.addTopLevelItem(item)
+                if profile_id == selected_id:
+                    last_item = item
+
+        if last_item:
+            self.profile_tree.setCurrentItem(last_item)
     
     def on_profile_selected(self):
         """任务剖面选择改变"""

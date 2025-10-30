@@ -70,6 +70,8 @@ class Module(BaseModel):
         self.python_code = ""  # Python建模代码
         self.is_template = False  # 是否为模板
         self.id = f"module_{id(self)}"  # 确保每个模块都有唯一ID
+        # 可靠性与失效率（每小时λ）；用于故障树定量分析
+        self.failure_rate: float = 0.0
         
     @property
     def connection_points(self):
@@ -197,7 +199,8 @@ class Module(BaseModel):
             'parameters': self.parameters,
             'state_variables': self.state_variables,
             'python_code': self.python_code,
-            'is_template': self.is_template
+            'is_template': self.is_template,
+            'failure_rate': self.failure_rate
         })
         return base_dict
     
@@ -248,6 +251,7 @@ class Module(BaseModel):
         self.state_variables = data.get('state_variables', {})
         self.python_code = data.get('python_code', '')
         self.is_template = data.get('is_template', False)
+        self.failure_rate = data.get('failure_rate', 0.0)
 
 
 class HardwareModule(Module):

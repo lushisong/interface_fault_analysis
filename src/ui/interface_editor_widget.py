@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QTabWidget,
                              QFormLayout, QLineEdit, QTextEdit, QComboBox,
                              QPushButton, QLabel, QSpinBox, QDoubleSpinBox,
                              QGroupBox, QListWidget, QListWidgetItem,
-                             QMessageBox, QCheckBox)
+                             QMessageBox, QCheckBox, QDialog, QDialogButtonBox)
 from PyQt5.QtCore import Qt, pyqtSignal
 
 from ..models.interface_model import (Interface, InterfaceType, HardwareInterfaceSubtype,
@@ -185,6 +185,8 @@ class InterfaceEditorWidget(QWidget):
         
         self.code_edit = QTextEdit()
         self.code_edit.setPlainText("""# 接口功能代码示例
+import time
+
 def interface_function(input_data):
     \"\"\"
     接口功能实现
@@ -386,7 +388,7 @@ def process_data(data):
         else:
             self.clear_form()
     
-    def on_type_changed(self):
+    def on_type_changed(self, *args):
         """接口类型变化"""
         self.update_subtype_combo()
     
@@ -478,12 +480,32 @@ def process_data(data):
     
     def add_failure_mode(self):
         """添加失效模式"""
-        # 这里可以打开失效模式编辑对话框
-        QMessageBox.information(self, "提示", "失效模式编辑功能待实现")
+        dlg = FailureModeDialog(parent=self)
+        if dlg.exec_() == QDialog.Accepted:
+            fm = dlg.get_failure_mode()
+            if not self.current_interface:
+                self.current_interface = Interface()
+            self.current_interface.add_failure_mode(fm)
+            self.load_failure_modes()
     
     def edit_failure_mode(self):
         """编辑失效模式"""
-        QMessageBox.information(self, "提示", "失效模式编辑功能待实现")
+        current_item = self.failure_list.currentItem()
+        if not current_item:
+            QMessageBox.information(self, "提示", "请先选择要编辑的失效模式")
+            return
+        existing = current_item.data(Qt.UserRole)
+        dlg = FailureModeDialog(existing, self)
+        if dlg.exec_() == QDialog.Accepted:
+            updated = dlg.get_failure_mode()
+            existing.failure_mode = updated.failure_mode
+            existing.name = updated.name
+            existing.description = updated.description
+            existing.severity = updated.severity
+            existing.failure_rate = updated.failure_rate
+            existing.detection_rate = updated.detection_rate
+            existing.trigger_conditions = updated.trigger_conditions
+            self.load_failure_modes()
     
     def remove_failure_mode(self):
         """删除失效模式"""
@@ -538,6 +560,126 @@ def process_data(data):
         
         self.save_btn.setEnabled(not read_only)
         self.reset_btn.setEnabled(not read_only)
+
+
+class FailureModeDialog(QDialog):
+    """失效模式编辑对话框"""
+
+    def __init__(self, failure_mode: InterfaceFailureMode = None, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("编辑失效模式")
+        self.setModal(True)
+        self.fm = failure_mode
+        self._init_ui()
+        if failure_mode:
+            self._load(failure_mode)
+
+    def _init_ui(self):
+        layout = QVBoxLayout()
+        form = QFormLayout()
+
+        self.category_combo = QComboBox()
+        categories = [
+            FailureMode.COMMUNICATION_FAILURE,
+            FailureMode.DATA_CORRUPTION,
+            FailureMode.TIMEOUT,
+            FailureMode.PROTOCOL_MISMATCH,
+            FailureMode.RESOURCE_EXHAUSTION,
+            FailureMode.AUTHENTICATION_FAILURE,
+            FailureMode.PERMISSION_DENIED,
+            FailureMode.VERSION_INCOMPATIBILITY,
+            FailureMode.HARDWARE_FAULT,
+            FailureMode.SOFTWARE_BUG,
+            FailureMode.CONFIGURATION_ERROR,
+            FailureMode.ENVIRONMENTAL_STRESS,
+        ]
+        for m in categories:
+            self.category_combo.addItem(m.value, m)
+
+        self.name_edit = QLineEdit()
+        self.desc_edit = QTextEdit()
+        self.severity_spin = QSpinBox()
+        self.severity_spin.setRange(1, 10)
+        self.failure_rate_spin = QDoubleSpinBox()
+        self.failure_rate_spin.setDecimals(8)
+        self.failure_rate_spin.setRange(0.0, 1.0)
+        self.failure_rate_spin.setSingleStep(1e-6)
+        self.detect_rate_spin = QDoubleSpinBox()
+        self.detect_rate_spin.setRange(0.0, 1.0)
+        self.detect_rate_spin.setDecimals(3)
+        self.detect_rate_spin.setValue(0.5)
+
+        form.addRow("类别:", self.category_combo)
+        form.addRow("名称:", self.name_edit)
+        form.addRow("描述:", self.desc_edit)
+        form.addRow("严重度(1-10):", self.severity_spin)
+        form.addRow("失效率(λ/小时):", self.failure_rate_spin)
+        form.addRow("检测率(0~1):", self.detect_rate_spin)
+        layout.addLayout(form)
+
+        self.tc_group = QGroupBox("触发条件（概率型）")
+        tc_form = QFormLayout()
+        self.tc_lambda_spin = QDoubleSpinBox()
+        self.tc_lambda_spin.setRange(0.0, 1.0)
+        self.tc_lambda_spin.setDecimals(8)
+        self.tc_dt_spin = QDoubleSpinBox()
+        self.tc_dt_spin.setRange(0.001, 3600.0)
+        self.tc_dt_spin.setValue(1.0)
+        tc_form.addRow("λ/小时:", self.tc_lambda_spin)
+        tc_form.addRow("步长dt(s):", self.tc_dt_spin)
+        self.tc_group.setLayout(tc_form)
+        layout.addWidget(self.tc_group)
+
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+        self.setLayout(layout)
+
+    def _load(self, fm: InterfaceFailureMode):
+        for i in range(self.category_combo.count()):
+            if self.category_combo.itemData(i) == fm.failure_mode:
+                self.category_combo.setCurrentIndex(i)
+                break
+        self.name_edit.setText(fm.name)
+        self.desc_edit.setPlainText(fm.description)
+        self.severity_spin.setValue(int(fm.severity or 1))
+        try:
+            self.failure_rate_spin.setValue(float(fm.failure_rate or 0.0))
+        except Exception:
+            self.failure_rate_spin.setValue(0.0)
+        try:
+            self.detect_rate_spin.setValue(float(fm.detection_rate or 0.0))
+        except Exception:
+            self.detect_rate_spin.setValue(0.0)
+        if fm.trigger_conditions:
+            tc = fm.trigger_conditions[0]
+            lam = tc.parameters.get('lambda_per_hour', 0.0)
+            dt = tc.parameters.get('dt', 1.0)
+            try:
+                self.tc_lambda_spin.setValue(float(lam))
+            except Exception:
+                pass
+            try:
+                self.tc_dt_spin.setValue(float(dt))
+            except Exception:
+                pass
+
+    def get_failure_mode(self) -> InterfaceFailureMode:
+        mode = self.category_combo.currentData()
+        fm = InterfaceFailureMode(mode, self.name_edit.text().strip() or mode.value)
+        fm.description = self.desc_edit.toPlainText()
+        fm.severity = int(self.severity_spin.value())
+        fm.failure_rate = float(self.failure_rate_spin.value())
+        fm.detection_rate = float(self.detect_rate_spin.value())
+        fm.trigger_conditions = []
+        lam = float(self.tc_lambda_spin.value())
+        dt = float(self.tc_dt_spin.value())
+        if lam > 0.0:
+            tc = TriggerCondition(fm.name + "触发", condition_type='probability')
+            tc.parameters = {'lambda_per_hour': lam, 'dt': dt}
+            fm.add_trigger_condition(tc)
+        return fm
         self.add_param_btn.setEnabled(not read_only)
         self.edit_param_btn.setEnabled(not read_only)
         self.remove_param_btn.setEnabled(not read_only)

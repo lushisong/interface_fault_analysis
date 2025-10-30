@@ -15,10 +15,28 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QSplitter,
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QIcon
 
-from ..models.module_model import Module, ModuleType, ModuleTemplate, HardwareModule, SoftwareModule, AlgorithmModule
+from ..models.module_model import (
+    AlgorithmModule,
+    HardwareModule,
+    Module,
+    ModuleTemplate,
+    ModuleType,
+    SoftwareModule,
+)
 from ..models.base_model import ConnectionPoint, Point
 from ..models.interface_model import Interface, InterfaceDirection
 from .interface_editor_widget import InterfaceEditorWidget
+from ..templates import (
+    create_module_from_template as build_module_from_template,
+    initialise_module_templates,
+    list_interface_templates,
+    build_interface_from_template,
+)
+
+try:
+    from .interface_selector_dialog import InterfaceTemplateDialog
+except ImportError:  # pragma: no cover - fallback for circular import issues
+    InterfaceTemplateDialog = None
 
 
 class ModulePanel(QWidget):
@@ -30,6 +48,7 @@ class ModulePanel(QWidget):
     
     def __init__(self):
         super().__init__()
+        initialise_module_templates()
         self.current_module = None
         self.modules = {}  # 模块字典
         self.project_manager = None  # 项目管理器
@@ -515,66 +534,7 @@ class ModulePanel(QWidget):
     
     def create_module_from_template(self, template):
         """根据模板创建模块"""
-        # 这里实现模板到模块的转换逻辑
-        if template in [ModuleTemplate.SENSOR, ModuleTemplate.ACTUATOR, 
-                       ModuleTemplate.PROCESSOR, ModuleTemplate.MEMORY, 
-                       ModuleTemplate.COMMUNICATION]:
-            module = HardwareModule(template.value, f"基于{template.value}模板创建的硬件模块")
-        elif template in [ModuleTemplate.OPERATING_SYSTEM, ModuleTemplate.MIDDLEWARE,
-                         ModuleTemplate.APPLICATION, ModuleTemplate.DATABASE]:
-            module = SoftwareModule(template.value, f"基于{template.value}模板创建的软件模块")
-        else:
-            module = AlgorithmModule(template.value, f"基于{template.value}模板创建的算法模块")
-        
-        module.template = template
-        
-        # 为模块模板添加相应的接口
-        self.add_template_interfaces(module, template)
-        
-        return module
-    
-    def create_interface(self, name, description, direction, interface_type, data_format="data"):
-        """创建接口的辅助方法"""
-        from ..models.interface_model import Interface
-        interface = Interface()
-        interface.name = name
-        interface.description = description
-        interface.direction = direction
-        interface.interface_type = interface_type
-        interface.data_format = data_format
-        return interface
-    
-    def add_template_interfaces(self, module, template):
-        """为模块模板添加接口"""
-        from ..models.interface_model import Interface, InterfaceType, InterfaceDirection
-        
-        # 根据模板类型添加不同的接口
-        if template == ModuleTemplate.SENSOR:
-            # 传感器模块接口
-            module.add_interface(self.create_interface(
-                "传感器数据输入", "传感器数据输入接口", 
-                InterfaceDirection.INPUT, InterfaceType.ALGORITHM_HARDWARE, "signal"))
-            module.add_interface(self.create_interface(
-                "传感器数据输出", "传感器数据输出接口",
-                InterfaceDirection.OUTPUT, InterfaceType.ALGORITHM_HARDWARE, "data"))
-            
-        elif template == ModuleTemplate.ACTUATOR:
-            # 执行器模块接口
-            module.add_interface(self.create_interface(
-                "控制信号输入", "控制信号输入接口",
-                InterfaceDirection.INPUT, InterfaceType.ALGORITHM_HARDWARE, "control"))
-            module.add_interface(self.create_interface(
-                "状态反馈输出", "状态反馈输出接口",
-                InterfaceDirection.OUTPUT, InterfaceType.ALGORITHM_HARDWARE, "signal"))
-            
-        else:
-            # 其他模板使用通用接口
-            module.add_interface(self.create_interface(
-                "通用输入", "通用输入接口",
-                InterfaceDirection.INPUT, InterfaceType.ALGORITHM_HARDWARE, "data"))
-            module.add_interface(self.create_interface(
-                "通用输出", "通用输出接口", 
-                InterfaceDirection.OUTPUT, InterfaceType.ALGORITHM_HARDWARE, "data"))
+        return build_module_from_template(template)
     
     def update_module_tree(self):
         """更新模块树"""
@@ -823,13 +783,20 @@ class ModulePanel(QWidget):
     def add_connection_point(self):
         """添加接口"""
         if self.current_module:
-            # 导入接口选择对话框
-            from .interface_selector_dialog import InterfaceTemplateDialog
-            
+            if InterfaceTemplateDialog is None:
+                QMessageBox.warning(self, "警告", "接口模板对话框不可用")
+                return
             # 获取可用的接口模板
             available_interfaces = {}
             if self.current_system and hasattr(self.current_system, 'interfaces'):
-                available_interfaces = self.current_system.interfaces
+                available_interfaces = dict(self.current_system.interfaces)
+
+            try:
+                for definition in list_interface_templates().values():
+                    interface = build_interface_from_template(definition)
+                    available_interfaces.setdefault(interface.id, interface)
+            except Exception:
+                pass
             
             # 显示接口模板选择对话框
             dialog = InterfaceTemplateDialog(available_interfaces, self)

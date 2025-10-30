@@ -8,12 +8,13 @@ Main Window
 
 import os
 import sys
+from typing import Optional
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
                              QSplitter, QTabWidget, QMenuBar, QMenu, QAction,
                              QToolBar, QStatusBar, QDockWidget, QTreeWidget,
                              QTreeWidgetItem, QLabel, QPushButton, QMessageBox,
                              QFileDialog, QApplication)
-from PyQt5.QtCore import Qt, pyqtSignal, QTimer
+from PyQt5.QtCore import Qt, pyqtSignal, QTimer, QSettings
 from PyQt5.QtGui import QIcon, QKeySequence, QFont
 
 from ..models.system_model import SystemStructure
@@ -33,17 +34,17 @@ class MainWindow(QMainWindow):
     # 信号定义
     project_changed = pyqtSignal()
     
-    def __init__(self):
+    def __init__(self, settings: Optional[QSettings] = None):
         super().__init__()
         self.project_manager = ProjectManager()
         self.current_system = None
+        self.settings = settings or QSettings("InterfaceFaultAnalysis", "IFAApp")
         
         self.init_ui()
         self.init_connections()
         self.init_status()
         
-        # 创建新项目
-        self.new_project()
+        self.restore_last_session()
     
     def init_ui(self):
         """初始化用户界面"""
@@ -336,20 +337,53 @@ class MainWindow(QMainWindow):
         """初始化状态"""
         self.update_status("系统已启动")
     
+    def _bind_system_to_views(self):
+        """将当前系统绑定到各工作面板"""
+        if not self.current_system:
+            return
+
+        self.system_canvas.set_system(self.current_system)
+        self.module_panel.set_current_system(self.current_system)
+        self.interface_panel.set_current_system(self.current_system)
+        self.task_profile_panel.set_current_system(self.current_system)
+        self.environment_panel.set_current_system(self.current_system)
+
+    def set_last_project_path(self, file_path: str = None):
+        """记录最近一次打开的项目路径"""
+        if file_path:
+            self.settings.setValue("last_project_path", file_path)
+        else:
+            self.settings.remove("last_project_path")
+
+    def restore_last_session(self):
+        """尝试自动打开上一次的项目"""
+        last_path = self.settings.value("last_project_path", type=str)
+        if last_path and os.path.exists(last_path):
+            try:
+                self.load_project_from_path(last_path, auto_open=True)
+                self.update_status(f"已自动打开上次项目：{last_path}")
+                return
+            except Exception as exc:
+                self.update_status(f"自动打开上次项目失败：{exc}")
+        self.new_project()
+
+    def load_project_from_path(self, file_path: str, auto_open: bool = False):
+        """从指定路径加载项目"""
+        self.current_system = self.project_manager.load_project(file_path)
+        self._bind_system_to_views()
+        self.update_project_tree()
+        if not auto_open:
+            self.update_status(f"已打开项目：{file_path}")
+        self.project_label.setText(os.path.basename(file_path))
+        self.project_changed.emit()
+        self.set_last_project_path(file_path)
+    
     def new_project(self):
         """新建项目"""
         try:
             self.current_system = SystemStructure("新项目", "智能系统接口故障分析项目")
             self.project_manager.set_current_system(self.current_system)
-            
-            # 设置系统画布
-            self.system_canvas.set_system(self.current_system)
-            
-            # 设置模块面板和接口面板
-            self.module_panel.set_current_system(self.current_system)
-            self.interface_panel.set_current_system(self.current_system)
-            self.task_profile_panel.set_current_system(self.current_system)
-            self.environment_panel.set_current_system(self.current_system)
+            self._bind_system_to_views()
 
             self.update_project_tree()
             self.update_status("已创建新项目")
@@ -365,21 +399,7 @@ class MainWindow(QMainWindow):
         
         if file_path:
             try:
-                self.current_system = self.project_manager.load_project(file_path)
-                
-                # 设置系统画布
-                self.system_canvas.set_system(self.current_system)
-                
-                # 设置模块面板和接口面板
-                self.module_panel.set_current_system(self.current_system)
-                self.interface_panel.set_current_system(self.current_system)
-                self.task_profile_panel.set_current_system(self.current_system)
-                self.environment_panel.set_current_system(self.current_system)
-
-                self.update_project_tree()
-                self.update_status(f"已打开项目：{file_path}")
-                self.project_label.setText(os.path.basename(file_path))
-                self.project_changed.emit()
+                self.load_project_from_path(file_path)
             except Exception as e:
                 QMessageBox.critical(self, "错误", f"打开项目失败：{str(e)}")
     
@@ -389,6 +409,7 @@ class MainWindow(QMainWindow):
             try:
                 self.project_manager.save_project()
                 self.update_status("项目已保存")
+                self.set_last_project_path(self.project_manager.current_file_path)
             except Exception as e:
                 QMessageBox.critical(self, "错误", f"保存项目失败：{str(e)}")
         else:
@@ -404,6 +425,7 @@ class MainWindow(QMainWindow):
                 self.project_manager.save_project_as(file_path)
                 self.update_status(f"项目已保存为：{file_path}")
                 self.project_label.setText(os.path.basename(file_path))
+                self.set_last_project_path(file_path)
             except Exception as e:
                 QMessageBox.critical(self, "错误", f"保存项目失败：{str(e)}")
     

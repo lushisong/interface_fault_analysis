@@ -6,6 +6,8 @@ import pytest
 
 QtWidgets = pytest.importorskip("PyQt5.QtWidgets", exc_type=ImportError)
 
+from PyQt5.QtCore import QPointF
+
 from src.ui.system_canvas import SystemCanvas
 from src.models.system_model import SystemStructure, Connection
 from src.models.module_model import Module, ModuleType
@@ -119,6 +121,8 @@ def test_draw_connection_respects_style(canvas_with_system, style, expected_elem
 
     if style == "curved":
         assert len(item.control_point_items) == 2
+    elif style == "orthogonal":
+        assert len(item.control_point_items) == 2
     else:
         assert len(item.control_point_items) == 0
 
@@ -147,3 +151,142 @@ def test_draw_connection_respects_style(canvas_with_system, style, expected_elem
             assert mid1.y == pytest.approx(expected_mid_y)
             assert mid2.x == pytest.approx(target_pos.x())
             assert mid2.y == pytest.approx(expected_mid_y)
+
+
+def test_orthogonal_control_points_move_update_path(canvas_with_system):
+    canvas, system, source_module, source_interface, target_module, target_interface = canvas_with_system
+
+    connection = Connection(
+        id="conn_move",
+        source_module_id=source_module.id,
+        target_module_id=target_module.id,
+        source_point_id=source_interface.id,
+        target_point_id=target_interface.id,
+        line_style="orthogonal",
+    )
+    system.connections[connection.id] = connection
+
+    canvas.draw_connection(connection)
+    item = canvas.connection_items[connection.id]
+
+    assert len(item.control_point_items) == 2
+    initial_ratio = connection.orthogonal_ratio
+
+    initial_path = [
+        (item.path().elementAt(i).x, item.path().elementAt(i).y)
+        for i in range(item.path().elementCount())
+    ]
+
+    control_point = item.control_point_items[0]
+    source_pos, target_pos = _interface_positions(
+        canvas, source_module, source_interface, target_module, target_interface
+    )
+
+    original_pos = control_point.scenePos()
+    control_point.setPos(original_pos + QPointF(60, 25))
+    item.update_path_from_control_points()
+
+    updated_path = [
+        (item.path().elementAt(i).x, item.path().elementAt(i).y)
+        for i in range(item.path().elementCount())
+    ]
+
+    assert updated_path != initial_path
+
+    new_pos = control_point.scenePos()
+    assert new_pos.y() == pytest.approx(source_pos.y())
+    assert connection.connection_points[0].x == pytest.approx(new_pos.x())
+    assert connection.connection_points[0].y == pytest.approx(source_pos.y())
+    assert connection.connection_points[1].x == pytest.approx(new_pos.x())
+    assert connection.connection_points[1].y == pytest.approx(target_pos.y())
+
+    assert connection.orthogonal_ratio is not None
+    assert connection.orthogonal_ratio != pytest.approx(initial_ratio or 0.5)
+
+
+def test_orthogonal_first_segment_perpendicular_to_module_edge(canvas_with_system):
+    canvas, system, source_module, source_interface, target_module, target_interface = canvas_with_system
+
+    # 将目标模块下移，制造较大的竖直距离
+    target_module.position.y = source_module.position.y + 420
+    target_item = canvas.graphics_items[target_module.id]
+    target_item.setPos(target_module.position.x, target_module.position.y)
+    target_item.update_position()
+
+    connection = Connection(
+        id="conn_orientation",
+        source_module_id=source_module.id,
+        target_module_id=target_module.id,
+        source_point_id=source_interface.id,
+        target_point_id=target_interface.id,
+        line_style="orthogonal",
+    )
+    system.connections[connection.id] = connection
+
+    canvas.draw_connection(connection)
+    item = canvas.connection_items[connection.id]
+
+    path = item.path()
+    assert path.elementCount() >= 3
+
+    source_pos, target_pos = _interface_positions(
+        canvas, source_module, source_interface, target_module, target_interface
+    )
+
+    first_segment_end = path.elementAt(1)
+    last_segment_start = path.elementAt(path.elementCount() - 2)
+
+    # 首段应为水平（与模块边垂直）
+    assert first_segment_end.y == pytest.approx(source_pos.y())
+    assert first_segment_end.x != pytest.approx(source_pos.x())
+
+    # 尾段也应为水平（目标模块左侧接口）
+    assert last_segment_start.y == pytest.approx(target_pos.y())
+
+
+def test_orthogonal_connection_adjusts_with_module_movement(canvas_with_system):
+    canvas, system, source_module, source_interface, target_module, target_interface = canvas_with_system
+
+    connection = Connection(
+        id="conn_move_modules",
+        source_module_id=source_module.id,
+        target_module_id=target_module.id,
+        source_point_id=source_interface.id,
+        target_point_id=target_interface.id,
+        line_style="orthogonal",
+    )
+    system.connections[connection.id] = connection
+
+    canvas.draw_connection(connection)
+    item = canvas.connection_items[connection.id]
+
+    initial_ratio = connection.orthogonal_ratio
+    source_pos, target_pos = _interface_positions(
+        canvas, source_module, source_interface, target_module, target_interface
+    )
+
+    path_before = item.path()
+    assert path_before.elementCount() >= 3
+    mid_before = path_before.elementAt(1)
+    assert mid_before.y == pytest.approx(source_pos.y())
+
+    target_item = canvas.graphics_items[target_module.id]
+    target_item.setPos(target_item.pos() - QPointF(150, 0))
+    target_item.update_position()
+
+    path_after = item.path()
+    assert path_after.elementCount() >= 3
+    mid_after = path_after.elementAt(1)
+    new_source_pos, new_target_pos = _interface_positions(
+        canvas, source_module, source_interface, target_module, target_interface
+    )
+    x_min_after = min(new_source_pos.x(), new_target_pos.x())
+    x_max_after = max(new_source_pos.x(), new_target_pos.x())
+
+    assert mid_after.y == pytest.approx(new_source_pos.y())
+    assert mid_after.x != pytest.approx(mid_before.x)
+    assert connection.orthogonal_ratio == pytest.approx(initial_ratio or 0.5)
+
+    cp_positions = [cp.scenePos() for cp in item.control_point_items]
+    assert cp_positions[0].y() == pytest.approx(new_source_pos.y())
+    assert cp_positions[1].y() == pytest.approx(new_target_pos.y())

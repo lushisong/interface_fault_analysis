@@ -200,8 +200,12 @@ class InterfaceTemplateDialog(QDialog):
     def display_interface_details(self, interface):
         """显示接口详情"""
         self.name_label.setText(interface.name)
-        self.type_label.setText(interface.interface_type)
-        self.category_label.setText(interface.category)
+        type_text = interface.interface_type.value if hasattr(interface.interface_type, 'value') else str(interface.interface_type)
+        self.type_label.setText(type_text)
+        category = getattr(interface, 'category', None)
+        if not category:
+            category = interface.parameters.get('category') if hasattr(interface, 'parameters') else ""
+        self.category_label.setText(str(category))
         self.data_type_label.setText(interface.data_type)
         self.description_text.setPlainText(interface.description)
         

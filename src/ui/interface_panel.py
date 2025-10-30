@@ -14,9 +14,20 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QSplitter,
                              QMessageBox, QCheckBox)
 from PyQt5.QtCore import Qt, pyqtSignal
 
-from ..models.interface_model import (Interface, InterfaceType, HardwareInterfaceSubtype,
-                                    InterfaceFailureMode, FailureMode, TriggerCondition,
-                                    InterfaceDirection)
+from ..models.interface_model import (
+    Interface,
+    InterfaceType,
+    HardwareInterfaceSubtype,
+    InterfaceFailureMode,
+    FailureMode,
+    TriggerCondition,
+    InterfaceDirection,
+)
+from ..templates import (
+    build_interface_from_template,
+    get_interface_template,
+    get_interface_templates_by_category,
+)
 
 
 class InterfacePanel(QWidget):
@@ -28,13 +39,18 @@ class InterfacePanel(QWidget):
     
     def __init__(self):
         super().__init__()
+        self.template_catalog = get_interface_templates_by_category()
         self.current_interface = None
         self.interfaces = {}
         self.project_manager = None  # 项目管理器
         self.current_system = None  # 当前系统
-        
+        self.current_template_key = None
+        self.pending_template_interface = None
+
         self.init_ui()
         self.init_connections()
+        if hasattr(self, 'type_combo'):
+            self.on_type_changed(self.type_combo.currentText())
     
     def set_project_manager(self, project_manager):
         """设置项目管理器"""
@@ -192,41 +208,23 @@ class InterfacePanel(QWidget):
     
     def create_interface_categories(self):
         """创建接口分类"""
-        # 五大类接口
-        categories = {
-            "算法-操作系统接口": [
-                "进程调度接口", "内存管理接口", "文件系统接口", "网络接口", "设备驱动接口"
-            ],
-            "算法-智能框架接口": [
-                "模型加载接口", "推理执行接口", "数据预处理接口", "后处理接口", "GPU加速接口"
-            ],
-            "算法-应用接口": [
-                "API调用接口", "数据交换接口", "配置管理接口", "状态监控接口", "事件通知接口"
-            ],
-            "算法-数据平台接口": [
-                "数据读取接口", "数据写入接口", "数据查询接口", "数据同步接口", "缓存接口"
-            ],
-            "算法-硬件设备接口": [
-                "传感器接口", "执行器接口", "专用计算硬件接口", "通信硬件接口", "存储硬件接口"
-            ],
-            "一般接口": [
-                "软件-硬件接口", "软件-软件接口", "硬件-硬件接口", "用户接口", "网络接口"
-            ]
-        }
-        
-        for category, interfaces in categories.items():
+        for category in sorted(self.template_catalog.keys()):
             category_item = QTreeWidgetItem(self.interface_tree)
             category_item.setText(0, category)
             category_item.setExpanded(True)
-            
-            for interface_name in interfaces:
-                interface_item = QTreeWidgetItem(category_item)
-                interface_item.setText(0, interface_name)
-                interface_item.setData(0, Qt.UserRole, {
-                    'type': 'interface_template',
-                    'category': category,
-                    'name': interface_name
-                })
+
+            for template in self.template_catalog[category]:
+                template_item = QTreeWidgetItem(category_item)
+                template_item.setText(0, template.name)
+                template_item.setData(
+                    0,
+                    Qt.UserRole,
+                    {
+                        'type': 'interface_template',
+                        'category': category,
+                        'template_key': template.key,
+                    },
+                )
     
     def create_interface_editor(self):
         """创建接口编辑器"""
@@ -496,15 +494,52 @@ def process_data(data):
     
     def load_interface_template(self, template_data):
         """加载接口模板"""
-        self.name_edit.setText(template_data['name'])
-        self.type_combo.setCurrentText(template_data['category'])
-        self.description_edit.setPlainText(f"这是一个{template_data['name']}的接口模板")
-        
-        # 清空参数列表
+        template_key = template_data.get('template_key')
+        if not template_key:
+            return
+
+        definition = get_interface_template(template_key)
+        self.current_template_key = template_key
+        self.pending_template_interface = build_interface_from_template(definition)
+
+        self.name_edit.setText(definition.name)
+        self.type_combo.setCurrentText(definition.category)
+        self.description_edit.setPlainText(definition.description)
+
+        direction_mapping = {
+            InterfaceDirection.INPUT: "输入",
+            InterfaceDirection.OUTPUT: "输出",
+            InterfaceDirection.BIDIRECTIONAL: "双向",
+        }
+        self.direction_combo.setCurrentText(direction_mapping.get(definition.direction, "双向"))
+
+        # 触发子类型刷新，并尽量选中模板指定的子类型
+        self.on_type_changed(definition.category)
+        if definition.subtype:
+            subtype_text = definition.subtype.value if hasattr(definition.subtype, 'value') else str(definition.subtype)
+            for idx in range(self.subtype_combo.count()):
+                if self.subtype_combo.itemText(idx) == subtype_text or subtype_text in self.subtype_combo.itemText(idx):
+                    self.subtype_combo.setCurrentIndex(idx)
+                    break
+
         self.param_list.clear()
-        
-        # 根据接口类型加载默认失效模式
-        self.load_default_failure_modes(template_data['category'])
+        for param_name, param_value in self.pending_template_interface.parameters.items():
+            param_type = type(param_value).__name__
+            item = QListWidgetItem(f"{param_name}: {param_value} ({param_type})")
+            item.setData(Qt.UserRole, {
+                'name': param_name,
+                'value': param_value,
+                'type': param_type
+            })
+            self.param_list.addItem(item)
+
+        self.failure_list.clear()
+        for failure_mode in self.pending_template_interface.failure_modes:
+            item = QListWidgetItem(failure_mode.name)
+            item.setData(Qt.UserRole, failure_mode)
+            self.failure_list.addItem(item)
+
+        self.code_edit.setPlainText(self.pending_template_interface.python_code)
     
     def load_interface_instance(self, interface_id):
         """加载接口实例"""
@@ -512,6 +547,8 @@ def process_data(data):
             interface = self.interfaces[interface_id]
             self.name_edit.setText(interface.name)
             self.description_edit.setPlainText(interface.description)
+            self.current_template_key = getattr(interface, 'template_key', None)
+            self.pending_template_interface = None
             
             # 设置接口类型
             type_mapping = {
@@ -549,37 +586,12 @@ def process_data(data):
             # 加载失效模式
             self.failure_list.clear()
             for failure_mode in interface.failure_modes:
-                self.failure_list.addItem(failure_mode.name)
+                item = QListWidgetItem(failure_mode.name)
+                item.setData(Qt.UserRole, failure_mode.clone())
+                self.failure_list.addItem(item)
             
             # 加载代码
             self.code_edit.setPlainText(interface.python_code)
-    
-    def load_default_failure_modes(self, interface_type):
-        """加载默认失效模式"""
-        self.failure_list.clear()
-        
-        # 根据接口类型定义常见失效模式
-        failure_modes = {
-            "算法-操作系统接口": [
-                "优先级反转导致对时超时", "环形缓冲溢出", "线程池枯竭", "定时器漂移", "看门狗漏触"
-            ],
-            "算法-智能框架接口": [
-                "模型/算子版本不兼容", "GPU内核异常", "推理进程被OOM杀死", "DMA传输超时", "缓存不一致导致结果失效"
-            ],
-            "算法-应用接口": [
-                "目标ID跳变引起航迹震荡", "指令NaN/Inf被传播", "交互死锁", "心跳中断触发保护", "报文分片丢失"
-            ],
-            "算法-数据平台接口": [
-                "阻塞I/O反压上游链路", "时间窗外数据被消费", "帧错配（时空窗错位）", "坐标系标签错误", "分辨率/步幅错配"
-            ],
-            "算法-硬件设备接口": [
-                "时间戳漂移导致姿态解算渐偏", "PPS抖动引起对时偏差", "高负载下丢帧", "UDP分片丢包", "串口黏包/超时"
-            ]
-        }
-        
-        modes = failure_modes.get(interface_type, ["通用失效模式"])
-        for mode in modes:
-            self.failure_list.addItem(mode)
     
     def create_new_interface(self):
         """创建新接口"""
@@ -635,43 +647,58 @@ def process_data(data):
             # 如果当前选择的是模板，则创建新接口
             if current_item and current_item.data(0, Qt.UserRole) and \
                current_item.data(0, Qt.UserRole).get('type') == 'interface_template':
-                # 创建新接口
-                from ..models.interface_model import Interface, InterfaceType, InterfaceDirection
-                
-                # 映射接口类型
+                data = current_item.data(0, Qt.UserRole)
+                template_key = data.get('template_key') or self.current_template_key
+                if template_key:
+                    template_def = get_interface_template(template_key)
+                    interface = build_interface_from_template(template_def)
+                    interface.template_key = template_key
+                else:
+                    interface = Interface()
+
+                interface.name = interface_name
+                interface.description = self.description_edit.toPlainText()
+
                 type_mapping = {
                     "算法-操作系统接口": InterfaceType.ALGORITHM_OS,
                     "算法-智能框架接口": InterfaceType.ALGORITHM_FRAMEWORK,
                     "算法-应用接口": InterfaceType.ALGORITHM_APPLICATION,
                     "算法-数据平台接口": InterfaceType.ALGORITHM_DATA_PLATFORM,
                     "算法-硬件设备接口": InterfaceType.ALGORITHM_HARDWARE,
-                    "一般接口": InterfaceType.SOFTWARE_HARDWARE
+                    "一般接口": InterfaceType.SOFTWARE_HARDWARE,
                 }
-                
-                # 映射方向
                 direction_mapping = {
                     "输入": InterfaceDirection.INPUT,
                     "输出": InterfaceDirection.OUTPUT,
-                    "双向": InterfaceDirection.BIDIRECTIONAL
+                    "双向": InterfaceDirection.BIDIRECTIONAL,
                 }
-                
-                interface_type = type_mapping.get(self.type_combo.currentText(), InterfaceType.SOFTWARE_HARDWARE)
-                direction = direction_mapping.get(self.direction_combo.currentText(), InterfaceDirection.BIDIRECTIONAL)
-                
-                interface = Interface(interface_name, self.description_edit.toPlainText(), 
-                                     interface_type, direction)
-                
-                # 设置参数
-                interface.parameters = {}
+
+                interface.interface_type = type_mapping.get(self.type_combo.currentText(), InterfaceType.SOFTWARE_HARDWARE)
+                interface.direction = direction_mapping.get(self.direction_combo.currentText(), InterfaceDirection.BIDIRECTIONAL)
+
+                params = dict(interface.parameters)
                 for i in range(self.param_list.count()):
                     item = self.param_list.item(i)
                     param_data = item.data(Qt.UserRole)
                     if param_data:
-                        interface.parameters[param_data['name']] = param_data['value']
-                
-                # 设置代码
+                        params[param_data['name']] = param_data['value']
+                interface.parameters = params
+
                 interface.python_code = self.code_edit.toPlainText()
-                
+
+                # 覆盖失效模式为当前列表内容
+                interface.failure_modes = []
+                for i in range(self.failure_list.count()):
+                    item = self.failure_list.item(i)
+                    fm_data = item.data(Qt.UserRole)
+                    if isinstance(fm_data, InterfaceFailureMode):
+                        interface.failure_modes.append(fm_data.clone())
+                    else:
+                        custom_fm = InterfaceFailureMode(FailureMode.CONFIGURATION_ERROR, item.text())
+                        custom_fm.description = "用户自定义失效模式"
+                        interface.failure_modes.append(custom_fm)
+                interface.reset_runtime_state()
+
                 # 添加到接口库
                 self.interfaces[interface.id] = interface
                 
@@ -698,7 +725,7 @@ def process_data(data):
                             interface = self.interfaces[interface_id]
                             interface.name = interface_name
                             interface.description = self.description_edit.toPlainText()
-                            
+
                             # 更新类型和方向
                             type_mapping = {
                                 "算法-操作系统接口": InterfaceType.ALGORITHM_OS,
@@ -706,27 +733,47 @@ def process_data(data):
                                 "算法-应用接口": InterfaceType.ALGORITHM_APPLICATION,
                                 "算法-数据平台接口": InterfaceType.ALGORITHM_DATA_PLATFORM,
                                 "算法-硬件设备接口": InterfaceType.ALGORITHM_HARDWARE,
-                                "一般接口": InterfaceType.SOFTWARE_HARDWARE
+                                "一般接口": InterfaceType.SOFTWARE_HARDWARE,
                             }
                             direction_mapping = {
                                 "输入": InterfaceDirection.INPUT,
                                 "输出": InterfaceDirection.OUTPUT,
-                                "双向": InterfaceDirection.BIDIRECTIONAL
+                                "双向": InterfaceDirection.BIDIRECTIONAL,
                             }
                             interface.interface_type = type_mapping.get(self.type_combo.currentText(), InterfaceType.SOFTWARE_HARDWARE)
                             interface.direction = direction_mapping.get(self.direction_combo.currentText(), InterfaceDirection.BIDIRECTIONAL)
-                            
-                            # 更新参数
-                            interface.parameters = {}
+
+                            # 更新参数，保留模板元数据
+                            base_params = {
+                                key: value
+                                for key, value in interface.parameters.items()
+                                if str(key).startswith("__")
+                            }
                             for i in range(self.param_list.count()):
                                 item = self.param_list.item(i)
                                 param_data = item.data(Qt.UserRole)
                                 if param_data:
-                                    interface.parameters[param_data['name']] = param_data['value']
-                            
+                                    base_params[param_data['name']] = param_data['value']
+                            interface.parameters = base_params
+
                             # 更新代码
                             interface.python_code = self.code_edit.toPlainText()
-                            
+
+                            # 更新失效模式
+                            failure_modes = []
+                            for i in range(self.failure_list.count()):
+                                item = self.failure_list.item(i)
+                                fm_data = item.data(Qt.UserRole)
+                                if isinstance(fm_data, InterfaceFailureMode):
+                                    failure_modes.append(fm_data.clone())
+                                else:
+                                    fm = InterfaceFailureMode(FailureMode.CONFIGURATION_ERROR, item.text())
+                                    fm.description = "用户自定义失效模式"
+                                    failure_modes.append(fm)
+                            if failure_modes:
+                                interface.failure_modes = failure_modes
+                                interface.reset_runtime_state()
+
                             # 保存到系统
                             self.save_interfaces_to_system()
                             
@@ -757,6 +804,8 @@ def process_data(data):
         self.failure_name_edit.clear()
         self.failure_desc_edit.clear()
         self.trigger_condition_edit.clear()
+        self.current_template_key = None
+        self.pending_template_interface = None
     
     def add_failure_mode(self):
         """添加失效模式"""
@@ -775,12 +824,6 @@ def process_data(data):
         current_row = self.failure_list.currentRow()
         if current_row >= 0:
             self.failure_list.takeItem(current_row)
-    
-    def add_parameter(self):
-        """添加参数"""
-        # 这里可以打开一个参数编辑对话框
-        param_name = f"参数{self.param_list.count() + 1}"
-        self.param_list.addItem(param_name)
     
     def on_parameter_selected(self, current, previous):
         """参数选择事件"""

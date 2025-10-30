@@ -65,6 +65,9 @@ class FaultTreeGenerator:
         
         # 设置事件概率
         self._set_event_probabilities()
+        # 事件命名与模块维度统计
+        self._finalize_event_names()
+        self._compute_module_summary()
         
         # 布局故障树
         self._layout_fault_tree()
@@ -201,32 +204,95 @@ class FaultTreeGenerator:
                 self.fault_tree.add_gate(gate)
     
     def _get_module_interface_failures(self, module) -> List[str]:
-        """获取模块相关的接口失效事件"""
-        interface_failure_events = []
-        
-        # 查找与该模块相关的连接
+        """获取模块相关的接口失效事件（支持端口级接口克隆）。"""
+        interface_failure_events: List[str] = []
+
         for connection in self.system.connections.values():
-            if connection.source_module_id == module.id or connection.target_module_id == module.id:
-                # 查找连接使用的接口
-                if connection.interface_id and connection.interface_id in self.system.interfaces:
-                    interface = self.system.interfaces[connection.interface_id]
-                    
-                    # 为接口的每个失效模式创建事件
-                    for failure_mode in interface.failure_modes:
-                        if failure_mode.enabled:
-                            failure_event = FaultTreeEvent(
-                                name=f"{interface.name}_{failure_mode.name}",
-                                event_type=EventType.BASIC_EVENT
-                            )
-                            failure_event.description = f"接口 '{interface.name}' 发生 '{failure_mode.name}' 失效"
-                            failure_event.interface_id = interface.id
-                            failure_event.failure_mode_id = failure_mode.id
-                            failure_event.failure_rate = failure_mode.failure_rate
-                            
-                            self.fault_tree.add_event(failure_event)
-                            interface_failure_events.append(failure_event.id)
-        
+            involved = False
+            iface: Optional[Interface] = None
+
+            endpoint = None
+            if connection.source_module_id == module.id:
+                involved = True
+                # 优先从模块字典取端口级接口
+                src_id = getattr(connection, 'source_point_id', '')
+                if src_id and src_id in module.interfaces:
+                    iface = module.interfaces[src_id]
+                elif connection.interface_id and connection.interface_id in self.system.interfaces:
+                    iface = self.system.interfaces[connection.interface_id]
+                endpoint = 'SRC'
+
+            if connection.target_module_id == module.id and (iface is None):
+                involved = True
+                dst_id = getattr(connection, 'target_point_id', '')
+                if dst_id and dst_id in module.interfaces:
+                    iface = module.interfaces[dst_id]
+                elif connection.interface_id and connection.interface_id in self.system.interfaces:
+                    iface = self.system.interfaces[connection.interface_id]
+                endpoint = 'DST'
+
+            if not involved or not iface:
+                continue
+
+            for failure_mode in getattr(iface, 'failure_modes', []):
+                if not getattr(failure_mode, 'enabled', True):
+                    continue
+                # 命名：包含模块名、端点与失效模式
+                readable_name = f"[{module.name}:{endpoint}] {iface.name} - {failure_mode.name}"
+                failure_event = FaultTreeEvent(
+                    name=readable_name,
+                    event_type=EventType.BASIC_EVENT,
+                )
+                failure_event.description = f"接口 '{iface.name}' 发生 '{failure_mode.name}' 失效"
+                failure_event.interface_id = iface.id
+                failure_event.failure_mode_id = failure_mode.id
+                failure_event.failure_rate = getattr(failure_mode, 'failure_rate', 0.0)
+                failure_event.module_id = module.id
+                self.fault_tree.add_event(failure_event)
+                interface_failure_events.append(failure_event.id)
+
         return interface_failure_events
+
+    def _finalize_event_names(self):
+        """如有必要，统一补全事件名称片段，保持可读性一致。"""
+        # 目前接口事件在创建时已命名；此处可对模块内部失效等做规范化
+        for ev in self.fault_tree.events.values():
+            if ev.event_type == EventType.BASIC_EVENT and ev.module_id and not ev.name:
+                # 模块内部失效默认命名
+                ev.name = f"[{ev.module_id}] 内部失效"
+
+    def _compute_module_summary(self):
+        """按模块汇总事件数量与概率，写入 fault_tree.analysis_results['module_summary']。"""
+        summary: Dict[str, Dict[str, Any]] = {}
+        # 预先计算事件概率
+        for ev in self.fault_tree.events.values():
+            if ev.event_type != EventType.BASIC_EVENT:
+                continue
+            p = ev.calculate_probability()
+            if not ev.module_id:
+                continue
+            item = summary.setdefault(ev.module_id, {
+                'basic_event_count': 0,
+                'interface_event_count': 0,
+                'internal_event_count': 0,
+                'probability_sum': 0.0,
+                'top_events': [],  # list of (event_id, name, probability)
+            })
+            item['basic_event_count'] += 1
+            if ev.interface_id:
+                item['interface_event_count'] += 1
+            else:
+                item['internal_event_count'] += 1
+            item['probability_sum'] += p
+            item['top_events'].append((ev.id, ev.name, p))
+
+        # 仅保留 Top-5 贡献
+        for item in summary.values():
+            item['top_events'].sort(key=lambda t: t[2], reverse=True)
+            item['top_events'] = item['top_events'][:5]
+
+        self.fault_tree.analysis_results = self.fault_tree.analysis_results or {}
+        self.fault_tree.analysis_results['module_summary'] = summary
     
     def _get_module_environment_failures(self, module) -> List[str]:
         """获取模块相关的环境失效事件"""

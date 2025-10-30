@@ -14,6 +14,9 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGraphicsView,
                              QDialog, QFormLayout, QLineEdit, QTextEdit, QComboBox,
                              QDialogButtonBox, QListWidget, QListWidgetItem, QSplitter,
                              QGroupBox, QScrollArea, QMessageBox)
+import math
+from typing import Optional
+
 from PyQt5.QtCore import Qt, QRectF, QPointF, pyqtSignal, QTimer
 from PyQt5.QtGui import QPen, QBrush, QColor, QPainter, QFont, QPainterPath
 
@@ -271,6 +274,32 @@ class ModuleGraphicsItem(QGraphicsRectItem):
             if item.connection_point.id == interface_id:
                 return self.mapToScene(item.pos() + QPointF(4, 4))  # 接口中心点
         return None
+
+    def get_interface_side(self, interface_id):
+        """获取接口所在边"""
+        for item in self.interface_items:
+            if item.connection_point.id == interface_id:
+                local_pos = item.pos()
+                rect = self.rect()
+                tolerance = 12
+                if local_pos.x() <= 0 - tolerance / 2:
+                    return 'left'
+                if local_pos.x() >= rect.width() - tolerance / 2:
+                    return 'right'
+                if local_pos.y() <= 0 - tolerance / 2:
+                    return 'top'
+                if local_pos.y() >= rect.height() - tolerance / 2:
+                    return 'bottom'
+        return None
+
+    def get_interface_axis(self, interface_id):
+        """获取接口所在边对应的连线首段方向（horizontal/vertical）"""
+        side = self.get_interface_side(interface_id)
+        if side in ('left', 'right'):
+            return 'horizontal'
+        if side in ('top', 'bottom'):
+            return 'vertical'
+        return None
     
     def mousePressEvent(self, event):
         """鼠标按下事件"""
@@ -348,18 +377,20 @@ class ControlPointItem(QGraphicsEllipseItem):
     """控制点项"""
     
     def __init__(self, parent_connection, index, pos):
-        super().__init__(-5, -5, 10, 10)
+        super().__init__(-7, -7, 14, 14)
         self.parent_connection = parent_connection
         self.index = index
-        self.setPos(pos)
+        self._suppress_item_change = False
+        self.setPosSilently(pos)
         
         # 设置外观
         self.setBrush(QBrush(QColor(255, 255, 0)))
         self.setPen(QPen(QColor(0, 0, 0), 1))
         self.setFlag(QGraphicsItem.ItemIsMovable, True)
-        self.setFlag(QGraphicsItem.ItemIsSelectable, True)
         self.setFlag(QGraphicsItem.ItemSendsGeometryChanges, True)
         self.setAcceptHoverEvents(True)
+        self.setZValue(5000)
+        self.setCursor(Qt.SizeAllCursor)
     
     def mouseMoveEvent(self, event):
         """鼠标移动事件"""
@@ -367,22 +398,24 @@ class ControlPointItem(QGraphicsEllipseItem):
         # 更新父连接的路径
         self.parent_connection.update_path_from_control_points()
     
+    def setPosSilently(self, pos: QPointF):
+        """设置位置但不触发约束逻辑"""
+        self._suppress_item_change = True
+        super().setPos(pos)
+        self._suppress_item_change = False
+    
     def itemChange(self, change, value):
         """项变化事件"""
+        if self._suppress_item_change:
+            return super().itemChange(change, value)
         if change == QGraphicsItem.ItemPositionChange:
-            # 限制控制点在场景范围内
-            scene_rect = self.scene().sceneRect()
-            new_pos = value
-            if new_pos.x() < scene_rect.left():
-                new_pos.setX(scene_rect.left())
-            elif new_pos.x() > scene_rect.right():
-                new_pos.setX(scene_rect.right())
-            if new_pos.y() < scene_rect.top():
-                new_pos.setY(scene_rect.top())
-            elif new_pos.y() > scene_rect.bottom():
-                new_pos.setY(scene_rect.bottom())
-            return new_pos
+            return self.parent_connection.constrain_control_point_position(self.index, value)
         return super().itemChange(change, value)
+
+    def shape(self):
+        path = QPainterPath()
+        path.addEllipse(-9, -9, 18, 18)
+        return path
 
 
 class ConnectionGraphicsItem(QGraphicsPathItem):
@@ -393,6 +426,7 @@ class ConnectionGraphicsItem(QGraphicsPathItem):
         self.connection = connection
         self.system_canvas = system_canvas
         self.control_point_items = []  # 控制点图形项列表
+        self._is_syncing_control_points = False
         
         # 设置外观
         self.setPen(QPen(QColor(0, 100, 200), 2))
@@ -411,51 +445,250 @@ class ConnectionGraphicsItem(QGraphicsPathItem):
         for item in self.control_point_items:
             if item.scene():
                 item.scene().removeItem(item)
+            item.setParentItem(None)
         self.control_point_items.clear()
 
         style = getattr(self.connection, 'line_style', 'curved')
-        if style != 'curved':
-            # 非曲线样式不使用控制点
-            self.connection.connection_points = []
-            return
+        source_pos, target_pos = self._interface_positions()
 
-        # 如果连接没有控制点数据，创建默认控制点
-        if not self.connection.connection_points:
-            source_item = self.system_canvas.graphics_items.get(self.connection.source_module_id)
-            target_item = self.system_canvas.graphics_items.get(self.connection.target_module_id)
-            
-            if source_item and target_item:
-                source_pos = source_item.get_interface_position(self.connection.source_point_id)
-                target_pos = target_item.get_interface_position(self.connection.target_point_id)
-                
-                if source_pos and target_pos:
-                    # 创建两个默认控制点
-                    dx = target_pos.x() - source_pos.x()
-                    dy = target_pos.y() - source_pos.y()
-                    
-                    cp1 = Point(source_pos.x() + dx * 0.3, source_pos.y())
-                    cp2 = Point(target_pos.x() - dx * 0.3, target_pos.y())
-                    
-                    self.connection.connection_points = [cp1, cp2]
-        
-        # 创建控制点图形项
-        for i, cp in enumerate(self.connection.connection_points):
-            control_point_item = ControlPointItem(self, i, QPointF(cp.x, cp.y))
-            self.control_point_items.append(control_point_item)
-            if self.scene():
-                self.scene().addItem(control_point_item)
+        if style == 'curved':
+            # 如果连接没有控制点数据，创建默认控制点
+            if not self.connection.connection_points and source_pos and target_pos:
+                dx = target_pos.x() - source_pos.x()
+                cp1 = Point(source_pos.x() + dx * 0.3, source_pos.y())
+                cp2 = Point(target_pos.x() - dx * 0.3, target_pos.y())
+                self.connection.connection_points = [cp1, cp2]
+
+            for i, cp in enumerate(self.connection.connection_points):
+                control_point_item = ControlPointItem(self, i, QPointF(cp.x, cp.y))
+                control_point_item.setParentItem(self)
+                self.control_point_items.append(control_point_item)
+        elif style == 'orthogonal':
+            if source_pos and target_pos:
+                self._ensure_orthogonal_metadata(source_pos, target_pos, reset_missing=True)
+                orth_points = self._ensure_orthogonal_points(source_pos, target_pos)
+                for i, point in enumerate(orth_points):
+                    control_point_item = ControlPointItem(self, i, point)
+                    control_point_item.setParentItem(self)
+                    self.control_point_items.append(control_point_item)
+        else:
+            # 直线样式不使用控制点
+            self.connection.connection_points = []
     
-    def update_path(self):
-        """更新连线路径"""
+    def _interface_positions(self):
         source_item = self.system_canvas.graphics_items.get(self.connection.source_module_id)
         target_item = self.system_canvas.graphics_items.get(self.connection.target_module_id)
         
         if not source_item or not target_item:
-            return
+            return None, None
         
-        # 获取接口位置
         source_pos = source_item.get_interface_position(self.connection.source_point_id)
         target_pos = target_item.get_interface_position(self.connection.target_point_id)
+        
+        return source_pos, target_pos
+
+    def _get_interface_axis(self, module_id: str, interface_id: str):
+        module_item = self.system_canvas.graphics_items.get(module_id)
+        if module_item and hasattr(module_item, 'get_interface_axis'):
+            return module_item.get_interface_axis(interface_id)
+        return None
+
+    def _preferred_axes(self):
+        source_axis = self._get_interface_axis(self.connection.source_module_id, self.connection.source_point_id)
+        target_axis = self._get_interface_axis(self.connection.target_module_id, self.connection.target_point_id)
+        return source_axis, target_axis
+
+    def _ensure_orthogonal_metadata(self, source_pos: QPointF, target_pos: QPointF, reset_missing: bool = False):
+        """确保正交连线的元数据存在"""
+        dx = target_pos.x() - source_pos.x()
+        dy = target_pos.y() - source_pos.y()
+
+        orientation = getattr(self.connection, 'orthogonal_orientation', None)
+        source_axis, target_axis = self._preferred_axes()
+        orientation_forced = False
+        if reset_missing or orientation not in {'horizontal', 'vertical'}:
+            if source_axis and target_axis and source_axis == target_axis:
+                orientation = source_axis
+                orientation_forced = True
+            elif source_axis:
+                orientation = source_axis
+                orientation_forced = True
+            elif target_axis:
+                orientation = target_axis
+                orientation_forced = True
+            else:
+                orientation = 'horizontal' if abs(dx) >= abs(dy) else 'vertical'
+
+        if orientation == 'horizontal' and abs(dx) < 1e-4 and not orientation_forced:
+            orientation = 'vertical'
+        if orientation == 'vertical' and abs(dy) < 1e-4 and not orientation_forced:
+            orientation = 'horizontal'
+
+        self.connection.orthogonal_orientation = orientation
+
+        current_ratio = None if reset_missing else getattr(self.connection, 'orthogonal_ratio', None)
+        ratio = self._derive_ratio_from_points(source_pos, target_pos, orientation, current_ratio)
+        ratio = self._clamp_ratio(ratio)
+        self.connection.orthogonal_ratio = ratio
+        return orientation, ratio
+
+    def _derive_ratio_from_points(self, source_pos: QPointF, target_pos: QPointF,
+                                  orientation: str, existing_ratio: Optional[float]):
+        if existing_ratio is not None:
+            return existing_ratio
+
+        points = getattr(self.connection, 'connection_points', [])
+        if orientation == 'horizontal':
+            span = abs(target_pos.x() - source_pos.x())
+            if span < 1e-4:
+                return 0.5
+            x_min = min(source_pos.x(), target_pos.x())
+            if points:
+                cp_x = points[0].x
+                return (cp_x - x_min) / span
+        else:
+            span = abs(target_pos.y() - source_pos.y())
+            if span < 1e-4:
+                return 0.5
+            y_min = min(source_pos.y(), target_pos.y())
+            if points:
+                cp_y = points[0].y
+                return (cp_y - y_min) / span
+        return 0.5
+
+    def _clamp_ratio(self, ratio: Optional[float]) -> float:
+        if ratio is None or math.isnan(ratio):
+            return 0.5
+        return ratio
+
+    def _orthogonal_span(self, source_pos: QPointF, target_pos: QPointF, orientation: str):
+        if orientation == 'horizontal':
+            x_min = min(source_pos.x(), target_pos.x())
+            x_max = max(source_pos.x(), target_pos.x())
+            return x_min, x_max, x_max - x_min
+        x_min = min(source_pos.y(), target_pos.y())
+        x_max = max(source_pos.y(), target_pos.y())
+        return x_min, x_max, x_max - x_min
+
+    def _orthogonal_points_positions(self, source_pos: QPointF, target_pos: QPointF,
+                                     orientation: str, ratio: float):
+        if orientation == 'horizontal':
+            x_min, x_max, span = self._orthogonal_span(source_pos, target_pos, orientation)
+            if span < 1e-4:
+                cp_x = (x_min + x_max) / 2.0
+            else:
+                cp_x = x_min + span * ratio
+            return [
+                QPointF(cp_x, source_pos.y()),
+                QPointF(cp_x, target_pos.y())
+            ]
+        y_min, y_max, span = self._orthogonal_span(source_pos, target_pos, orientation)
+        if span < 1e-4:
+            cp_y = (y_min + y_max) / 2.0
+        else:
+            cp_y = y_min + span * ratio
+        return [
+            QPointF(source_pos.x(), cp_y),
+            QPointF(target_pos.x(), cp_y)
+        ]
+
+    def _set_connection_points_from_ratio(self, source_pos: QPointF, target_pos: QPointF,
+                                          orientation: str, ratio: float):
+        orth_points = self._orthogonal_points_positions(source_pos, target_pos, orientation, ratio)
+        self.connection.connection_points = [Point(pt.x(), pt.y()) for pt in orth_points]
+        return orth_points
+
+    def _ensure_orthogonal_points(self, source_pos: QPointF, target_pos: QPointF):
+        orientation, ratio = self._ensure_orthogonal_metadata(source_pos, target_pos)
+        return self._set_connection_points_from_ratio(source_pos, target_pos, orientation, ratio)
+
+    def _refresh_orthogonal_control_points(self, source_pos: Optional[QPointF] = None,
+                                           target_pos: Optional[QPointF] = None):
+        if not self.control_point_items:
+            return
+        if source_pos is None or target_pos is None:
+            source_pos, target_pos = self._interface_positions()
+            if not source_pos or not target_pos:
+                return
+        orth_points = self._ensure_orthogonal_points(source_pos, target_pos)
+        self._is_syncing_control_points = True
+        try:
+            for item, point in zip(self.control_point_items, orth_points):
+                item.setPosSilently(point)
+        finally:
+            self._is_syncing_control_points = False
+
+    def _ratio_from_control_positions(self, positions, source_pos: QPointF,
+                                      target_pos: QPointF, orientation: str):
+        if not positions:
+            return 0.5
+        if orientation == 'horizontal':
+            x_min, x_max, span = self._orthogonal_span(source_pos, target_pos, orientation)
+            if span < 1e-4:
+                return 0.5
+            avg_x = sum(pos.x() for pos in positions) / len(positions)
+            return (avg_x - x_min) / span
+        y_min, y_max, span = self._orthogonal_span(source_pos, target_pos, orientation)
+        if span < 1e-4:
+            return 0.5
+        avg_y = sum(pos.y() for pos in positions) / len(positions)
+        return (avg_y - y_min) / span
+
+    def constrain_control_point_position(self, index: int, proposed_pos: QPointF) -> QPointF:
+        """限制控制点移动范围"""
+        new_pos = QPointF(proposed_pos)
+        style = getattr(self.connection, 'line_style', 'curved')
+        if style == 'orthogonal':
+            source_pos, target_pos = self._interface_positions()
+            if source_pos and target_pos:
+                orientation, ratio = self._ensure_orthogonal_metadata(source_pos, target_pos)
+                if orientation == 'horizontal':
+                    new_x = proposed_pos.x()
+                    new_y = source_pos.y() if index == 0 else target_pos.y()
+                    new_pos = QPointF(new_x, new_y)
+                else:
+                    new_y = proposed_pos.y()
+                    new_x = source_pos.x() if index == 0 else target_pos.x()
+                    new_pos = QPointF(new_x, new_y)
+        return self._constrain_to_scene(new_pos)
+
+    def _constrain_to_scene(self, pos: QPointF) -> QPointF:
+        if not self.scene():
+            return pos
+        scene_rect = self.scene().sceneRect()
+        new_pos = QPointF(pos)
+        if new_pos.x() < scene_rect.left():
+            new_pos.setX(scene_rect.left())
+        elif new_pos.x() > scene_rect.right():
+            new_pos.setX(scene_rect.right())
+        if new_pos.y() < scene_rect.top():
+            new_pos.setY(scene_rect.top())
+        elif new_pos.y() > scene_rect.bottom():
+            new_pos.setY(scene_rect.bottom())
+        return new_pos
+
+    def _points_almost_equal(self, p1: QPointF, p2: QPointF, tol: float = 0.1) -> bool:
+        return abs(p1.x() - p2.x()) <= tol and abs(p1.y() - p2.y()) <= tol
+
+    def _remove_redundant_points(self, points):
+        if not points:
+            return []
+        cleaned = [points[0]]
+        for point in points[1:]:
+            if not self._points_almost_equal(point, cleaned[-1]):
+                cleaned.append(point)
+        return cleaned
+
+    def _build_orthogonal_path(self, source_pos: QPointF, target_pos: QPointF):
+        path_points = [QPointF(source_pos)]
+        for point in self._ensure_orthogonal_points(source_pos, target_pos):
+            path_points.append(point)
+        path_points.append(QPointF(target_pos))
+        return self._remove_redundant_points(path_points)
+
+    def update_path(self):
+        """更新连线路径"""
+        source_pos, target_pos = self._interface_positions()
         
         if not source_pos or not target_pos:
             return
@@ -469,19 +702,9 @@ class ConnectionGraphicsItem(QGraphicsPathItem):
         if style == 'straight':
             path.lineTo(target_pos)
         elif style == 'orthogonal':
-            dx = target_pos.x() - source_pos.x()
-            dy = target_pos.y() - source_pos.y()
-
-            if abs(dx) >= abs(dy):
-                mid_x = source_pos.x() + dx / 2
-                path.lineTo(QPointF(mid_x, source_pos.y()))
-                path.lineTo(QPointF(mid_x, target_pos.y()))
-            else:
-                mid_y = source_pos.y() + dy / 2
-                path.lineTo(QPointF(source_pos.x(), mid_y))
-                path.lineTo(QPointF(target_pos.x(), mid_y))
-
-            path.lineTo(target_pos)
+            orthogonal_points = self._build_orthogonal_path(source_pos, target_pos)
+            for point in orthogonal_points[1:]:
+                path.lineTo(point)
         else:
             # 如果有控制点，使用控制点创建曲线
             if len(self.connection.connection_points) >= 2:
@@ -500,26 +723,67 @@ class ConnectionGraphicsItem(QGraphicsPathItem):
                 path.cubicTo(control1, control2, target_pos)
 
         self.setPath(path)
+        if style == 'orthogonal':
+            self._refresh_orthogonal_control_points(source_pos, target_pos)
     
     def update_path_from_control_points(self):
         """从控制点更新连线路径"""
-        # 更新连接的控制点数据
-        for i, cp_item in enumerate(self.control_point_items):
-            if i < len(self.connection.connection_points):
-                pos = cp_item.scenePos()
-                self.connection.connection_points[i].x = pos.x()
-                self.connection.connection_points[i].y = pos.y()
+        if self._is_syncing_control_points:
+            return
+
+        style = getattr(self.connection, 'line_style', 'curved')
+
+        if style == 'orthogonal':
+            self._update_orthogonal_from_control_points()
+        else:
+            # 更新连接的控制点数据
+            for i, cp_item in enumerate(self.control_point_items):
+                if i < len(self.connection.connection_points):
+                    pos = cp_item.scenePos()
+                    self.connection.connection_points[i].x = pos.x()
+                    self.connection.connection_points[i].y = pos.y()
         
-        # 更新路径
+        # 更新连接的控制点数据
+        
         self.update_path()
         
         # 标记项目已修改
         if self.system_canvas.project_manager:
             self.system_canvas.project_manager.mark_modified()
     
+    def _update_orthogonal_from_control_points(self):
+        if len(self.control_point_items) < 2:
+            return
+        source_pos, target_pos = self._interface_positions()
+        if not source_pos or not target_pos:
+            return
+
+        orientation, _ = self._ensure_orthogonal_metadata(source_pos, target_pos)
+        positions = [item.scenePos() for item in self.control_point_items]
+        ratio = self._ratio_from_control_positions(positions, source_pos, target_pos, orientation)
+        ratio = self._clamp_ratio(ratio)
+        self.connection.orthogonal_ratio = ratio
+        self._set_connection_points_from_ratio(source_pos, target_pos, orientation, ratio)
+        self._refresh_orthogonal_control_points(source_pos, target_pos)
+    
     def contextMenuEvent(self, event):
         """右键菜单事件"""
         menu = QMenu()
+        style_menu = menu.addMenu("修改连线类型")
+
+        style_actions = {}
+        style_map = [
+            ("曲线", "curved"),
+            ("直线", "straight"),
+            ("直角", "orthogonal"),
+        ]
+        current_style = getattr(self.connection, 'line_style', 'curved')
+        for text, style_value in style_map:
+            action = style_menu.addAction(text)
+            action.setCheckable(True)
+            action.setChecked(current_style == style_value)
+            style_actions[action] = style_value
+
         delete_action = menu.addAction("删除连线")
         
         # 显示菜单并获取选择
@@ -527,7 +791,9 @@ class ConnectionGraphicsItem(QGraphicsPathItem):
         
         if action == delete_action:
             self.delete_connection()
-    
+        elif action in style_actions:
+            self.change_line_style(style_actions[action])
+
     def delete_connection(self):
         """删除连线"""
         try:
@@ -583,6 +849,36 @@ class ConnectionGraphicsItem(QGraphicsPathItem):
             for cp_item in self.control_point_items:
                 cp_item.setVisible(bool(value))
         return super().itemChange(change, value)
+
+    def change_line_style(self, style: str):
+        """修改连线样式"""
+        if style not in {"curved", "straight", "orthogonal"}:
+            return
+
+        if getattr(self.connection, 'line_style', 'curved') == style:
+            return
+
+        self.connection.line_style = style
+
+        if style == 'straight':
+            self.connection.connection_points = []
+            self.connection.orthogonal_orientation = None
+            self.connection.orthogonal_ratio = None
+        elif style == 'orthogonal':
+            self.connection.connection_points = []
+            self.connection.orthogonal_orientation = None
+            self.connection.orthogonal_ratio = None
+        else:
+            # 重置控制点以便重新生成默认值
+            self.connection.connection_points = []
+            self.connection.orthogonal_orientation = None
+            self.connection.orthogonal_ratio = None
+
+        self.create_control_points()
+        self.update_path()
+
+        if self.system_canvas and self.system_canvas.project_manager:
+            self.system_canvas.project_manager.mark_modified()
 
 
 class SystemCanvas(QWidget):

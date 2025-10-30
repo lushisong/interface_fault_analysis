@@ -201,7 +201,9 @@ class Connection:
     
     def __init__(self, id: str = "", source_module_id: str = "", target_module_id: str = "",
                  source_point_id: str = "", target_point_id: str = "",
-                 line_style: str = "curved"):
+                 line_style: str = "curved",
+                 orthogonal_orientation: Optional[str] = None,
+                 orthogonal_ratio: Optional[float] = None):
         if id:
             self.id = id
         else:
@@ -214,6 +216,8 @@ class Connection:
         self.connection_points = []  # 连线的控制点
         self.enabled = True
         self.line_style = line_style  # curved, straight, orthogonal
+        self.orthogonal_orientation = orthogonal_orientation  # horizontal or vertical
+        self.orthogonal_ratio = orthogonal_ratio  # control segment ratio
     
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -225,7 +229,9 @@ class Connection:
             'interface_id': self.interface_id,
             'connection_points': [cp.to_dict() for cp in self.connection_points],
             'enabled': self.enabled,
-            'line_style': self.line_style
+            'line_style': self.line_style,
+            'orthogonal_orientation': self.orthogonal_orientation,
+            'orthogonal_ratio': self.orthogonal_ratio
         }
     
     def from_dict(self, data: Dict[str, Any]):
@@ -245,6 +251,8 @@ class Connection:
 
         self.enabled = data.get('enabled', True)
         self.line_style = data.get('line_style', 'curved')
+        self.orthogonal_orientation = data.get('orthogonal_orientation')
+        self.orthogonal_ratio = data.get('orthogonal_ratio')
 
 
 class EnvironmentModel(BaseModel):
@@ -518,22 +526,82 @@ class SystemStructure(BaseModel):
     
     def simulate_system(self, duration: float = 1.0) -> Dict[str, Any]:
         """模拟系统运行"""
-        # 这里实现系统仿真逻辑
-        # 返回系统状态
-        system_state = {}
-        
-        # 执行模块仿真
+        system_state: Dict[str, Any] = {}
+
+        def gather_environment_snapshot() -> Dict[str, Dict[str, Any]]:
+            snapshot: Dict[str, Dict[str, Any]] = {'global': {}}
+            for env_model in self.environment_models.values():
+                base = dict(getattr(env_model, 'parameters', {}))
+                for factor in getattr(env_model, 'stress_factors', []):
+                    name = getattr(factor, 'name', None)
+                    if not name:
+                        continue
+                    base[name] = getattr(factor, 'base_value', 0.0)
+                    stress_type = getattr(factor, 'stress_type', None)
+                    if stress_type is not None:
+                        base[f"{name}_type"] = getattr(stress_type, 'value', str(stress_type))
+                snapshot['global'][env_model.id] = base
+                for module_id in getattr(env_model, 'affected_modules', []):
+                    module_env = snapshot.setdefault(module_id, {})
+                    module_env.update(base)
+            return snapshot
+
+        environment_snapshot = gather_environment_snapshot()
+        module_outputs: Dict[str, Dict[str, Any]] = {}
+        interface_outputs_by_module: Dict[str, Dict[str, Any]] = {}
+        interface_inputs_by_module: Dict[str, Dict[str, Any]] = {}
+
+        # 初步执行模块逻辑
         for module_id, module in self.modules.items():
-            module_inputs = {}  # 从连接获取输入
-            module_outputs = module.execute_python_code(module_inputs)
-            system_state[module_id] = module_outputs
-        
-        # 应用环境应力
-        for env_model in self.environment_models.values():
-            if hasattr(env_model, 'apply_stress'):
-                system_state = env_model.apply_stress(system_state)
-            elif hasattr(env_model, 'apply_environment_stress'):
-                system_state = env_model.apply_environment_stress(system_state)
+            inputs = {
+                'environment': environment_snapshot.get(module_id, environment_snapshot.get('global', {})),
+                'task_context': {},
+                'interfaces': {},
+            }
+            try:
+                outputs = module.execute_python_code(inputs) or {}
+            except Exception as exc:  # pragma: no cover - defensive logging
+                print(f"执行模块 {module.name} 的仿真代码失败: {exc}")
+                outputs = {}
+            module_outputs[module_id] = outputs
+
+        # 汇总所有接口（模块内部和系统级）
+        all_interfaces: Dict[str, Interface] = {}
+        all_interfaces.update(self.interfaces)
+        for module in self.modules.values():
+            all_interfaces.update(module.interfaces)
+
+        # 模拟接口行为，驱动状态机与失效模式
+        for interface in all_interfaces.values():
+            source_context = module_outputs.get(interface.source_module_id, {})
+            runtime_context = {
+                'system_state': module_outputs,
+                'environment': environment_snapshot.get(interface.source_module_id, environment_snapshot.get('global', {})),
+                'time': duration,
+            }
+            try:
+                iface_result = interface.simulate_interface(source_context, runtime_context) or {}
+            except Exception as exc:  # pragma: no cover - defensive logging
+                print(f"接口 {interface.name} 仿真失败: {exc}")
+                iface_result = {}
+
+            if interface.source_module_id:
+                outputs_for_module = interface_outputs_by_module.setdefault(interface.source_module_id, {})
+                outputs_for_module[interface.name] = iface_result
+
+            if interface.target_module_id:
+                inputs_for_module = interface_inputs_by_module.setdefault(interface.target_module_id, {})
+                inputs_for_module[interface.name] = iface_result
+
+        # 合成最终系统状态
+        for module_id, module in self.modules.items():
+            state = dict(module_outputs.get(module_id, {}))
+            if module_id in interface_inputs_by_module:
+                state['interface_inputs'] = interface_inputs_by_module[module_id]
+            if module_id in interface_outputs_by_module:
+                state['interface_outputs'] = interface_outputs_by_module[module_id]
+            state['environment'] = environment_snapshot.get(module_id, environment_snapshot.get('global', {}))
+            system_state[module_id] = state
 
         return system_state
     
